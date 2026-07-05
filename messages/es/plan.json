@@ -1,0 +1,50 @@
+{
+  "title": "Plan y límites",
+  "current": "Plan actual",
+  "perMonth": "/mes",
+  "unlimited": "Ilimitado",
+  "upgradeSoon": "Mejora disponible próximamente",
+  "status": {
+    "trialing": "En periodo de prueba",
+    "active": "Activo",
+    "past_due": "Pago pendiente",
+    "canceled": "Cancelado"
+  },
+  "usage": {
+    "users": "Usuarios",
+    "farms": "Fincas",
+    "pendingInvites": "{count} invitaciones pendientes"
+  },
+  "limitReached": {
+    "maxUsers": "Alcanzaste el límite de usuarios de tu plan. Mejora tu plan para invitar a más miembros.",
+    "maxFarms": "Alcanzaste el límite de fincas de tu plan. Mejora tu plan para agregar más fincas."
+  },
+  "features": {
+    "core": "Gestión de fincas y actividades",
+    "monitoring": "Monitoreo de plagas",
+    "climate": "Clima",
+    "map": "Mapas de parcelas",
+    "harvest": "Cosechas",
+    "labor": "Mano de obra y asistencia",
+    "payroll": "Planilla",
+    "inventory": "Inventario y compras",
+    "sales": "Procesamiento y ventas",
+    "machinery": "Maquinaria",
+    "budgets": "Presupuestos",
+    "warehouses": "Multi-bodega"
+  },
+  "general": {
+    "title": "Configuración",
+    "name": "Nombre",
+    "slug": "Identificador",
+    "currency": "Moneda base",
+    "country": "País",
+    "timezone": "Zona horaria",
+    "links": {
+      "members": "Miembros",
+      "plan": "Plan y límites",
+      "currencies": "Monedas",
+      "import": "Importar datos"
+    }
+  }
+}

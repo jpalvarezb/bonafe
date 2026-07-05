@@ -1,0 +1,17 @@
+{
+  "title": "Climate",
+  "noFarms": "You don't have farms yet. Create one to start logging climate readings.",
+  "charts": "Trends (last 90 days)",
+  "chartRainfall": "Rainfall by day",
+  "chartTemperature": "Min and max temperature",
+  "newReading": "New reading",
+  "date": "Date",
+  "rainfall": "Rainfall (mm)",
+  "tempMinC": "Min temp (°C)",
+  "tempMaxC": "Max temp (°C)",
+  "humidity": "Humidity (%)",
+  "save": "Save reading",
+  "recent": "Latest readings",
+  "empty": "No climate readings yet.",
+  "delete": "Delete"
+}

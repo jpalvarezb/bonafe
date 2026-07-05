@@ -1,0 +1,23 @@
+{
+  "title": "Pest & disease monitoring",
+  "empty": "No monitoring records yet.",
+  "new": "New record",
+  "parcel": "Parcel",
+  "cycle": "Cycle",
+  "cycleNone": "No cycle",
+  "date": "Date",
+  "type": "Type",
+  "agentName": "Agent",
+  "agentNamePlaceholder": "e.g. Coffee leaf rust",
+  "severity": "Severity",
+  "incidencePct": "Incidence (%)",
+  "notes": "Notes",
+  "actionsTaken": "Actions taken",
+  "create": "Save record",
+  "delete": "Delete",
+  "types": {
+    "pest": "Pest",
+    "disease": "Disease",
+    "weed": "Weed"
+  }
+}

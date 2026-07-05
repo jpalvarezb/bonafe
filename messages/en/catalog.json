@@ -1,0 +1,38 @@
+{
+  "crops": {
+    "title": "Crops & varieties",
+    "global": "Global catalog",
+    "custom": "Custom",
+    "new": "New crop",
+    "name": "Name",
+    "scientificName": "Scientific name",
+    "cycleDays": "Cycle days",
+    "create": "Create crop",
+    "varieties": "Varieties",
+    "newVariety": "New variety",
+    "addVariety": "Add"
+  },
+  "products": {
+    "title": "Products & inputs",
+    "empty": "No products yet. Create the first one.",
+    "new": "New product",
+    "name": "Name",
+    "category": "Category",
+    "unit": "Unit",
+    "activeIngredient": "Active ingredient",
+    "create": "Create product",
+    "categories": {
+      "fertilizer": "Fertilizer",
+      "agrochemical": "Agrochemical",
+      "seed": "Seed",
+      "tool": "Tool",
+      "fuel": "Fuel",
+      "other": "Other"
+    }
+  },
+  "activityTypes": {
+    "title": "Activity types",
+    "new": "New type",
+    "create": "Add"
+  }
+}

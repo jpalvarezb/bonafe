@@ -1,0 +1,38 @@
+{
+  "crops": {
+    "title": "Cultivos y variedades",
+    "global": "Catálogo global",
+    "custom": "Personalizado",
+    "new": "Nuevo cultivo",
+    "name": "Nombre",
+    "scientificName": "Nombre científico",
+    "cycleDays": "Días de ciclo",
+    "create": "Crear cultivo",
+    "varieties": "Variedades",
+    "newVariety": "Nueva variedad",
+    "addVariety": "Agregar"
+  },
+  "products": {
+    "title": "Productos e insumos",
+    "empty": "Sin productos todavía. Crea el primero.",
+    "new": "Nuevo producto",
+    "name": "Nombre",
+    "category": "Categoría",
+    "unit": "Unidad",
+    "activeIngredient": "Ingrediente activo",
+    "create": "Crear producto",
+    "categories": {
+      "fertilizer": "Fertilizante",
+      "agrochemical": "Agroquímico",
+      "seed": "Semilla",
+      "tool": "Herramienta",
+      "fuel": "Combustible",
+      "other": "Otro"
+    }
+  },
+  "activityTypes": {
+    "title": "Tipos de actividad",
+    "new": "Nuevo tipo",
+    "create": "Agregar"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "title": "Currencies & exchange rates",
+  "baseCurrency": "Base currency",
+  "addRate": "Add exchange rate",
+  "currency": "Currency",
+  "rate": "Rate to base",
+  "validFrom": "Valid from",
+  "existing": "Existing rates",
+  "empty": "No exchange rates recorded yet.",
+  "delete": "Delete",
+  "hint": "1 unit of the currency = X in the base currency, effective from the given date."
+}

@@ -1,0 +1,34 @@
+{
+  "title": "Fincas",
+  "empty": "Aún no tienes fincas. Crea la primera.",
+  "new": "Nueva finca",
+  "name": "Nombre",
+  "areaHa": "Área (ha)",
+  "notes": "Notas",
+  "create": "Crear finca",
+  "delete": "Eliminar finca",
+  "deleteConfirm": "Se eliminarán la finca y todas sus parcelas.",
+  "parcels": {
+    "title": "Parcelas",
+    "empty": "Esta finca no tiene parcelas todavía.",
+    "new": "Nueva parcela",
+    "name": "Nombre",
+    "code": "Código",
+    "soilType": "Tipo de suelo",
+    "areaHa": "Área (ha)",
+    "areaAuto": "Se calcula automáticamente al dibujar el límite",
+    "boundary": "Límite de la parcela",
+    "drawHint": "Dibuja el límite haciendo clic en el mapa. Doble clic para terminar.",
+    "clearDrawing": "Borrar dibujo",
+    "create": "Crear parcela",
+    "save": "Guardar cambios",
+    "delete": "Eliminar parcela",
+    "edit": "Editar"
+  },
+  "map": {
+    "title": "Mapa de la finca",
+    "satellite": "Satélite",
+    "streets": "Calles",
+    "allParcels": "Todas las parcelas"
+  }
+}

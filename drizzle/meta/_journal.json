@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1783190566801,
+      "tag": "0000_auth-tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783190567408,
+      "tag": "0001_postgis",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783191123937,
+      "tag": "0002_phase1-domain",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783291895668,
+      "tag": "0003_phase2-domain",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783294263953,
+      "tag": "0004_work-order-code-uq",
+      "breakpoints": true
+    }
+  ]
+}

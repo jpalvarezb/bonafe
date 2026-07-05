@@ -1,0 +1,29 @@
+{
+  "exportCsv": "Export CSV",
+  "importCsv": "Import CSV",
+  "title": "Import data",
+  "upload": "Import",
+  "products": {
+    "title": "Import products (CSV)",
+    "hint": "Expected columns: name (required), category, unit, active_ingredient"
+  },
+  "parcels": {
+    "title": "Import parcels (CSV)",
+    "hint": "Expected columns: name and farm (required), code, soil_type, area_ha"
+  },
+  "history": {
+    "title": "Import history",
+    "empty": "No imports yet.",
+    "rows": "{count} rows imported",
+    "rowError": "Row {row}: {error}"
+  },
+  "types": {
+    "products": "Products",
+    "parcels": "Parcels",
+    "activities": "Activities"
+  },
+  "status": {
+    "done": "Done",
+    "failed": "Failed"
+  }
+}

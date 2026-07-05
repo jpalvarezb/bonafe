@@ -1,0 +1,11 @@
+{
+  "title": "Cost centers",
+  "empty": "No cost centers yet.",
+  "new": "New cost center",
+  "name": "Name",
+  "namePlaceholder": "Irrigation",
+  "parent": "Parent cost center",
+  "parentNone": "No parent (root level)",
+  "create": "Create cost center",
+  "delete": "Delete"
+}

@@ -1,0 +1,50 @@
+{
+  "title": "Plan & limits",
+  "current": "Current plan",
+  "perMonth": "/mo",
+  "unlimited": "Unlimited",
+  "upgradeSoon": "Upgrades coming soon",
+  "status": {
+    "trialing": "Trialing",
+    "active": "Active",
+    "past_due": "Past due",
+    "canceled": "Canceled"
+  },
+  "usage": {
+    "users": "Users",
+    "farms": "Farms",
+    "pendingInvites": "{count} pending invitations"
+  },
+  "limitReached": {
+    "maxUsers": "You've reached your plan's user limit. Upgrade your plan to invite more members.",
+    "maxFarms": "You've reached your plan's farm limit. Upgrade your plan to add more farms."
+  },
+  "features": {
+    "core": "Farm and activity management",
+    "monitoring": "Pest monitoring",
+    "climate": "Climate",
+    "map": "Parcel maps",
+    "harvest": "Harvests",
+    "labor": "Labor and attendance",
+    "payroll": "Payroll",
+    "inventory": "Inventory and purchases",
+    "sales": "Processing and sales",
+    "machinery": "Machinery",
+    "budgets": "Budgets",
+    "warehouses": "Multi-warehouse"
+  },
+  "general": {
+    "title": "Settings",
+    "name": "Name",
+    "slug": "Slug",
+    "currency": "Base currency",
+    "country": "Country",
+    "timezone": "Timezone",
+    "links": {
+      "members": "Members",
+      "plan": "Plan & limits",
+      "currencies": "Currencies",
+      "import": "Import data"
+    }
+  }
+}

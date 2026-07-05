@@ -1,0 +1,36 @@
+{
+  "onboarding": {
+    "title": "Create your organization",
+    "subtitle": "The organization groups your farms, team, and data.",
+    "name": "Organization name",
+    "namePlaceholder": "San José Farm",
+    "country": "Country",
+    "currency": "Base currency",
+    "submit": "Create organization",
+    "error": "Could not create the organization"
+  },
+  "members": {
+    "title": "Members",
+    "invite": "Invite member",
+    "email": "Email",
+    "role": "Role",
+    "send": "Send invitation",
+    "pending": "Pending invitations",
+    "copyLink": "Copy link",
+    "invited": "Invitation created",
+    "error": "Could not send the invitation"
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Administrator",
+    "manager": "Manager",
+    "field_supervisor": "Field supervisor"
+  },
+  "invite": {
+    "title": "Invitation to {org}",
+    "accept": "Accept invitation",
+    "loginFirst": "Log in or create an account to accept the invitation.",
+    "accepted": "Welcome to the team!",
+    "error": "The invitation is invalid or has expired"
+  }
+}

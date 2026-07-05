@@ -1,0 +1,44 @@
+{
+  "title": "Actividades",
+  "empty": "No hay actividades registradas.",
+  "new": "Registrar actividad",
+  "type": "Tipo de actividad",
+  "date": "Fecha",
+  "parcel": "Parcela",
+  "parcelNone": "General (sin parcela)",
+  "cycle": "Ciclo",
+  "cycleNone": "Sin ciclo",
+  "description": "Descripción",
+  "inputs": {
+    "title": "Insumos",
+    "product": "Producto",
+    "quantity": "Cantidad",
+    "unitCost": "Costo unitario",
+    "add": "Agregar insumo",
+    "remove": "Quitar"
+  },
+  "labor": {
+    "title": "Mano de obra",
+    "workerName": "Descripción / cuadrilla",
+    "workersCount": "Trabajadores",
+    "hours": "Horas",
+    "rateType": "Tipo de tarifa",
+    "daily": "Por día",
+    "hourly": "Por hora",
+    "rate": "Tarifa",
+    "add": "Agregar mano de obra",
+    "remove": "Quitar"
+  },
+  "otherCost": "Otros costos",
+  "currency": "Moneda",
+  "costCenter": "Centro de costo",
+  "costCenterNone": "Sin centro de costo",
+  "totals": {
+    "inputs": "Insumos",
+    "labor": "Mano de obra",
+    "other": "Otros",
+    "total": "Total"
+  },
+  "save": "Guardar actividad",
+  "delete": "Eliminar"
+}

@@ -1,0 +1,23 @@
+{
+  "title": "Crop cycles",
+  "empty": "No cycles yet. Start the first one.",
+  "new": "New cycle",
+  "name": "Cycle name",
+  "namePlaceholder": "Coffee 2026-A",
+  "parcel": "Parcel",
+  "crop": "Crop",
+  "variety": "Variety",
+  "varietyNone": "No variety",
+  "startDate": "Start date",
+  "expectedEndDate": "Expected end",
+  "plantedAreaHa": "Planted area (ha)",
+  "plantCount": "Plant count",
+  "create": "Start cycle",
+  "close": "Close cycle",
+  "status": {
+    "planned": "Planned",
+    "active": "Active",
+    "closed": "Closed"
+  },
+  "costToDate": "Cost to date"
+}

@@ -1,0 +1,11 @@
+{
+  "title": "Centros de costo",
+  "empty": "No hay centros de costo todavía.",
+  "new": "Nuevo centro de costo",
+  "name": "Nombre",
+  "namePlaceholder": "Riego",
+  "parent": "Centro de costo padre",
+  "parentNone": "Sin padre (nivel raíz)",
+  "create": "Crear centro de costo",
+  "delete": "Eliminar"
+}

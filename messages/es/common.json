@@ -1,0 +1,36 @@
+{
+  "appName": "AgroPeq",
+  "tagline": "Gestión agrícola inteligente para tu finca",
+  "nav": {
+    "dashboard": "Panel",
+    "farms": "Fincas",
+    "map": "Mapa",
+    "cycles": "Ciclos de cultivo",
+    "activities": "Actividades",
+    "workOrders": "Órdenes de trabajo",
+    "monitoring": "Monitoreo",
+    "climate": "Clima",
+    "costCenters": "Centros de costo",
+    "products": "Productos",
+    "crops": "Cultivos",
+    "members": "Miembros",
+    "settings": "Configuración",
+    "logout": "Cerrar sesión"
+  },
+  "language": {
+    "label": "Idioma",
+    "es": "Español",
+    "en": "English"
+  },
+  "actions": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear"
+  },
+  "shell": {
+    "welcome": "Bienvenido, {name}",
+    "emptyState": "Tu espacio de trabajo está listo. Pronto podrás crear tu organización y fincas."
+  }
+}

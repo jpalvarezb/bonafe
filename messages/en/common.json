@@ -1,0 +1,36 @@
+{
+  "appName": "AgroPeq",
+  "tagline": "Smart farm management for your operation",
+  "nav": {
+    "dashboard": "Dashboard",
+    "farms": "Farms",
+    "map": "Map",
+    "cycles": "Crop cycles",
+    "activities": "Activities",
+    "workOrders": "Work orders",
+    "monitoring": "Monitoring",
+    "climate": "Climate",
+    "costCenters": "Cost centers",
+    "products": "Products",
+    "crops": "Crops",
+    "members": "Members",
+    "settings": "Settings",
+    "logout": "Log out"
+  },
+  "language": {
+    "label": "Language",
+    "es": "Español",
+    "en": "English"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create"
+  },
+  "shell": {
+    "welcome": "Welcome, {name}",
+    "emptyState": "Your workspace is ready. Soon you'll be able to create your organization and farms."
+  }
+}

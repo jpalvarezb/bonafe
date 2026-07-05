@@ -1,0 +1,13 @@
+{
+  "title": "Dashboard",
+  "totalCost": "Total cost",
+  "activeCycles": "Active cycles",
+  "farms": "Farms",
+  "parcels": "Parcels",
+  "costByParcel": "Cost by parcel",
+  "costByCategory": "Cost by activity type",
+  "costByMonth": "Cost by month",
+  "costPerHa": "Cost/ha",
+  "recentActivities": "Recent activities",
+  "noData": "No data yet. Log activities to see costs."
+}

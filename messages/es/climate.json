@@ -1,0 +1,17 @@
+{
+  "title": "Clima",
+  "noFarms": "Todavía no tienes fincas. Crea una para empezar a registrar el clima.",
+  "charts": "Tendencias (últimos 90 días)",
+  "chartRainfall": "Lluvia por día",
+  "chartTemperature": "Temperatura mínima y máxima",
+  "newReading": "Nuevo registro",
+  "date": "Fecha",
+  "rainfall": "Lluvia (mm)",
+  "tempMinC": "Temp. mínima (°C)",
+  "tempMaxC": "Temp. máxima (°C)",
+  "humidity": "Humedad (%)",
+  "save": "Guardar registro",
+  "recent": "Últimos registros",
+  "empty": "Todavía no hay registros de clima.",
+  "delete": "Eliminar"
+}

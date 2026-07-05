@@ -1,0 +1,31 @@
+{
+  "title": "Órdenes de trabajo",
+  "empty": "No hay órdenes de trabajo todavía.",
+  "new": "Nueva orden de trabajo",
+  "titleField": "Título",
+  "titlePlaceholder": "Fumigación lote norte",
+  "type": "Tipo",
+  "typeField": "Labor de campo",
+  "typeMachine": "Maquinaria",
+  "parcel": "Parcela",
+  "noParcel": "Sin parcela",
+  "assignee": "Responsable",
+  "unassigned": "Sin asignar",
+  "scheduledDate": "Fecha programada",
+  "instructions": "Instrucciones",
+  "instructionsPlaceholder": "Detalles de la labor a realizar",
+  "create": "Crear orden de trabajo",
+  "status": {
+    "draft": "Borrador",
+    "assigned": "Asignada",
+    "in_progress": "En progreso",
+    "done": "Completada",
+    "cancelled": "Cancelada"
+  },
+  "transition": {
+    "assigned": "Asignar",
+    "in_progress": "Iniciar",
+    "done": "Completar",
+    "cancelled": "Cancelar"
+  }
+}

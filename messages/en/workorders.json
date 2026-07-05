@@ -1,0 +1,31 @@
+{
+  "title": "Work orders",
+  "empty": "No work orders yet.",
+  "new": "New work order",
+  "titleField": "Title",
+  "titlePlaceholder": "Spray north block",
+  "type": "Type",
+  "typeField": "Field labor",
+  "typeMachine": "Machinery",
+  "parcel": "Parcel",
+  "noParcel": "No parcel",
+  "assignee": "Assignee",
+  "unassigned": "Unassigned",
+  "scheduledDate": "Scheduled date",
+  "instructions": "Instructions",
+  "instructionsPlaceholder": "Details of the work to be done",
+  "create": "Create work order",
+  "status": {
+    "draft": "Draft",
+    "assigned": "Assigned",
+    "in_progress": "In progress",
+    "done": "Done",
+    "cancelled": "Cancelled"
+  },
+  "transition": {
+    "assigned": "Assign",
+    "in_progress": "Start",
+    "done": "Complete",
+    "cancelled": "Cancel"
+  }
+}

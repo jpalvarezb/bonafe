@@ -1,0 +1,44 @@
+{
+  "title": "Activities",
+  "empty": "No activities recorded yet.",
+  "new": "Log activity",
+  "type": "Activity type",
+  "date": "Date",
+  "parcel": "Parcel",
+  "parcelNone": "General (no parcel)",
+  "cycle": "Cycle",
+  "cycleNone": "No cycle",
+  "description": "Description",
+  "inputs": {
+    "title": "Inputs",
+    "product": "Product",
+    "quantity": "Quantity",
+    "unitCost": "Unit cost",
+    "add": "Add input",
+    "remove": "Remove"
+  },
+  "labor": {
+    "title": "Labor",
+    "workerName": "Description / crew",
+    "workersCount": "Workers",
+    "hours": "Hours",
+    "rateType": "Rate type",
+    "daily": "Per day",
+    "hourly": "Per hour",
+    "rate": "Rate",
+    "add": "Add labor",
+    "remove": "Remove"
+  },
+  "otherCost": "Other costs",
+  "currency": "Currency",
+  "costCenter": "Cost center",
+  "costCenterNone": "No cost center",
+  "totals": {
+    "inputs": "Inputs",
+    "labor": "Labor",
+    "other": "Other",
+    "total": "Total"
+  },
+  "save": "Save activity",
+  "delete": "Delete"
+}

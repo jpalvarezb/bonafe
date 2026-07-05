@@ -1,0 +1,23 @@
+{
+  "title": "Ciclos de cultivo",
+  "empty": "No hay ciclos todavía. Inicia el primero.",
+  "new": "Nuevo ciclo",
+  "name": "Nombre del ciclo",
+  "namePlaceholder": "Café 2026-A",
+  "parcel": "Parcela",
+  "crop": "Cultivo",
+  "variety": "Variedad",
+  "varietyNone": "Sin variedad",
+  "startDate": "Fecha de inicio",
+  "expectedEndDate": "Fin estimado",
+  "plantedAreaHa": "Área sembrada (ha)",
+  "plantCount": "Número de plantas",
+  "create": "Iniciar ciclo",
+  "close": "Cerrar ciclo",
+  "status": {
+    "planned": "Planificado",
+    "active": "Activo",
+    "closed": "Cerrado"
+  },
+  "costToDate": "Costo acumulado"
+}

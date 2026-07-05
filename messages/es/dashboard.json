@@ -1,0 +1,13 @@
+{
+  "title": "Panel",
+  "totalCost": "Costo total",
+  "activeCycles": "Ciclos activos",
+  "farms": "Fincas",
+  "parcels": "Parcelas",
+  "costByParcel": "Costo por parcela",
+  "costByCategory": "Costo por tipo de actividad",
+  "costByMonth": "Costo por mes",
+  "costPerHa": "Costo/ha",
+  "recentActivities": "Actividades recientes",
+  "noData": "Sin datos todavía. Registra actividades para ver costos."
+}

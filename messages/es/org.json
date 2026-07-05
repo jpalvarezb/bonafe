@@ -1,0 +1,36 @@
+{
+  "onboarding": {
+    "title": "Crea tu organización",
+    "subtitle": "La organización agrupa tus fincas, equipo y datos.",
+    "name": "Nombre de la organización",
+    "namePlaceholder": "Finca San José",
+    "country": "País",
+    "currency": "Moneda base",
+    "submit": "Crear organización",
+    "error": "No se pudo crear la organización"
+  },
+  "members": {
+    "title": "Miembros",
+    "invite": "Invitar miembro",
+    "email": "Correo electrónico",
+    "role": "Rol",
+    "send": "Enviar invitación",
+    "pending": "Invitaciones pendientes",
+    "copyLink": "Copiar enlace",
+    "invited": "Invitación creada",
+    "error": "No se pudo enviar la invitación"
+  },
+  "roles": {
+    "owner": "Propietario",
+    "admin": "Administrador",
+    "manager": "Gerente",
+    "field_supervisor": "Supervisor de campo"
+  },
+  "invite": {
+    "title": "Invitación a {org}",
+    "accept": "Aceptar invitación",
+    "loginFirst": "Inicia sesión o crea una cuenta para aceptar la invitación.",
+    "accepted": "¡Bienvenido al equipo!",
+    "error": "La invitación no es válida o expiró"
+  }
+}

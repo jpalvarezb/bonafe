@@ -1,0 +1,34 @@
+{
+  "title": "Farms",
+  "empty": "You don't have farms yet. Create the first one.",
+  "new": "New farm",
+  "name": "Name",
+  "areaHa": "Area (ha)",
+  "notes": "Notes",
+  "create": "Create farm",
+  "delete": "Delete farm",
+  "deleteConfirm": "The farm and all its parcels will be deleted.",
+  "parcels": {
+    "title": "Parcels",
+    "empty": "This farm has no parcels yet.",
+    "new": "New parcel",
+    "name": "Name",
+    "code": "Code",
+    "soilType": "Soil type",
+    "areaHa": "Area (ha)",
+    "areaAuto": "Computed automatically when you draw the boundary",
+    "boundary": "Parcel boundary",
+    "drawHint": "Draw the boundary by clicking on the map. Double-click to finish.",
+    "clearDrawing": "Clear drawing",
+    "create": "Create parcel",
+    "save": "Save changes",
+    "delete": "Delete parcel",
+    "edit": "Edit"
+  },
+  "map": {
+    "title": "Farm map",
+    "satellite": "Satellite",
+    "streets": "Streets",
+    "allParcels": "All parcels"
+  }
+}

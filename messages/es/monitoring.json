@@ -1,0 +1,23 @@
+{
+  "title": "Monitoreo de plagas y enfermedades",
+  "empty": "No hay registros de monitoreo todavía.",
+  "new": "Nuevo registro",
+  "parcel": "Parcela",
+  "cycle": "Ciclo",
+  "cycleNone": "Sin ciclo",
+  "date": "Fecha",
+  "type": "Tipo",
+  "agentName": "Agente",
+  "agentNamePlaceholder": "Ej. Roya del café",
+  "severity": "Severidad",
+  "incidencePct": "Incidencia (%)",
+  "notes": "Notas",
+  "actionsTaken": "Acciones tomadas",
+  "create": "Guardar registro",
+  "delete": "Eliminar",
+  "types": {
+    "pest": "Plaga",
+    "disease": "Enfermedad",
+    "weed": "Maleza"
+  }
+}

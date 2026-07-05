@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: agropeq-db
+    environment:
+      POSTGRES_USER: agropeq
+      POSTGRES_PASSWORD: agropeq
+      POSTGRES_DB: agropeq
+    ports:
+      - "5433:5432"
+    volumes:
+      - agropeq_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agropeq"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: agropeq-mailpit
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+volumes:
+  agropeq_pgdata:
