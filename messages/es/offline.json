@@ -1,0 +1,18 @@
+{
+  "badge": {
+    "offline": "Sin conexión — {count} pendientes",
+    "pending": "{count} por sincronizar",
+    "rejected": "{count} con error"
+  },
+  "issues": {
+    "title": "Problemas de sincronización",
+    "empty": "No hay problemas de sincronización.",
+    "discard": "Descartar",
+    "kinds": {
+      "activity_create": "Actividad",
+      "monitoring_create": "Monitoreo"
+    }
+  },
+  "pendingNote": "Se guardó en este dispositivo y se sincronizará al recuperar conexión.",
+  "saveError": "No se pudo guardar el registro. Revisa los campos e inténtalo de nuevo."
+}

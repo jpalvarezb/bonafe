@@ -156,12 +156,16 @@ export async function createActivity(ctx: OrgContext, input: ActivityInput) {
       .onConflictDoNothing({ target: activities.id })
       .returning();
 
-    // Idempotent replay from the offline outbox: row already exists.
+    // Idempotent replay from the offline outbox: row already exists. The org
+    // filter matters — a crafted duplicate id must not read a foreign row.
     if (!created) {
       const [existing] = await tx
         .select()
         .from(activities)
-        .where(eq(activities.id, activityId));
+        .where(
+          and(eq(activities.id, activityId), eq(activities.orgId, ctx.org.id)),
+        );
+      if (!existing) throw new Error("activity id conflict");
       return existing;
     }
 

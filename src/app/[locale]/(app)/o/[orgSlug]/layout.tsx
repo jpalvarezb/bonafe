@@ -2,6 +2,8 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import { requireOrgContext } from "@/lib/tenancy";
 import { SidebarNav } from "@/components/app-shell/sidebar-nav";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { SyncProvider } from "@/components/offline/sync-provider";
+import { SyncStatusBadge } from "@/components/offline/sync-status-badge";
 
 export default async function OrgLayout({
   children,
@@ -17,12 +19,16 @@ export default async function OrgLayout({
 
   return (
     <div className="flex min-h-svh flex-col">
+      <SyncProvider orgSlug={orgSlug} />
       <header className="flex items-center justify-between border-b px-4 py-2">
         <div className="flex items-baseline gap-3">
           <span className="font-semibold">{t("appName")}</span>
           <span className="text-sm text-muted-foreground">{ctx.org.name}</span>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-3">
+          <SyncStatusBadge orgSlug={orgSlug} />
+          <LogoutButton />
+        </div>
       </header>
       <div className="flex flex-1">
         <aside className="hidden w-56 shrink-0 border-r md:block">

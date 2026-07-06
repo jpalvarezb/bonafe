@@ -4,19 +4,11 @@ import { can } from "@/lib/authz";
 import { listMonitoring } from "@/server/services/monitoring";
 import { listParcels } from "@/server/services/parcels";
 import { listCycles } from "@/server/services/cycles";
-import {
-  createMonitoringAction,
-  deleteMonitoringAction,
-} from "@/server/actions/monitoring";
+import { deleteMonitoringAction } from "@/server/actions/monitoring";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { MonitoringForm } from "@/components/monitoring/monitoring-form";
+import { PendingEntries } from "@/components/offline/pending-entries";
 
 function severityChipClass(severity: number): string {
   if (severity <= 2) {
@@ -43,11 +35,12 @@ export default async function MonitoringPage({
   ]);
   const canCreate = can(ctx.role, "monitoring", "create");
   const canDelete = can(ctx.role, "monitoring", "delete");
-  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
+
+      <PendingEntries orgSlug={orgSlug} kind="monitoring.create" />
 
       {records.length === 0 ? (
         <p className="text-muted-foreground">{t("empty")}</p>
@@ -93,121 +86,16 @@ export default async function MonitoringPage({
       )}
 
       {canCreate && parcels.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("new")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form
-              action={createMonitoringAction}
-              className="grid gap-4 sm:grid-cols-2"
-            >
-              <input type="hidden" name="locale" value={locale} />
-              <input type="hidden" name="orgSlug" value={orgSlug} />
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="parcelId">{t("parcel")}</Label>
-                <select
-                  id="parcelId"
-                  name="parcelId"
-                  required
-                  className="border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs"
-                >
-                  {parcels.map((parcel) => (
-                    <option key={parcel.id} value={parcel.id}>
-                      {parcel.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="cropCycleId">{t("cycle")}</Label>
-                <select
-                  id="cropCycleId"
-                  name="cropCycleId"
-                  className="border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs"
-                >
-                  <option value="">{t("cycleNone")}</option>
-                  {cycles.map(({ cycle }) => (
-                    <option key={cycle.id} value={cycle.id}>
-                      {cycle.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="date">{t("date")}</Label>
-                <Input
-                  id="date"
-                  name="date"
-                  type="date"
-                  required
-                  defaultValue={today}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="type">{t("type")}</Label>
-                <select
-                  id="type"
-                  name="type"
-                  required
-                  defaultValue="pest"
-                  className="border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs"
-                >
-                  <option value="pest">{t("types.pest")}</option>
-                  <option value="disease">{t("types.disease")}</option>
-                  <option value="weed">{t("types.weed")}</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="agentName">{t("agentName")}</Label>
-                <Input
-                  id="agentName"
-                  name="agentName"
-                  required
-                  placeholder={t("agentNamePlaceholder")}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="severity">{t("severity")}</Label>
-                <select
-                  id="severity"
-                  name="severity"
-                  required
-                  defaultValue="1"
-                  className="border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs"
-                >
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="incidencePct">{t("incidencePct")}</Label>
-                <Input
-                  id="incidencePct"
-                  name="incidencePct"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="notes">{t("notes")}</Label>
-                <Input id="notes" name="notes" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="actionsTaken">{t("actionsTaken")}</Label>
-                <Input id="actionsTaken" name="actionsTaken" />
-              </div>
-              <Button type="submit" className="self-end justify-self-start">
-                {t("create")}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <MonitoringForm
+          locale={locale}
+          orgSlug={orgSlug}
+          parcels={parcels.map((p) => ({ id: p.id, name: p.name }))}
+          cycles={cycles.map(({ cycle }) => ({
+            id: cycle.id,
+            name: cycle.name,
+            parcelId: cycle.parcelId,
+          }))}
+        />
       )}
     </div>
   );

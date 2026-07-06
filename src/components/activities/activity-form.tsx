@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { computeActivityTotals } from "@/lib/calc/costs";
-import { createActivityAction } from "@/server/actions/activities";
+import { enqueue, flushOutbox } from "@/lib/offline/outbox";
+import { newId } from "@/lib/ids";
 
 type Option = { id: string; name: string };
 type CycleOption = Option & { parcelId: string };
@@ -59,6 +61,7 @@ export function ActivityForm({
   currencies,
 }: Props) {
   const t = useTranslations("activities");
+  const router = useRouter();
   const [parcelId, setParcelId] = useState<string>("");
   const [cropCycleId, setCropCycleId] = useState<string>("");
   const [activityTypeId, setActivityTypeId] = useState<string>(
@@ -72,6 +75,8 @@ export function ActivityForm({
   const [inputs, setInputs] = useState<InputLineState[]>([]);
   const [labor, setLabor] = useState<LaborLineState[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  const tOffline = useTranslations("offline");
 
   const parcelCycles = cycles.filter(
     (c) => !parcelId || c.parcelId === parcelId,
@@ -101,37 +106,51 @@ export function ActivityForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
-    const formData = new FormData();
-    formData.set("locale", locale);
-    formData.set("orgSlug", orgSlug);
-    formData.set(
-      "payload",
-      JSON.stringify({
-        parcelId: parcelId || undefined,
-        cropCycleId: cropCycleId || undefined,
-        costCenterId: costCenterId || undefined,
-        activityTypeId,
-        date,
-        description: description || undefined,
-        otherCost: otherCost || undefined,
-        currencyCode: selectedCurrency,
-        inputs: inputs
-          .filter((line) => line.productId)
-          .map((line) => ({
-            productId: line.productId,
-            quantity: line.quantity || "0",
-            unitCost: line.unitCost || "0",
-          })),
-        labor: labor.map((line) => ({
-          workerName: line.workerName || undefined,
-          workersCount: Number(line.workersCount) || 1,
-          hours: line.hours || undefined,
-          rateType: line.rateType,
-          rate: line.rate || "0",
+    setSaveError(false);
+    const payload = {
+      id: newId(),
+      parcelId: parcelId || undefined,
+      cropCycleId: cropCycleId || undefined,
+      costCenterId: costCenterId || undefined,
+      activityTypeId,
+      date,
+      description: description || undefined,
+      otherCost: otherCost || undefined,
+      currencyCode: selectedCurrency,
+      inputs: inputs
+        .filter((line) => line.productId)
+        .map((line) => ({
+          productId: line.productId,
+          quantity: line.quantity || "0",
+          unitCost: line.unitCost || "0",
         })),
-      }),
-    );
-    await createActivityAction(formData);
+      labor: labor.map((line) => ({
+        workerName: line.workerName || undefined,
+        workersCount: Number(line.workersCount) || 1,
+        hours: line.hours || undefined,
+        rateType: line.rateType,
+        rate: line.rate || "0",
+      })),
+    };
+    try {
+      await enqueue(orgSlug, "activity.create", payload);
+      if (navigator.onLine) {
+        flushOutbox(orgSlug).catch(() => null);
+        router.push(`/o/${orgSlug}/activities`);
+        return;
+      }
+      // Offline: navigation would fail without a network — stay on the form,
+      // reset it for the next capture; the outbox syncs when back online.
+      setDescription("");
+      setOtherCost("");
+      setInputs([]);
+      setLabor([]);
+    } catch {
+      // enqueue() zod-rejects invalid payloads before anything is stored.
+      setSaveError(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const selectClass =
@@ -508,6 +527,9 @@ export function ActivityForm({
         </div>
       </div>
 
+      {saveError && (
+        <p className="text-sm text-destructive">{tOffline("saveError")}</p>
+      )}
       <Button type="submit" disabled={submitting} className="self-start">
         {t("save")}
       </Button>

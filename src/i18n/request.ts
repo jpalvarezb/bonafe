@@ -19,6 +19,7 @@ const NAMESPACES = [
   "importer",
   "plan",
   "currencies",
+  "offline",
 ] as const;
 
 export default getRequestConfig(async ({ requestLocale }) => {

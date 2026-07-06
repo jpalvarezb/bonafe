@@ -6,6 +6,7 @@ import { listActivities } from "@/server/services/activities";
 import { deleteActivityAction } from "@/server/actions/activities";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PendingEntries } from "@/components/offline/pending-entries";
 
 export default async function ActivitiesPage({
   params,
@@ -40,6 +41,8 @@ export default async function ActivitiesPage({
           )}
         </div>
       </div>
+
+      <PendingEntries orgSlug={orgSlug} kind="activity.create" />
 
       <Card>
         <CardContent>

@@ -1,0 +1,18 @@
+{
+  "badge": {
+    "offline": "Offline — {count} pending",
+    "pending": "{count} to sync",
+    "rejected": "{count} failed"
+  },
+  "issues": {
+    "title": "Sync issues",
+    "empty": "No sync issues.",
+    "discard": "Discard",
+    "kinds": {
+      "activity_create": "Activity",
+      "monitoring_create": "Monitoring"
+    }
+  },
+  "pendingNote": "Saved on this device; will sync when back online.",
+  "saveError": "Could not save the record. Check the fields and try again."
+}

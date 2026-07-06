@@ -57,6 +57,44 @@ export async function requireOrgContext(
   };
 }
 
+/**
+ * Non-redirecting variant for API route handlers: returns null instead of
+ * redirecting, so callers can respond 401/403 as JSON.
+ */
+export async function resolveOrgContext(
+  orgSlug: string,
+): Promise<OrgContext | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return null;
+
+  const rows = await db
+    .select({ org: organization, membership: member })
+    .from(organization)
+    .innerJoin(
+      member,
+      and(
+        eq(member.organizationId, organization.id),
+        eq(member.userId, session.user.id),
+      ),
+    )
+    .where(eq(organization.slug, orgSlug))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    user: {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+    },
+    org: row.org,
+    role: row.membership.role as OrgRole,
+    memberId: row.membership.id,
+  };
+}
+
 /** All orgs the user belongs to (for the org switcher / post-login redirect). */
 export async function listUserOrgs(userId: string) {
   return db

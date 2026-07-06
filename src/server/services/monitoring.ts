@@ -6,6 +6,8 @@ import { assertCan } from "@/lib/authz";
 import { newId } from "@/lib/ids";
 
 export type MonitoringRecordInput = {
+  /** Client-generated UUIDv7 for offline idempotency; server fills if absent. */
+  id?: string;
   parcelId: string;
   cropCycleId?: string | null;
   date: string;
@@ -69,10 +71,11 @@ export async function createMonitoringRecord(
     if (!cycle) throw new Error("crop cycle not found");
   }
 
+  const recordId = input.id ?? newId();
   const [created] = await db
     .insert(monitoringRecords)
     .values({
-      id: newId(),
+      id: recordId,
       orgId: ctx.org.id,
       parcelId: input.parcelId,
       cropCycleId: input.cropCycleId ?? null,
@@ -85,7 +88,23 @@ export async function createMonitoringRecord(
       actionsTaken: input.actionsTaken ?? null,
       createdBy: ctx.user.id,
     })
+    .onConflictDoNothing({ target: monitoringRecords.id })
     .returning();
+
+  // Idempotent replay from the offline outbox: row already exists.
+  if (!created) {
+    const [existing] = await db
+      .select()
+      .from(monitoringRecords)
+      .where(
+        and(
+          eq(monitoringRecords.id, recordId),
+          eq(monitoringRecords.orgId, ctx.org.id),
+        ),
+      );
+    if (!existing) throw new Error("monitoring record id conflict");
+    return existing;
+  }
   return created;
 }
 
