@@ -13,5 +13,37 @@
   "save": "Save reading",
   "recent": "Latest readings",
   "empty": "No climate readings yet.",
-  "delete": "Delete"
+  "delete": "Delete",
+  "timelineTitle": "Cycle rainfall and activity timeline",
+  "timelineActivity": "Activity",
+  "timelineActivityHint": "marks a logged activity that day",
+  "timelineEmpty": "No rainfall data yet for this cycle.",
+  "timelineEmptyHint": "Add manual readings or enable satellite ingestion (CHIRPS / Open-Meteo) to see rainfall for this cycle.",
+  "accumulatedTotal": "Cycle rainfall accumulation",
+  "accumulatedRange": "{from} to {to}",
+  "accumulatedDays": "{days} days with data",
+  "source": "Source",
+  "sourceManual": "Manual",
+  "sourceOpenMeteo": "Open-Meteo",
+  "sourceChirps": "CHIRPS",
+  "sourceStation": "Station",
+  "ingest": {
+    "title": "Satellite ingest",
+    "farm": "Farm",
+    "from": "From",
+    "to": "To",
+    "provider": "Source",
+    "providerOpenMeteo": "Open-Meteo (satellite, recommended)",
+    "providerChirps": "CHIRPS (experimental, may be slow)",
+    "submit": "Import satellite rainfall",
+    "success": "Imported {count} day(s).",
+    "errors": {
+      "farmNotFound": "Farm not found.",
+      "noParcels": "Draw a parcel for this farm before importing satellite climate data.",
+      "invalidRange": "The 'from' date must be on or before the 'to' date.",
+      "rangeTooLong": "The range cannot exceed 92 days.",
+      "providerUnavailable": "The provider isn't available right now. Try Open-Meteo instead.",
+      "unknown": "The import could not be completed."
+    }
+  }
 }

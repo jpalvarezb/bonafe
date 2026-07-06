@@ -1,4 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
 import { listCycles } from "@/server/services/cycles";
@@ -10,6 +11,7 @@ import {
   createCycleAction,
   setCycleStageAction,
 } from "@/server/actions/cycles";
+import { RainActivityTimeline } from "@/components/climate/rain-activity-timeline";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,11 +24,16 @@ import {
 
 export default async function CyclesPage({
   params,
-}: Readonly<{ params: Promise<{ locale: string; orgSlug: string }> }>) {
+  searchParams,
+}: Readonly<{
+  params: Promise<{ locale: string; orgSlug: string }>;
+  searchParams: Promise<{ cycleId?: string }>;
+}>) {
   const { locale, orgSlug } = await params;
   setRequestLocale(locale);
   const ctx = await requireOrgContext(locale, orgSlug);
   const t = await getTranslations("cycles");
+  const sp = await searchParams;
 
   const [cycles, crops, varieties, parcels, stages] = await Promise.all([
     listCycles(ctx),
@@ -40,6 +47,11 @@ export default async function CyclesPage({
   const today = new Date().toISOString().slice(0, 10);
   const selectClass =
     "border-input h-8 rounded-md border bg-transparent px-2 text-xs shadow-xs";
+
+  const requestedCycle = cycles.find(({ cycle }) => cycle.id === sp.cycleId);
+  const defaultCycle =
+    cycles.find(({ cycle }) => cycle.status === "active") ?? cycles[0];
+  const selectedCycle = requestedCycle ?? defaultCycle;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -124,6 +136,38 @@ export default async function CyclesPage({
             })}
           </CardContent>
         </Card>
+      )}
+
+      {cycles.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold">{t("rainSection")}</h2>
+          {cycles.length > 1 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {t("selectCycle")}:
+              </span>
+              {cycles.map(({ cycle }) => (
+                <Link
+                  key={cycle.id}
+                  href={`/o/${orgSlug}/cycles?cycleId=${cycle.id}`}
+                  className={
+                    cycle.id === selectedCycle?.cycle.id
+                      ? "rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground"
+                      : "rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/70"
+                  }
+                >
+                  {cycle.name}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {selectedCycle ? (
+            <RainActivityTimeline ctx={ctx} cycleId={selectedCycle.cycle.id} />
+          ) : (
+            <p className="text-muted-foreground">{t("noCycleSelected")}</p>
+          )}
+        </div>
       )}
 
       {canCreate && parcels.length > 0 && crops.length > 0 && (

@@ -8,6 +8,7 @@ import {
   deleteClimateAction,
   upsertClimateAction,
 } from "@/server/actions/climate";
+import { ingestClimateAction } from "@/server/actions/climate-ingest";
 import { ClimateCharts } from "@/components/climate/climate-charts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,12 +20,41 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const selectClass =
+  "border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs";
+
+const INGEST_ERROR_KEYS = [
+  "farmNotFound",
+  "noParcels",
+  "invalidRange",
+  "rangeTooLong",
+  "providerUnavailable",
+];
+
+const SOURCE_LABEL_KEYS: Record<string, string> = {
+  manual: "sourceManual",
+  open_meteo: "sourceOpenMeteo",
+  chirps: "sourceChirps",
+  station: "sourceStation",
+};
+
+function isoDaysAgo(days: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
 export default async function ClimatePage({
   params,
   searchParams,
 }: Readonly<{
   params: Promise<{ locale: string; orgSlug: string }>;
-  searchParams: Promise<{ farm?: string }>;
+  searchParams: Promise<{
+    farm?: string;
+    ingested?: string;
+    provider?: string;
+    error?: string;
+  }>;
 }>) {
   const { locale, orgSlug } = await params;
   setRequestLocale(locale);
@@ -54,10 +84,31 @@ export default async function ClimatePage({
   const canCreate = can(ctx.role, "climate", "create");
   const canDelete = can(ctx.role, "climate", "delete");
   const today = new Date().toISOString().slice(0, 10);
+  const thirtyDaysAgo = isoDaysAgo(30);
+
+  const ingestErrorKey =
+    sp.error && INGEST_ERROR_KEYS.includes(sp.error) ? sp.error : sp.error ? "unknown" : null;
+  const parsedIngested = sp.ingested ? Number(sp.ingested) : null;
+  const ingestedCount = Number.isFinite(parsedIngested) ? parsedIngested : null;
+  const ingestedProviderKey =
+    sp.provider === "chirps" ? "sourceChirps" : "sourceOpenMeteo";
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
+
+      {ingestErrorKey && (
+        <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {t(`ingest.errors.${ingestErrorKey}`)}
+        </p>
+      )}
+
+      {ingestedCount !== null && !ingestErrorKey && (
+        <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100">
+          {t("ingest.success", { count: ingestedCount })} —{" "}
+          {t(ingestedProviderKey)}
+        </div>
+      )}
 
       {farmsList.length > 1 && (
         <div className="flex flex-wrap gap-2">
@@ -92,6 +143,77 @@ export default async function ClimatePage({
           />
         </CardContent>
       </Card>
+
+      {canCreate && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("ingest.title")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form
+              action={ingestClimateAction}
+              className="grid gap-4 sm:grid-cols-2"
+            >
+              <input type="hidden" name="locale" value={locale} />
+              <input type="hidden" name="orgSlug" value={orgSlug} />
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ingestFarmId">{t("ingest.farm")}</Label>
+                <select
+                  id="ingestFarmId"
+                  name="farmId"
+                  required
+                  defaultValue={activeFarmId}
+                  className={selectClass}
+                >
+                  {farmsList.map((farm) => (
+                    <option key={farm.id} value={farm.id}>
+                      {farm.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ingestProvider">{t("ingest.provider")}</Label>
+                <select
+                  id="ingestProvider"
+                  name="provider"
+                  required
+                  defaultValue="open_meteo"
+                  className={selectClass}
+                >
+                  <option value="open_meteo">
+                    {t("ingest.providerOpenMeteo")}
+                  </option>
+                  <option value="chirps">{t("ingest.providerChirps")}</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ingestFrom">{t("ingest.from")}</Label>
+                <Input
+                  id="ingestFrom"
+                  name="from"
+                  type="date"
+                  required
+                  defaultValue={thirtyDaysAgo}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="ingestTo">{t("ingest.to")}</Label>
+                <Input
+                  id="ingestTo"
+                  name="to"
+                  type="date"
+                  required
+                  defaultValue={today}
+                />
+              </div>
+              <Button type="submit" className="self-end justify-self-start">
+                {t("ingest.submit")}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {canCreate && (
         <Card>
@@ -168,7 +290,15 @@ export default async function ClimatePage({
                   className="flex items-center justify-between gap-4 py-3"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium">{reading.date}</p>
+                    <p className="font-medium">
+                      {reading.date}{" "}
+                      <span className="font-normal text-muted-foreground">
+                        ·{" "}
+                        {t(
+                          SOURCE_LABEL_KEYS[reading.source] ?? "sourceManual",
+                        )}
+                      </span>
+                    </p>
                     <p className="truncate text-sm text-muted-foreground">
                       {t("rainfall")}: {reading.rainfallMm ?? "—"} ·{" "}
                       {t("tempMinC")}: {reading.tempMinC ?? "—"} ·{" "}

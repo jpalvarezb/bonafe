@@ -36,5 +36,8 @@
     "duration": "Duración típica (días)",
     "create": "Crear etapa",
     "delete": "Eliminar"
-  }
+  },
+  "rainSection": "Lluvia del ciclo",
+  "selectCycle": "Ciclo",
+  "noCycleSelected": "Selecciona un ciclo para ver su lluvia."
 }

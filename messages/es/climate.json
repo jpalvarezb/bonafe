@@ -13,5 +13,37 @@
   "save": "Guardar registro",
   "recent": "Últimos registros",
   "empty": "Todavía no hay registros de clima.",
-  "delete": "Eliminar"
+  "delete": "Eliminar",
+  "timelineTitle": "Lluvia y actividades del ciclo",
+  "timelineActivity": "Actividad",
+  "timelineActivityHint": "indica una actividad registrada ese día",
+  "timelineEmpty": "Todavía no hay datos de lluvia para este ciclo.",
+  "timelineEmptyHint": "Agrega registros manuales o activa la ingesta satelital (CHIRPS / Open-Meteo) para ver la lluvia del ciclo.",
+  "accumulatedTotal": "Lluvia acumulada del ciclo",
+  "accumulatedRange": "Del {from} al {to}",
+  "accumulatedDays": "{days} días con registro",
+  "source": "Fuente",
+  "sourceManual": "Manual",
+  "sourceOpenMeteo": "Open-Meteo",
+  "sourceChirps": "CHIRPS",
+  "sourceStation": "Estación",
+  "ingest": {
+    "title": "Ingesta satelital",
+    "farm": "Finca",
+    "from": "Desde",
+    "to": "Hasta",
+    "provider": "Fuente",
+    "providerOpenMeteo": "Open-Meteo (satelital, recomendado)",
+    "providerChirps": "CHIRPS (experimental, puede tardar)",
+    "submit": "Importar lluvia satelital",
+    "success": "Se importaron {count} día(s).",
+    "errors": {
+      "farmNotFound": "Finca no encontrada.",
+      "noParcels": "Dibuja un lote antes de importar clima satelital para esta finca.",
+      "invalidRange": "La fecha 'desde' debe ser anterior o igual a la fecha 'hasta'.",
+      "rangeTooLong": "El rango no puede superar 92 días.",
+      "providerUnavailable": "El proveedor no está disponible en este momento. Intenta con Open-Meteo.",
+      "unknown": "No se pudo completar la importación."
+    }
+  }
 }

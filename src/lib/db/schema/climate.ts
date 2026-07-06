@@ -19,8 +19,12 @@ export const climateReadings = pgTable(
       .notNull()
       .references(() => farms.id, { onDelete: "cascade" }),
     date: date("date").notNull(),
-    // 'chirps' rows arrive via the Phase 8 ingest job; schema is ready now.
-    source: text("source", { enum: ["manual", "chirps", "station"] })
+    // Satellite rows arrive via the Phase 8 ingest providers: 'chirps' via
+    // ClimateSERV, 'open_meteo' via the Open-Meteo archive (keyless default).
+    // TS-level enum on a text column — widening needs no migration.
+    source: text("source", {
+      enum: ["manual", "chirps", "open_meteo", "station"],
+    })
       .notNull()
       .default("manual"),
     rainfallMm: numeric("rainfall_mm", { precision: 8, scale: 2 }),

@@ -36,5 +36,8 @@
     "duration": "Typical duration (days)",
     "create": "Create stage",
     "delete": "Delete"
-  }
+  },
+  "rainSection": "Cycle rainfall",
+  "selectCycle": "Cycle",
+  "noCycleSelected": "Select a cycle to see its rainfall."
 }
