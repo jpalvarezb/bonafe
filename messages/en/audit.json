@@ -16,22 +16,44 @@
   },
   "empty": "No audit events yet.",
   "actions": {
-    "member.invite": "Member invited",
-    "work_order.status": "Work order status change",
-    "work_order.delete": "Work order deleted",
-    "payroll.close": "Payroll period closed",
-    "sale.create": "Sale created",
-    "sale.delete": "Sale deleted",
-    "purchase.create": "Purchase created",
-    "purchase.delete": "Purchase deleted",
-    "worker.create": "Worker created",
-    "worker.set_active": "Worker active status change",
-    "exchange_rate.set": "Exchange rate updated",
-    "import.run": "Data import",
-    "org.update": "Organization settings updated",
-    "inventory.transfer": "Inventory transfer",
-    "billing.subscription_updated": "Subscription updated",
-    "billing.checkout_started": "Checkout started",
-    "billing.portal_opened": "Billing portal opened"
+    "member": {
+      "invite": "Member invited"
+    },
+    "work_order": {
+      "status": "Work order status change",
+      "delete": "Work order deleted"
+    },
+    "payroll": {
+      "close": "Payroll period closed"
+    },
+    "sale": {
+      "create": "Sale created",
+      "delete": "Sale deleted"
+    },
+    "purchase": {
+      "create": "Purchase created",
+      "delete": "Purchase deleted"
+    },
+    "worker": {
+      "create": "Worker created",
+      "set_active": "Worker active status change"
+    },
+    "exchange_rate": {
+      "set": "Exchange rate updated"
+    },
+    "import": {
+      "run": "Data import"
+    },
+    "org": {
+      "update": "Organization settings updated"
+    },
+    "inventory": {
+      "transfer": "Inventory transfer"
+    },
+    "billing": {
+      "subscription_updated": "Subscription updated",
+      "checkout_started": "Checkout started",
+      "portal_opened": "Billing portal opened"
+    }
   }
 }

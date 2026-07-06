@@ -16,22 +16,44 @@
   },
   "empty": "No hay eventos de auditoría todavía.",
   "actions": {
-    "member.invite": "Invitación de miembro",
-    "work_order.status": "Cambio de estado de orden de trabajo",
-    "work_order.delete": "Eliminación de orden de trabajo",
-    "payroll.close": "Cierre de planilla",
-    "sale.create": "Venta creada",
-    "sale.delete": "Venta eliminada",
-    "purchase.create": "Compra creada",
-    "purchase.delete": "Compra eliminada",
-    "worker.create": "Trabajador creado",
-    "worker.set_active": "Cambio de estado de trabajador",
-    "exchange_rate.set": "Tasa de cambio actualizada",
-    "import.run": "Importación de datos",
-    "org.update": "Configuración de la organización actualizada",
-    "inventory.transfer": "Traslado de inventario",
-    "billing.subscription_updated": "Suscripción actualizada",
-    "billing.checkout_started": "Proceso de pago iniciado",
-    "billing.portal_opened": "Portal de facturación abierto"
+    "member": {
+      "invite": "Invitación de miembro"
+    },
+    "work_order": {
+      "status": "Cambio de estado de orden de trabajo",
+      "delete": "Eliminación de orden de trabajo"
+    },
+    "payroll": {
+      "close": "Cierre de planilla"
+    },
+    "sale": {
+      "create": "Venta creada",
+      "delete": "Venta eliminada"
+    },
+    "purchase": {
+      "create": "Compra creada",
+      "delete": "Compra eliminada"
+    },
+    "worker": {
+      "create": "Trabajador creado",
+      "set_active": "Cambio de estado de trabajador"
+    },
+    "exchange_rate": {
+      "set": "Tasa de cambio actualizada"
+    },
+    "import": {
+      "run": "Importación de datos"
+    },
+    "org": {
+      "update": "Configuración de la organización actualizada"
+    },
+    "inventory": {
+      "transfer": "Traslado de inventario"
+    },
+    "billing": {
+      "subscription_updated": "Suscripción actualizada",
+      "checkout_started": "Proceso de pago iniciado",
+      "portal_opened": "Portal de facturación abierto"
+    }
   }
 }
