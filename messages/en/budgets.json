@@ -1,0 +1,69 @@
+{
+  "title": "Budgets",
+  "empty": "No budgets yet.",
+  "new": "New budget",
+  "name": "Name",
+  "namePlaceholder": "e.g. Coffee Budget 2026",
+  "year": "Year",
+  "farm": "Farm",
+  "farmNone": "All farms",
+  "cycle": "Crop cycle",
+  "cycleNone": "No specific cycle",
+  "currency": "Currency",
+  "scopeLabel": "Scope",
+  "status": {
+    "draft": "Draft",
+    "active": "Active"
+  },
+  "scope": {
+    "org": "Whole organization",
+    "farm": "Farm: {name}",
+    "cycle": "Cycle: {name}",
+    "farmAndCycle": "{farm} — {cycle}"
+  },
+  "create": "Create budget",
+  "delete": "Delete",
+  "back": "Back to budgets",
+  "notFound": "Budget not found.",
+  "categories": {
+    "labor": "Labor",
+    "input": "Inputs",
+    "machine": "Machinery",
+    "other": "Other"
+  },
+  "months": {
+    "1": "January",
+    "2": "February",
+    "3": "March",
+    "4": "April",
+    "5": "May",
+    "6": "June",
+    "7": "July",
+    "8": "August",
+    "9": "September",
+    "10": "October",
+    "11": "November",
+    "12": "December"
+  },
+  "lines": {
+    "title": "Budget lines",
+    "month": "Month",
+    "save": "Save",
+    "totalMonth": "Month total",
+    "totalCategory": "Total",
+    "grandTotal": "Grand total"
+  },
+  "variance": {
+    "title": "Budget vs. actual",
+    "empty": "No budget or spend recorded for this year.",
+    "month": "Month",
+    "budget": "Budget",
+    "actual": "Actual",
+    "variance": "Variance",
+    "variancePct": "Variance %",
+    "categoryTotals": "Category totals",
+    "grandTotals": "Grand totals",
+    "legendUnder": "Under budget",
+    "legendOver": "Over budget"
+  }
+}

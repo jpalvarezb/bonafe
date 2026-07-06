@@ -9,6 +9,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { parcels } from "./farms";
+import { machines } from "./machinery";
 import { member } from "./tenancy";
 import { id, orgId, timestamps } from "./helpers";
 
@@ -47,6 +48,10 @@ export const workOrders = pgTable(
     ),
     scheduledDate: date("scheduled_date"),
     parcelId: uuid("parcel_id").references(() => parcels.id, {
+      onDelete: "set null",
+    }),
+    // Machine work orders (type "machine") assign the machine here.
+    machineId: uuid("machine_id").references((): AnyPgColumn => machines.id, {
       onDelete: "set null",
     }),
     instructions: text("instructions"),

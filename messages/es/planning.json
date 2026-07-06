@@ -1,0 +1,46 @@
+{
+  "title": "Planificación",
+  "empty": "No hay actividades planificadas para este mes.",
+  "new": "Programar actividad",
+  "activityType": "Tipo de actividad",
+  "plannedDate": "Fecha planificada",
+  "parcel": "Parcela",
+  "parcelNone": "Sin parcela",
+  "cycle": "Ciclo",
+  "cycleNone": "Sin ciclo",
+  "description": "Descripción",
+  "estimatedCost": "Costo estimado",
+  "create": "Guardar plan",
+  "convert": "Convertir en actividad",
+  "cancel": "Cancelar",
+  "viewActivity": "Ver actividad",
+  "prevMonth": "Mes anterior",
+  "nextMonth": "Mes siguiente",
+  "weekdays": {
+    "mon": "Lun",
+    "tue": "Mar",
+    "wed": "Mié",
+    "thu": "Jue",
+    "fri": "Vie",
+    "sat": "Sáb",
+    "sun": "Dom"
+  },
+  "status": {
+    "planned": "Planificada",
+    "converted": "Convertida",
+    "cancelled": "Cancelada"
+  },
+  "summary": {
+    "title": "Resumen del mes",
+    "items": "Total de actividades",
+    "estimatedCost": "Costo estimado pendiente"
+  },
+  "table": {
+    "date": "Fecha",
+    "type": "Tipo",
+    "parcel": "Parcela",
+    "cycle": "Ciclo",
+    "estimatedCost": "Costo estimado",
+    "status": "Estado"
+  }
+}

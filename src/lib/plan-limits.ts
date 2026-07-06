@@ -66,6 +66,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
         "machinery",
         "budgets",
         "warehouses",
+        "planning",
       ],
     },
   },

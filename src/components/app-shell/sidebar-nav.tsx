@@ -21,6 +21,10 @@ import {
   ShoppingCart,
   Boxes,
   BarChart3,
+  Warehouse,
+  Tractor,
+  CalendarDays,
+  Calculator,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
@@ -41,6 +45,10 @@ const NAV_ITEMS = [
   { key: "payroll", href: "payroll", icon: Wallet },
   { key: "purchases", href: "purchases", icon: ShoppingCart },
   { key: "inventory", href: "inventory", icon: Boxes },
+  { key: "warehouses", href: "warehouses", icon: Warehouse },
+  { key: "machinery", href: "machinery", icon: Tractor },
+  { key: "planning", href: "planning", icon: CalendarDays },
+  { key: "budgets", href: "budgets", icon: Calculator },
   { key: "laborReport", href: "reports/labor", icon: BarChart3 },
   { key: "costCenters", href: "cost-centers", icon: FolderTree },
   { key: "products", href: "catalog/products", icon: Package },

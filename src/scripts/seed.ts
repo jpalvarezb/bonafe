@@ -12,6 +12,8 @@ import {
   activityLabor,
   activityTypes,
   attendanceRecords,
+  budgetLines,
+  budgets,
   climateReadings,
   cropCycles,
   crops,
@@ -19,11 +21,16 @@ import {
   farms,
   harvests,
   inventoryMovements,
+  inventoryTransferLines,
+  inventoryTransfers,
+  machines,
+  machineUsageLogs,
   member,
   monitoringRecords,
   organization,
   orgSubscriptions,
   parcels,
+  plannedActivities,
   plans,
   products,
   purchaseLines,
@@ -477,6 +484,8 @@ async function seedActivities(orgId: string, ownerId: string) {
 
 async function seedPlans() {
   for (const plan of PLAN_DEFINITIONS) {
+    // Upsert: PLAN_DEFINITIONS is the source of truth, and feature lists grow
+    // with each phase — a do-nothing insert would leave stale limits behind.
     await db
       .insert(plans)
       .values({
@@ -485,7 +494,14 @@ async function seedPlans() {
         monthlyPriceUsd: plan.monthlyPriceUsd,
         limits: plan.limits,
       })
-      .onConflictDoNothing({ target: plans.id });
+      .onConflictDoUpdate({
+        target: plans.id,
+        set: {
+          name: plan.name,
+          monthlyPriceUsd: plan.monthlyPriceUsd,
+          limits: plan.limits,
+        },
+      });
   }
   console.log("plans ensured (semilla/cultivo/cosecha)");
 }
@@ -903,6 +919,235 @@ async function seedHarvests(orgId: string, createdBy: string) {
   console.log("harvests ensured (12 latas entries on Café 2026-A)");
 }
 
+// ---- Phase 5 additions ----------------------------------------------------
+
+const P5_ID = {
+  tractor: "01900000-0000-7000-8000-00000000ea01",
+  bomba: "01900000-0000-7000-8000-00000000ea02",
+  usageTractor: "01900000-0000-7000-8000-00000000ea11",
+  usageBomba: "01900000-0000-7000-8000-00000000ea12",
+  warehouseNorte: "01900000-0000-7000-8000-00000000ba02",
+  transfer: "01900000-0000-7000-8000-00000000ca01",
+  transferLine: "01900000-0000-7000-8000-00000000ca11",
+  movOut: "01900000-0000-7000-8000-00000000ca31",
+  movIn: "01900000-0000-7000-8000-00000000ca32",
+  budget: "01900000-0000-7000-8000-00000000bb01",
+} as const;
+
+async function seedMachinery(orgId: string, createdBy: string) {
+  await db
+    .insert(machines)
+    .values([
+      {
+        id: P5_ID.tractor,
+        orgId,
+        name: "Tractor John Deere 5075E",
+        code: "MQ-01",
+        category: "tractor",
+        brand: "John Deere",
+        model: "5075E",
+        year: 2021,
+        hourlyCost: "25.0000",
+      },
+      {
+        id: P5_ID.bomba,
+        orgId,
+        name: "Bomba de fumigación motorizada",
+        code: "MQ-02",
+        category: "fumigación",
+        hourlyCost: "3.5000",
+      },
+    ])
+    .onConflictDoNothing({ target: machines.id });
+
+  // 4h × 25.00 + 23.00 fuel = 123.00 · 3h × 3.50 = 10.50 (standalone logs)
+  await db
+    .insert(machineUsageLogs)
+    .values([
+      {
+        id: P5_ID.usageTractor,
+        orgId,
+        machineId: P5_ID.tractor,
+        date: "2026-06-05",
+        hoursUsed: "4.00",
+        fuelLiters: "20.00",
+        fuelCost: "23.0000",
+        hourlyCostSnapshot: "25.0000",
+        totalCost: "123.0000",
+        createdBy,
+      },
+      {
+        id: P5_ID.usageBomba,
+        orgId,
+        machineId: P5_ID.bomba,
+        date: "2026-06-12",
+        hoursUsed: "3.00",
+        fuelCost: "0",
+        hourlyCostSnapshot: "3.5000",
+        totalCost: "10.5000",
+        createdBy,
+      },
+    ])
+    .onConflictDoNothing({ target: machineUsageLogs.id });
+  console.log("machinery ensured (2 machines, 2 usage logs)");
+}
+
+/** Urea: 4 qq move Central → Norte at the 33.00 running average. */
+async function seedTransfer(orgId: string, createdBy: string) {
+  await db
+    .insert(warehouses)
+    .values({
+      id: P5_ID.warehouseNorte,
+      orgId,
+      farmId: ID.farmVista,
+      name: "Bodega Norte",
+      isDefault: false,
+    })
+    .onConflictDoNothing({ target: warehouses.id });
+
+  const urea = DEMO_PRODUCTS[0];
+  await db
+    .insert(inventoryTransfers)
+    .values({
+      id: P5_ID.transfer,
+      orgId,
+      fromWarehouseId: INV_ID.warehouse,
+      toWarehouseId: P5_ID.warehouseNorte,
+      date: "2026-06-25",
+      notes: "Reabastecimiento Vista Hermosa",
+      createdBy,
+    })
+    .onConflictDoNothing({ target: inventoryTransfers.id });
+  await db
+    .insert(inventoryTransferLines)
+    .values({
+      id: P5_ID.transferLine,
+      orgId,
+      transferId: P5_ID.transfer,
+      productId: urea.id,
+      quantity: "4.0000",
+      unitCostSnapshot: "33.0000",
+    })
+    .onConflictDoNothing({ target: inventoryTransferLines.id });
+  await db
+    .insert(inventoryMovements)
+    .values([
+      {
+        id: P5_ID.movOut,
+        orgId,
+        warehouseId: INV_ID.warehouse,
+        productId: urea.id,
+        date: "2026-06-25",
+        type: "transfer_out",
+        quantity: "-4.0000",
+        unitCost: null,
+        refKind: "transfer_line_out",
+        refId: P5_ID.transferLine,
+        createdBy,
+      },
+      {
+        id: P5_ID.movIn,
+        orgId,
+        warehouseId: P5_ID.warehouseNorte,
+        productId: urea.id,
+        date: "2026-06-25",
+        type: "transfer_in",
+        quantity: "4.0000",
+        unitCost: "33.0000",
+        refKind: "transfer_line_in",
+        refId: P5_ID.transferLine,
+        createdBy,
+      },
+    ])
+    .onConflictDoNothing();
+  console.log("transfer ensured (4 qq urea Central → Norte @ 33.00)");
+}
+
+/** Café 2026 budget: labor 120 + input 80 per month, Jan–Jun. */
+async function seedBudget(orgId: string, createdBy: string) {
+  await db
+    .insert(budgets)
+    .values({
+      id: P5_ID.budget,
+      orgId,
+      name: "Presupuesto Café 2026",
+      year: 2026,
+      cropCycleId: ID.cycleCafeA,
+      currencyCode: "USD",
+      status: "active",
+      createdBy,
+    })
+    .onConflictDoNothing({ target: budgets.id });
+
+  const lines: Array<typeof budgetLines.$inferInsert> = [];
+  for (let month = 1; month <= 6; month++) {
+    lines.push({
+      id: `01900000-0000-7000-8000-00000000bb1${month.toString(16)}`,
+      orgId,
+      budgetId: P5_ID.budget,
+      month,
+      category: "labor",
+      amount: "120.0000",
+    });
+    lines.push({
+      id: `01900000-0000-7000-8000-00000000bb2${month.toString(16)}`,
+      orgId,
+      budgetId: P5_ID.budget,
+      month,
+      category: "input",
+      amount: "80.0000",
+    });
+  }
+  for (const line of lines) {
+    await db
+      .insert(budgetLines)
+      .values(line)
+      .onConflictDoNothing({ target: budgetLines.id });
+  }
+  console.log("budget ensured (Café 2026, 12 lines)");
+}
+
+async function seedPlanning(orgId: string, createdBy: string) {
+  const rows = [
+    {
+      id: "01900000-0000-7000-8000-00000000da01",
+      farmId: ID.farmEsperanza,
+      parcelId: ID.parcelA,
+      cropCycleId: ID.cycleCafeA,
+      activityTypeId: GLOBAL_ACTIVITY_TYPES[1].id, // Fertilización
+      plannedDate: "2026-07-10",
+      description: "Segunda fertilización del ciclo",
+      estimatedCost: "150.0000",
+    },
+    {
+      id: "01900000-0000-7000-8000-00000000da02",
+      farmId: ID.farmEsperanza,
+      parcelId: ID.parcelA,
+      cropCycleId: ID.cycleCafeA,
+      activityTypeId: GLOBAL_ACTIVITY_TYPES[3].id, // Chapoda
+      plannedDate: "2026-07-18",
+      description: "Chapoda previa a lluvias",
+      estimatedCost: "90.0000",
+    },
+    {
+      id: "01900000-0000-7000-8000-00000000da03",
+      farmId: ID.farmVista,
+      parcelId: ID.parcelD,
+      cropCycleId: ID.cycleMaizB,
+      activityTypeId: GLOBAL_ACTIVITY_TYPES[5].id, // Riego
+      plannedDate: "2026-07-05",
+      estimatedCost: "40.0000",
+    },
+  ];
+  for (const row of rows) {
+    await db
+      .insert(plannedActivities)
+      .values({ ...row, orgId, status: "planned", createdBy })
+      .onConflictDoNothing({ target: plannedActivities.id });
+  }
+  console.log("planned activities ensured (3, July 2026)");
+}
+
 async function main() {
   const users = await ensureUsers();
   await seedCatalog();
@@ -918,6 +1163,10 @@ async function main() {
   await seedAttendance(org.id, owner);
   await seedInventory(org.id, owner);
   await seedHarvests(org.id, owner);
+  await seedMachinery(org.id, owner);
+  await seedTransfer(org.id, owner);
+  await seedBudget(org.id, owner);
+  await seedPlanning(org.id, owner);
   console.log("seed complete: orgs finca-demo + vecino-sa ready");
 }
 

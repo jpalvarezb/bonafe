@@ -1,0 +1,66 @@
+{
+  "title": "Maquinaria",
+  "empty": "Todavía no hay máquinas registradas.",
+  "new": "Nueva máquina",
+  "table": {
+    "name": "Nombre",
+    "code": "Código",
+    "category": "Categoría",
+    "brandModel": "Marca / modelo",
+    "hourlyCost": "Costo por hora",
+    "status": "Estado",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "deactivate": "Desactivar",
+    "reactivate": "Reactivar"
+  },
+  "status": {
+    "active": "Activa",
+    "inactive": "Inactiva"
+  },
+  "form": {
+    "name": "Nombre de la máquina",
+    "code": "Código interno",
+    "category": "Categoría",
+    "categoryPlaceholder": "Tractor, cosechadora, aspersora…",
+    "brand": "Marca",
+    "model": "Modelo",
+    "year": "Año",
+    "hourlyCost": "Costo por hora",
+    "rateHint": "Monto en la moneda base de la finca, hasta 8 decimales.",
+    "notes": "Notas",
+    "create": "Registrar máquina",
+    "save": "Guardar cambios"
+  },
+  "logs": {
+    "title": "Registros de uso",
+    "new": "Nuevo registro de uso",
+    "empty": "Todavía no hay registros de uso para esta máquina.",
+    "date": "Fecha",
+    "hoursUsed": "Horas de uso (horómetro)",
+    "fuelLiters": "Combustible (litros)",
+    "fuelCost": "Costo de combustible",
+    "activity": "Labor vinculada",
+    "noActivity": "Sin labor vinculada",
+    "workOrder": "Orden de trabajo",
+    "noWorkOrder": "Sin orden de trabajo",
+    "operator": "Operador",
+    "noOperator": "Sin operador",
+    "notes": "Notas",
+    "create": "Registrar uso",
+    "table": {
+      "date": "Fecha",
+      "hours": "Horas",
+      "fuel": "Combustible (L)",
+      "cost": "Costo",
+      "operator": "Operador",
+      "linked": "Vinculado a",
+      "actions": "Acciones",
+      "delete": "Eliminar",
+      "total": "Total"
+    }
+  },
+  "workOrderMachine": "Máquina",
+  "workOrderNoMachine": "Sin máquina asignada",
+  "workOrderMachineHint": "Solo aplica a órdenes de tipo maquinaria."
+}

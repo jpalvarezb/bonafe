@@ -34,6 +34,7 @@ export async function createWorkOrderAction(formData: FormData) {
     title: z.string().min(1).parse(formData.get("title")),
     type: z.enum(["field", "machine"]).parse(formData.get("type")),
     parcelId: str(formData, "parcelId") ?? null,
+    machineId: str(formData, "machineId") ?? null,
     assignedToMemberId: str(formData, "assignedToMemberId") ?? null,
     scheduledDate: str(formData, "scheduledDate") ?? null,
     instructions: str(formData, "instructions") ?? null,

@@ -7,6 +7,7 @@ import {
   type WorkOrderStatus,
 } from "@/server/services/work-orders";
 import { listParcels } from "@/server/services/parcels";
+import { listActiveMachines } from "@/server/services/machinery";
 import {
   createWorkOrderAction,
   updateWorkOrderStatusAction,
@@ -52,11 +53,15 @@ export default async function WorkOrdersPage({
   setRequestLocale(locale);
   const ctx = await requireOrgContext(locale, orgSlug);
   const t = await getTranslations("workorders");
+  // Machine-select strings live in the machinery namespace, which this agent
+  // owns; workorders.json stays untouched.
+  const tm = await getTranslations("machinery");
 
-  const [workOrders, parcels, members] = await Promise.all([
+  const [workOrders, parcels, members, activeMachines] = await Promise.all([
     listWorkOrders(ctx),
     listParcels(ctx),
     listMembers(ctx),
+    listActiveMachines(ctx),
   ]);
 
   const canUpdate = can(ctx.role, "work_order", "update");
@@ -71,7 +76,7 @@ export default async function WorkOrdersPage({
       ) : (
         <Card>
           <CardContent className="divide-y">
-            {workOrders.map(({ workOrder, parcelName, assigneeName }) => {
+            {workOrders.map(({ workOrder, parcelName, assigneeName, machineName }) => {
               const status = workOrder.status as WorkOrderStatus;
               const transitions = nextStatuses(
                 status,
@@ -92,6 +97,9 @@ export default async function WorkOrdersPage({
                     <p className="text-sm text-muted-foreground">
                       {parcelName ?? t("noParcel")} ·{" "}
                       {assigneeName ?? t("unassigned")}
+                      {workOrder.type === "machine"
+                        ? ` · ${machineName ?? tm("workOrderNoMachine")}`
+                        : ""}
                       {workOrder.scheduledDate
                         ? ` · ${workOrder.scheduledDate}`
                         : ""}
@@ -183,6 +191,25 @@ export default async function WorkOrdersPage({
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="machineId">{tm("workOrderMachine")}</Label>
+                <select
+                  id="machineId"
+                  name="machineId"
+                  defaultValue=""
+                  className="border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs"
+                >
+                  <option value="">{tm("workOrderNoMachine")}</option>
+                  {activeMachines.map((machine) => (
+                    <option key={machine.id} value={machine.id}>
+                      {machine.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  {tm("workOrderMachineHint")}
+                </p>
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="assignedToMemberId">{t("assignee")}</Label>

@@ -1,0 +1,39 @@
+{
+  "title": "Warehouses",
+  "new": "New warehouse",
+  "empty": "No warehouses recorded yet.",
+  "name": "Name",
+  "farm": "Farm",
+  "noFarm": "No farm assigned",
+  "default": "Default",
+  "setDefault": "Set as default",
+  "movementCount": "{count} movements",
+  "create": "Create warehouse",
+  "edit": "Edit",
+  "save": "Save changes",
+  "transfers": {
+    "title": "Transfers",
+    "new": "New transfer",
+    "empty": "No transfers recorded yet.",
+    "lineCount": "{count} lines",
+    "from": "Source warehouse",
+    "to": "Destination warehouse",
+    "date": "Date",
+    "notes": "Notes",
+    "needTwoWarehouses": "You need at least two warehouses to record a transfer.",
+    "save": "Save transfer",
+    "lines": {
+      "title": "Products",
+      "product": "Product",
+      "quantity": "Quantity",
+      "add": "Add line",
+      "remove": "Remove"
+    },
+    "errors": {
+      "insufficientStock": "There isn't enough stock at the source warehouse for that quantity.",
+      "sameWarehouse": "The source and destination warehouses must be different.",
+      "notFound": "The warehouse or product could not be found.",
+      "unknown": "The transfer could not be saved. Please try again."
+    }
+  }
+}

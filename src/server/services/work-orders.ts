@@ -1,8 +1,9 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { member, parcels, user, workOrders } from "@/lib/db/schema";
+import { machines, member, parcels, user, workOrders } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
+import { assertOrgFeature } from "@/lib/plan-limits";
 import { newId } from "@/lib/ids";
 
 export type WorkOrderStatus =
@@ -25,6 +26,7 @@ export type WorkOrderInput = {
   title: string;
   type: "field" | "machine";
   parcelId?: string | null;
+  machineId?: string | null;
   assignedToMemberId?: string | null;
   scheduledDate?: string | null;
   instructions?: string | null;
@@ -32,22 +34,27 @@ export type WorkOrderInput = {
 
 export async function listWorkOrders(
   ctx: OrgContext,
-  filter?: { status?: WorkOrderStatus },
+  filter?: { status?: WorkOrderStatus; excludeCancelled?: boolean },
 ) {
   return db
     .select({
       workOrder: workOrders,
       parcelName: parcels.name,
       assigneeName: user.name,
+      machineName: machines.name,
     })
     .from(workOrders)
     .leftJoin(parcels, eq(workOrders.parcelId, parcels.id))
     .leftJoin(member, eq(workOrders.assignedToMemberId, member.id))
     .leftJoin(user, eq(member.userId, user.id))
+    .leftJoin(machines, eq(workOrders.machineId, machines.id))
     .where(
       and(
         eq(workOrders.orgId, ctx.org.id),
         filter?.status ? eq(workOrders.status, filter.status) : undefined,
+        filter?.excludeCancelled
+          ? ne(workOrders.status, "cancelled")
+          : undefined,
       ),
     )
     .orderBy(desc(workOrders.createdAt));
@@ -60,6 +67,15 @@ async function assertParcelInOrg(ctx: OrgContext, parcelId: string) {
     .where(and(eq(parcels.id, parcelId), eq(parcels.orgId, ctx.org.id)))
     .limit(1);
   if (!row) throw new Error("parcel not found");
+}
+
+async function assertMachineInOrg(ctx: OrgContext, machineId: string) {
+  const [row] = await db
+    .select({ id: machines.id })
+    .from(machines)
+    .where(and(eq(machines.id, machineId), eq(machines.orgId, ctx.org.id)))
+    .limit(1);
+  if (!row) throw new Error("machine not found");
 }
 
 async function assertMemberInOrg(ctx: OrgContext, memberId: string) {
@@ -87,7 +103,18 @@ async function nextWorkOrderCode(ctx: OrgContext): Promise<string> {
 export async function createWorkOrder(ctx: OrgContext, input: WorkOrderInput) {
   assertCan(ctx, "work_order", "create");
 
+  // Machine work orders exercise the machinery module even when no specific
+  // machine is picked yet, so they're gated the same as machine CRUD/logs.
+  if (input.type === "machine") {
+    await assertOrgFeature(ctx.org.id, "machinery");
+  } else {
+    // A machine only makes sense on machine-type orders; dropping it here
+    // also keeps field orders usable after a plan downgrade.
+    input.machineId = null;
+  }
+
   if (input.parcelId) await assertParcelInOrg(ctx, input.parcelId);
+  if (input.machineId) await assertMachineInOrg(ctx, input.machineId);
   if (input.assignedToMemberId) {
     await assertMemberInOrg(ctx, input.assignedToMemberId);
   }
@@ -108,6 +135,7 @@ export async function createWorkOrder(ctx: OrgContext, input: WorkOrderInput) {
           assignedToMemberId: input.assignedToMemberId ?? null,
           scheduledDate: input.scheduledDate ?? null,
           parcelId: input.parcelId ?? null,
+          machineId: input.machineId ?? null,
           instructions: input.instructions ?? null,
         })
         .returning();

@@ -1,0 +1,39 @@
+{
+  "title": "Bodegas",
+  "new": "Nueva bodega",
+  "empty": "No hay bodegas registradas.",
+  "name": "Nombre",
+  "farm": "Finca",
+  "noFarm": "Sin finca asignada",
+  "default": "Predeterminada",
+  "setDefault": "Marcar como predeterminada",
+  "movementCount": "{count} movimientos",
+  "create": "Crear bodega",
+  "edit": "Editar",
+  "save": "Guardar cambios",
+  "transfers": {
+    "title": "Traslados",
+    "new": "Nuevo traslado",
+    "empty": "No hay traslados registrados.",
+    "lineCount": "{count} líneas",
+    "from": "Bodega de origen",
+    "to": "Bodega de destino",
+    "date": "Fecha",
+    "notes": "Notas",
+    "needTwoWarehouses": "Necesitas al menos dos bodegas para registrar un traslado.",
+    "save": "Guardar traslado",
+    "lines": {
+      "title": "Productos",
+      "product": "Producto",
+      "quantity": "Cantidad",
+      "add": "Agregar línea",
+      "remove": "Quitar"
+    },
+    "errors": {
+      "insufficientStock": "No hay existencias suficientes en la bodega de origen para esa cantidad.",
+      "sameWarehouse": "La bodega de origen y la de destino deben ser diferentes.",
+      "notFound": "No se encontró la bodega o el producto indicado.",
+      "unknown": "No se pudo registrar el traslado. Intenta de nuevo."
+    }
+  }
+}

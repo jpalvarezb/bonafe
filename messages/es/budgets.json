@@ -1,0 +1,69 @@
+{
+  "title": "Presupuestos",
+  "empty": "Todavía no hay presupuestos.",
+  "new": "Nuevo presupuesto",
+  "name": "Nombre",
+  "namePlaceholder": "Ej. Presupuesto Café 2026",
+  "year": "Año",
+  "farm": "Finca",
+  "farmNone": "Todas las fincas",
+  "cycle": "Ciclo de cultivo",
+  "cycleNone": "Sin ciclo específico",
+  "currency": "Moneda",
+  "scopeLabel": "Alcance",
+  "status": {
+    "draft": "Borrador",
+    "active": "Activo"
+  },
+  "scope": {
+    "org": "Toda la organización",
+    "farm": "Finca: {name}",
+    "cycle": "Ciclo: {name}",
+    "farmAndCycle": "{farm} — {cycle}"
+  },
+  "create": "Crear presupuesto",
+  "delete": "Eliminar",
+  "back": "Volver a presupuestos",
+  "notFound": "Presupuesto no encontrado.",
+  "categories": {
+    "labor": "Mano de obra",
+    "input": "Insumos",
+    "machine": "Maquinaria",
+    "other": "Otros"
+  },
+  "months": {
+    "1": "Enero",
+    "2": "Febrero",
+    "3": "Marzo",
+    "4": "Abril",
+    "5": "Mayo",
+    "6": "Junio",
+    "7": "Julio",
+    "8": "Agosto",
+    "9": "Septiembre",
+    "10": "Octubre",
+    "11": "Noviembre",
+    "12": "Diciembre"
+  },
+  "lines": {
+    "title": "Líneas del presupuesto",
+    "month": "Mes",
+    "save": "Guardar",
+    "totalMonth": "Total del mes",
+    "totalCategory": "Total",
+    "grandTotal": "Total general"
+  },
+  "variance": {
+    "title": "Presupuesto vs. ejecutado",
+    "empty": "No hay presupuesto ni gasto registrado para este año.",
+    "month": "Mes",
+    "budget": "Presupuesto",
+    "actual": "Ejecutado",
+    "variance": "Desviación",
+    "variancePct": "Desviación %",
+    "categoryTotals": "Totales por categoría",
+    "grandTotals": "Totales generales",
+    "legendUnder": "Bajo presupuesto",
+    "legendOver": "Sobregiro"
+  }
+}

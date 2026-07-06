@@ -26,6 +26,10 @@ const NAMESPACES = [
   "harvests",
   "purchases",
   "inventory",
+  "warehouses",
+  "machinery",
+  "planning",
+  "budgets",
 ] as const;
 
 export default getRequestConfig(async ({ requestLocale }) => {

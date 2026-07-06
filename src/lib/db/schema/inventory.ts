@@ -101,6 +101,46 @@ export const purchaseLines = pgTable(
   (t) => [index("purchase_lines_purchase_idx").on(t.purchaseId)],
 );
 
+/** Atomic stock moves between warehouses; lines value at the source average. */
+export const inventoryTransfers = pgTable(
+  "inventory_transfers",
+  {
+    id: id(),
+    orgId: orgId(),
+    fromWarehouseId: uuid("from_warehouse_id")
+      .notNull()
+      .references(() => warehouses.id),
+    toWarehouseId: uuid("to_warehouse_id")
+      .notNull()
+      .references(() => warehouses.id),
+    date: date("date").notNull(),
+    notes: text("notes"),
+    createdBy: text("created_by").references(() => user.id),
+    ...timestamps,
+  },
+  (t) => [index("inv_transfers_org_date_idx").on(t.orgId, t.date)],
+);
+
+export const inventoryTransferLines = pgTable(
+  "inventory_transfer_lines",
+  {
+    id: id(),
+    orgId: orgId(),
+    transferId: uuid("transfer_id")
+      .notNull()
+      .references(() => inventoryTransfers.id, { onDelete: "cascade" }),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id),
+    quantity: qty("quantity").notNull(),
+    // Source-warehouse weighted average at transfer time; the inbound movement
+    // enters the destination at this cost.
+    unitCostSnapshot: money("unit_cost_snapshot").notNull().default("0"),
+    ...timestamps,
+  },
+  (t) => [index("inv_transfer_lines_transfer_idx").on(t.transferId)],
+);
+
 /**
  * Signed stock ledger: quantity > 0 flows in (purchase, adjustment_in),
  * quantity < 0 flows out (consumption, adjustment_out). Stock = SUM(quantity);

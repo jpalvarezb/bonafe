@@ -1,0 +1,46 @@
+{
+  "title": "Planning",
+  "empty": "No activities planned for this month.",
+  "new": "Schedule activity",
+  "activityType": "Activity type",
+  "plannedDate": "Planned date",
+  "parcel": "Parcel",
+  "parcelNone": "No parcel",
+  "cycle": "Cycle",
+  "cycleNone": "No cycle",
+  "description": "Description",
+  "estimatedCost": "Estimated cost",
+  "create": "Save plan",
+  "convert": "Convert to activity",
+  "cancel": "Cancel",
+  "viewActivity": "View activity",
+  "prevMonth": "Previous month",
+  "nextMonth": "Next month",
+  "weekdays": {
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun"
+  },
+  "status": {
+    "planned": "Planned",
+    "converted": "Converted",
+    "cancelled": "Cancelled"
+  },
+  "summary": {
+    "title": "Month summary",
+    "items": "Total activities",
+    "estimatedCost": "Pending estimated cost"
+  },
+  "table": {
+    "date": "Date",
+    "type": "Type",
+    "parcel": "Parcel",
+    "cycle": "Cycle",
+    "estimatedCost": "Estimated cost",
+    "status": "Status"
+  }
+}

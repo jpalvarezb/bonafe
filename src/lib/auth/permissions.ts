@@ -28,6 +28,9 @@ export const statement = {
   harvest: ["create", "update", "delete"],
   inventory: ["manage"],
   purchase: ["create", "update", "delete"],
+  machine: ["manage", "log"],
+  budget: ["manage"],
+  planning: ["manage"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -50,6 +53,9 @@ const fullDomain = {
   harvest: ["create", "update", "delete"],
   inventory: ["manage"],
   purchase: ["create", "update", "delete"],
+  machine: ["manage", "log"],
+  budget: ["manage"],
+  planning: ["manage"],
 } as const;
 
 export const owner = ac.newRole({
@@ -79,6 +85,9 @@ export const manager = ac.newRole({
   harvest: ["create", "update", "delete"],
   inventory: ["manage"],
   purchase: ["create", "update", "delete"],
+  machine: ["manage", "log"],
+  budget: ["manage"],
+  planning: ["manage"],
 });
 
 export const fieldSupervisor = ac.newRole({
@@ -88,6 +97,7 @@ export const fieldSupervisor = ac.newRole({
   work_order: ["complete"],
   attendance: ["create", "update"],
   harvest: ["create"],
+  machine: ["log"],
 });
 
 export const roles = {

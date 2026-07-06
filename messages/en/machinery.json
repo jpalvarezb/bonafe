@@ -1,0 +1,66 @@
+{
+  "title": "Machinery",
+  "empty": "No machines registered yet.",
+  "new": "New machine",
+  "table": {
+    "name": "Name",
+    "code": "Code",
+    "category": "Category",
+    "brandModel": "Brand / model",
+    "hourlyCost": "Hourly cost",
+    "status": "Status",
+    "actions": "Actions",
+    "edit": "Edit",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "form": {
+    "name": "Machine name",
+    "code": "Internal code",
+    "category": "Category",
+    "categoryPlaceholder": "Tractor, harvester, sprayer…",
+    "brand": "Brand",
+    "model": "Model",
+    "year": "Year",
+    "hourlyCost": "Hourly cost",
+    "rateHint": "Amount in the farm's base currency, up to 8 decimals.",
+    "notes": "Notes",
+    "create": "Register machine",
+    "save": "Save changes"
+  },
+  "logs": {
+    "title": "Usage logs",
+    "new": "New usage log",
+    "empty": "No usage logs for this machine yet.",
+    "date": "Date",
+    "hoursUsed": "Hours used (hour meter)",
+    "fuelLiters": "Fuel (liters)",
+    "fuelCost": "Fuel cost",
+    "activity": "Linked activity",
+    "noActivity": "No linked activity",
+    "workOrder": "Work order",
+    "noWorkOrder": "No work order",
+    "operator": "Operator",
+    "noOperator": "No operator",
+    "notes": "Notes",
+    "create": "Log usage",
+    "table": {
+      "date": "Date",
+      "hours": "Hours",
+      "fuel": "Fuel (L)",
+      "cost": "Cost",
+      "operator": "Operator",
+      "linked": "Linked to",
+      "actions": "Actions",
+      "delete": "Delete",
+      "total": "Total"
+    }
+  },
+  "workOrderMachine": "Machine",
+  "workOrderNoMachine": "No machine assigned",
+  "workOrderMachineHint": "Only applies to machine-type work orders."
+}
