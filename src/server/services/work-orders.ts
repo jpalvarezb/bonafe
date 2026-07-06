@@ -6,6 +6,9 @@ import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
 import { assertOrgFeature } from "@/lib/plan-limits";
 import { newId } from "@/lib/ids";
+import { mergeChecklistCompletion } from "@/lib/calc/work-order-checklist";
+
+export { mergeChecklistCompletion } from "@/lib/calc/work-order-checklist";
 
 const checklistItemSchema = z.object({
   id: z.string().min(1),
@@ -183,37 +186,44 @@ export async function updateWorkOrderStatus(
 ) {
   assertCan(ctx, "work_order", status === "done" ? "complete" : "update");
 
-  const [current] = await db
-    .select({
-      status: workOrders.status,
-      assignedToMemberId: workOrders.assignedToMemberId,
-      config: workOrders.config,
-    })
-    .from(workOrders)
-    .where(and(eq(workOrders.id, id), eq(workOrders.orgId, ctx.org.id)))
-    .limit(1);
-  if (!current) throw new Error("work order not found");
+  // Row lock: the transition check must not run against a stale read, or a
+  // cancel racing completeWorkOrder (which locks this same row) could
+  // validate against the pre-completion status and then overwrite "done"
+  // with "cancelled" — a state the transition map forbids.
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select({
+        status: workOrders.status,
+        assignedToMemberId: workOrders.assignedToMemberId,
+        config: workOrders.config,
+      })
+      .from(workOrders)
+      .where(and(eq(workOrders.id, id), eq(workOrders.orgId, ctx.org.id)))
+      .limit(1)
+      .for("update");
+    if (!current) throw new Error("work order not found");
 
-  const allowed = ALLOWED_TRANSITIONS[current.status as WorkOrderStatus];
-  if (!allowed.includes(status)) {
-    throw new Error(`invalid transition ${current.status} -> ${status}`);
-  }
-  if (status === "assigned" && !current.assignedToMemberId) {
-    throw new Error("cannot assign a work order without an assignee");
-  }
-  if (status === "done") {
-    const checklist = parseChecklist(current.config);
-    if (checklist.some((item) => !item.done)) {
-      throw new Error("checklist incomplete");
+    const allowed = ALLOWED_TRANSITIONS[current.status as WorkOrderStatus];
+    if (!allowed.includes(status)) {
+      throw new Error(`invalid transition ${current.status} -> ${status}`);
     }
-  }
+    if (status === "assigned" && !current.assignedToMemberId) {
+      throw new Error("cannot assign a work order without an assignee");
+    }
+    if (status === "done") {
+      const checklist = parseChecklist(current.config);
+      if (checklist.some((item) => !item.done)) {
+        throw new Error("checklist incomplete");
+      }
+    }
 
-  const [updated] = await db
-    .update(workOrders)
-    .set({ status })
-    .where(and(eq(workOrders.id, id), eq(workOrders.orgId, ctx.org.id)))
-    .returning();
-  return updated;
+    const [updated] = await tx
+      .update(workOrders)
+      .set({ status })
+      .where(and(eq(workOrders.id, id), eq(workOrders.orgId, ctx.org.id)))
+      .returning();
+    return updated;
+  });
 }
 
 const CHECKLIST_TOGGLE_STATUSES: WorkOrderStatus[] = ["assigned", "in_progress"];
@@ -261,6 +271,78 @@ export async function toggleChecklistItem(
       )
       .returning();
     return updated;
+  });
+}
+
+/**
+ * Single field-completion operation for the offline outbox
+ * ("workorder.complete"): checks off the given items and transitions the
+ * order straight to "done" in one transactional step. Replay-safe and
+ * lock-safe so it can be applied idempotently from a queued/retried sync
+ * batch, and so it doesn't race `toggleChecklistItem` or a concurrent
+ * completion from another device.
+ *
+ * Deliberate design choice, distinct from `updateWorkOrderStatus`: a field
+ * crew captures completion from the field, often having gone straight from
+ * "assigned" to finishing the job without ever separately marking
+ * "in_progress" online. So this path allows assigned -> done directly,
+ * collapsing the assigned -> in_progress -> done chain into one operation.
+ * `updateWorkOrderStatus` is untouched and still requires the normal
+ * step-by-step transition for the online status-change UI.
+ */
+export async function completeWorkOrder(
+  ctx: OrgContext,
+  input: { workOrderId: string; checkedItemIds: readonly string[] },
+): Promise<{
+  workOrder: typeof workOrders.$inferSelect;
+  transitioned: boolean;
+}> {
+  assertCan(ctx, "work_order", "complete");
+
+  return db.transaction(async (tx) => {
+    // Row lock: config jsonb is rewritten whole below, so this must
+    // serialize against toggleChecklistItem and concurrent completions the
+    // same way toggleChecklistItem locks against itself (previously,
+    // updateWorkOrderStatus's completeness check ran unlocked against this
+    // same config column — this path fixes that race for its own writes).
+    const [current] = await tx
+      .select()
+      .from(workOrders)
+      .where(
+        and(eq(workOrders.id, input.workOrderId), eq(workOrders.orgId, ctx.org.id)),
+      )
+      .limit(1)
+      .for("update");
+    if (!current) throw new Error("work order not found");
+
+    // Replay no-op: "done" is terminal, so a replayed completion (outbox
+    // retry, duplicate flush) is success, not an error — no write needed.
+    if (current.status === "done") {
+      return { workOrder: current, transitioned: false };
+    }
+
+    const status = current.status as WorkOrderStatus;
+    if (status !== "assigned" && status !== "in_progress") {
+      throw new Error(`invalid transition ${status} -> done`);
+    }
+
+    const checklist = parseChecklist(current.config);
+    const merged = mergeChecklistCompletion(checklist, input.checkedItemIds);
+    if (merged.some((item) => !item.done)) {
+      throw new Error("checklist incomplete");
+    }
+
+    const [updated] = await tx
+      .update(workOrders)
+      .set({
+        config: checklistSchema.parse({ checklist: merged }),
+        status: "done",
+      })
+      .where(
+        and(eq(workOrders.id, input.workOrderId), eq(workOrders.orgId, ctx.org.id)),
+      )
+      .returning();
+    return { workOrder: updated, transitioned: true };
   });
 }
 

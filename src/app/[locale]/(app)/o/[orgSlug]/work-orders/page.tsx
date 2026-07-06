@@ -11,7 +11,6 @@ import { listParcels } from "@/server/services/parcels";
 import { listActiveMachines } from "@/server/services/machinery";
 import {
   createWorkOrderAction,
-  toggleChecklistItemAction,
   updateWorkOrderStatusAction,
 } from "@/server/actions/work-orders";
 import { Button } from "@/components/ui/button";
@@ -23,8 +22,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CompleteWorkOrderCard } from "@/components/work-orders/complete-work-order-card";
+import { PendingEntries } from "@/components/offline/pending-entries";
 
-const CHECKLIST_TOGGLE_STATUSES: WorkOrderStatus[] = ["assigned", "in_progress"];
 const KNOWN_ERROR_KEYS = ["checklistIncomplete"];
 
 const STATUS_CHIP_CLASS: Record<WorkOrderStatus, string> = {
@@ -89,6 +89,8 @@ export default async function WorkOrdersPage({
         </p>
       )}
 
+      <PendingEntries orgSlug={orgSlug} kind="workorder.complete" />
+
       {workOrders.length === 0 ? (
         <p className="text-muted-foreground">{t("empty")}</p>
       ) : (
@@ -101,8 +103,13 @@ export default async function WorkOrdersPage({
                 workOrder.assignedToMemberId !== null,
               );
               const checklist = parseChecklist(workOrder.config);
-              const canToggleItems =
-                canComplete && CHECKLIST_TOGGLE_STATUSES.includes(status);
+              // Offline-capable completion card takes over both the
+              // checklist toggles and the "Completar" transition for rows
+              // it can act on; other transitions (assign/start/cancel) stay
+              // as the existing online-only server-action forms below.
+              const showCompleteCard =
+                canComplete &&
+                (status === "assigned" || status === "in_progress");
               return (
                 <div key={workOrder.id} className="flex flex-col gap-3 py-3">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -131,6 +138,9 @@ export default async function WorkOrdersPage({
                         {t(`status.${status}`)}
                       </span>
                       {transitions.map((next) => {
+                        // The completion card below owns "done" for rows it
+                        // handles — skip the plain online-only form here.
+                        if (next === "done" && showCompleteCard) return null;
                         const gated =
                           next === "done" ? canComplete : canUpdate;
                         if (!gated) return null;
@@ -157,57 +167,25 @@ export default async function WorkOrdersPage({
                     </div>
                   </div>
 
-                  {checklist.length > 0 && (
-                    <div className="flex flex-col gap-1 rounded-md border bg-muted/30 p-2">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        {t("checklist.title")}
-                      </p>
-                      {checklist.map((item) =>
-                        canToggleItems ? (
-                          <form
-                            key={item.id}
-                            action={toggleChecklistItemAction}
-                          >
-                            <input type="hidden" name="locale" value={locale} />
-                            <input
-                              type="hidden"
-                              name="orgSlug"
-                              value={orgSlug}
-                            />
-                            <input
-                              type="hidden"
-                              name="workOrderId"
-                              value={workOrder.id}
-                            />
-                            <input
-                              type="hidden"
-                              name="itemId"
-                              value={item.id}
-                            />
-                            <input
-                              type="hidden"
-                              name="done"
-                              value={(!item.done).toString()}
-                            />
-                            <button
-                              type="submit"
-                              className="flex items-center gap-2 text-left text-sm hover:underline"
-                            >
-                              <span aria-hidden>
-                                {item.done ? "☑" : "☐"}
-                              </span>
-                              <span
-                                className={
-                                  item.done
-                                    ? "text-muted-foreground line-through"
-                                    : ""
-                                }
-                              >
-                                {item.label}
-                              </span>
-                            </button>
-                          </form>
-                        ) : (
+                  {showCompleteCard ? (
+                    <CompleteWorkOrderCard
+                      orgSlug={orgSlug}
+                      locale={locale}
+                      workOrder={{
+                        id: workOrder.id,
+                        code: workOrder.code,
+                        title: workOrder.title,
+                        status,
+                      }}
+                      checklist={checklist}
+                    />
+                  ) : (
+                    checklist.length > 0 && (
+                      <div className="flex flex-col gap-1 rounded-md border bg-muted/30 p-2">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          {t("checklist.title")}
+                        </p>
+                        {checklist.map((item) => (
                           <div
                             key={item.id}
                             className="flex items-center gap-2 text-sm"
@@ -225,9 +203,9 @@ export default async function WorkOrdersPage({
                               {item.label}
                             </span>
                           </div>
-                        ),
-                      )}
-                    </div>
+                        ))}
+                      </div>
+                    )
                   )}
                 </div>
               );

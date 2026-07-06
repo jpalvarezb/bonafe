@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   activityCreatePayload,
   monitoringCreatePayload,
+  workOrderCompletePayload,
 } from "../../src/lib/offline/schemas";
 
 /**
@@ -81,5 +82,60 @@ describe("monitoringCreatePayload incidencePct", () => {
         .success,
     ).toBe(true);
     expect(monitoringCreatePayload.safeParse(base).success).toBe(true);
+  });
+});
+
+describe("workOrderCompletePayload", () => {
+  const base = {
+    workOrderId: "018f0000-0000-7000-8000-000000000006",
+    checkedItemIds: ["item-1", "item-2"],
+  };
+
+  it("requires a uuid workOrderId", () => {
+    expect(
+      workOrderCompletePayload.safeParse({ ...base, workOrderId: "not-a-uuid" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects more than 20 checked item ids (checklist max)", () => {
+    const result = workOrderCompletePayload.safeParse({
+      ...base,
+      checkedItemIds: Array.from({ length: 21 }, (_, i) => `item-${i}`),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts exactly 20 checked item ids", () => {
+    const result = workOrderCompletePayload.safeParse({
+      ...base,
+      checkedItemIds: Array.from({ length: 20 }, (_, i) => `item-${i}`),
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty checkedItemIds array", () => {
+    expect(
+      workOrderCompletePayload.safeParse({ ...base, checkedItemIds: [] })
+        .success,
+    ).toBe(true);
+  });
+
+  it("rejects an empty-string item id", () => {
+    expect(
+      workOrderCompletePayload.safeParse({ ...base, checkedItemIds: [""] })
+        .success,
+    ).toBe(false);
+  });
+
+  it("makes code/title optional display-only fields", () => {
+    expect(workOrderCompletePayload.safeParse(base).success).toBe(true);
+    expect(
+      workOrderCompletePayload.safeParse({
+        ...base,
+        code: "OT-0001",
+        title: "Spray north block",
+      }).success,
+    ).toBe(true);
   });
 });

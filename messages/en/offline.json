@@ -12,7 +12,8 @@
       "activity_create": "Activity",
       "monitoring_create": "Monitoring",
       "attendance_upsert": "Attendance",
-      "harvest_create": "Harvest"
+      "harvest_create": "Harvest",
+      "workorder_complete": "Complete work order"
     }
   },
   "pendingNote": "Saved on this device; will sync when back online.",

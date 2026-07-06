@@ -7,12 +7,15 @@ import {
   harvestCreatePayload,
   monitoringCreatePayload,
   syncRequestSchema,
+  workOrderCompletePayload,
   type SyncItemResult,
 } from "@/lib/offline/schemas";
 import { createActivity } from "@/server/services/activities";
 import { createMonitoringRecord } from "@/server/services/monitoring";
 import { upsertAttendance } from "@/server/services/attendance";
 import { createHarvest } from "@/server/services/harvests";
+import { completeWorkOrder } from "@/server/services/work-orders";
+import { audit } from "@/lib/audit";
 
 /**
  * Offline outbox ingest. Items are applied in order; each is idempotent by
@@ -123,6 +126,22 @@ export async function POST(request: Request) {
           notes: payload.notes ?? null,
           createdOffline: true,
         });
+        results.push({ outboxId: item.outboxId, status: "applied" });
+      } else if (item.kind === "workorder.complete") {
+        const payload = workOrderCompletePayload.parse(item.payload);
+        const { workOrder, transitioned } = await completeWorkOrder(ctx, {
+          workOrderId: payload.workOrderId,
+          checkedItemIds: payload.checkedItemIds,
+        });
+        // Only write the audit row on the transition itself — a replayed
+        // completion (already "done") must not duplicate the audit entry.
+        if (transitioned) {
+          await audit(ctx, "work_order.status", {
+            entity: "work_order",
+            entityId: workOrder.id,
+            meta: { code: workOrder.code, to: "done" },
+          });
+        }
         results.push({ outboxId: item.outboxId, status: "applied" });
       } else {
         const payload = monitoringCreatePayload.parse(item.payload);

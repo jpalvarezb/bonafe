@@ -11,8 +11,11 @@ type Props = {
 };
 
 type PendingPayload = {
-  date: string;
+  date?: string;
   agentName?: string;
+  /** workorder.complete: display-only fields, server ignores both. */
+  code?: string;
+  title?: string;
 };
 
 export function PendingEntries({ orgSlug, kind }: Props) {
@@ -41,7 +44,9 @@ export function PendingEntries({ orgSlug, kind }: Props) {
         const description =
           kind === "monitoring.create" && payload.agentName
             ? `${payload.date} · ${payload.agentName}`
-            : payload.date;
+            : kind === "workorder.complete"
+              ? (payload.code ?? payload.title ?? "")
+              : payload.date;
         return (
           <div
             key={entry.id}

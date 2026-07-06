@@ -12,7 +12,8 @@
       "activity_create": "Actividad",
       "monitoring_create": "Monitoreo",
       "attendance_upsert": "Asistencia",
-      "harvest_create": "Cosecha"
+      "harvest_create": "Cosecha",
+      "workorder_complete": "Completar orden de trabajo"
     }
   },
   "pendingNote": "Se guardó en este dispositivo y se sincronizará al recuperar conexión.",

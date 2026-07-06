@@ -12,6 +12,7 @@ const KIND_KEYS: Record<OutboxKind, string> = {
   "monitoring.create": "monitoring_create",
   "attendance.upsert": "attendance_upsert",
   "harvest.create": "harvest_create",
+  "workorder.complete": "workorder_complete",
 };
 
 export function SyncIssuesList({ orgSlug }: { orgSlug: string }) {

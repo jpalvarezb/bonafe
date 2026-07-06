@@ -100,11 +100,25 @@ export const harvestCreatePayload = z.object({
   notes: z.string().optional(),
 });
 
+/**
+ * `code`/`title` are display-only — carried so pending chips and the sync
+ * tray can show something human-readable before the server has responded.
+ * The server MUST ignore both; the checklist and completion status are
+ * derived entirely server-side from workOrderId.
+ */
+export const workOrderCompletePayload = z.object({
+  workOrderId: uuid,
+  checkedItemIds: z.array(z.string().min(1)).max(20),
+  code: z.string().optional(),
+  title: z.string().optional(),
+});
+
 export const OUTBOX_KINDS = {
   "activity.create": activityCreatePayload,
   "monitoring.create": monitoringCreatePayload,
   "attendance.upsert": attendanceUpsertPayload,
   "harvest.create": harvestCreatePayload,
+  "workorder.complete": workOrderCompletePayload,
 } as const;
 
 export type OutboxKind = keyof typeof OUTBOX_KINDS;
