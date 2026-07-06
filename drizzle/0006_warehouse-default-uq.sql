@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "warehouses_org_default_uq" ON "warehouses" USING btree ("org_id") WHERE "warehouses"."is_default";

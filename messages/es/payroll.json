@@ -1,0 +1,53 @@
+{
+  "title": "Planilla",
+  "empty": "Todavía no hay planillas registradas.",
+  "new": "Nueva planilla",
+  "name": "Nombre",
+  "namePlaceholder": "Ej. Quincena 1 julio 2026",
+  "startDate": "Fecha de inicio",
+  "endDate": "Fecha de fin",
+  "create": "Crear planilla",
+  "generate": "Generar planilla",
+  "regenerate": "Regenerar planilla",
+  "close": "Cerrar planilla",
+  "status": {
+    "open": "Abierta",
+    "closed": "Cerrada"
+  },
+  "entries": {
+    "title": "Detalle de la planilla",
+    "empty": "Todavía no hay jornales generados para este período. Usa \"Generar planilla\" para calcularlos a partir de la asistencia registrada.",
+    "worker": "Trabajador",
+    "days": "Jornales",
+    "hours": "Horas extra",
+    "base": "Devengado",
+    "overtime": "Extra",
+    "bonuses": "Bonificaciones",
+    "deductions": "Deducciones",
+    "net": "Neto a pagar",
+    "save": "Guardar",
+    "notesPlaceholder": "Notas (opcional)",
+    "total": "Total de la planilla"
+  },
+  "reports": {
+    "title": "Eficiencia de la mano de obra",
+    "from": "Desde",
+    "to": "Hasta",
+    "apply": "Aplicar",
+    "empty": "No hay datos para el rango de fechas seleccionado.",
+    "byWorker": {
+      "title": "Jornales y pago por trabajador",
+      "worker": "Trabajador",
+      "days": "Jornales",
+      "hours": "Horas extra",
+      "grossPay": "Pago devengado"
+    },
+    "byActivityType": {
+      "title": "Costo de mano de obra por tipo de actividad"
+    },
+    "byParcel": {
+      "title": "Costo de mano de obra por parcela",
+      "general": "General (sin parcela)"
+    }
+  }
+}

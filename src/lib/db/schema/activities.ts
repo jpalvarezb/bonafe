@@ -12,6 +12,7 @@ import { farms, parcels } from "./farms";
 import { cropCycles } from "./crops";
 import { activityTypes, products } from "./catalog";
 import { costCenters } from "./workorders";
+import { workers } from "./labor";
 import { user } from "./auth";
 import { id, orgId, timestamps } from "./helpers";
 
@@ -92,7 +93,10 @@ export const activityLabor = pgTable(
     activityId: uuid("activity_id")
       .notNull()
       .references(() => activities.id, { onDelete: "cascade" }),
-    // worker_id FK arrives with the workers table (Phase 4); free text until then
+    workerId: uuid("worker_id").references(() => workers.id, {
+      onDelete: "set null",
+    }),
+    // Free-text crew label when no registered worker is linked.
     workerName: text("worker_name"),
     workersCount: integer("workers_count").notNull().default(1),
     hours: numeric("hours", { precision: 8, scale: 2 }),

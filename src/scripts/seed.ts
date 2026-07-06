@@ -11,11 +11,14 @@ import {
   activityInputs,
   activityLabor,
   activityTypes,
+  attendanceRecords,
   climateReadings,
   cropCycles,
   crops,
   cropVarieties,
   farms,
+  harvests,
+  inventoryMovements,
   member,
   monitoringRecords,
   organization,
@@ -23,7 +26,12 @@ import {
   parcels,
   plans,
   products,
+  purchaseLines,
+  purchases,
+  suppliers,
   user,
+  warehouses,
+  workers,
 } from "../lib/db/schema";
 import { computeActivityTotals } from "../lib/calc/costs";
 import { PLAN_DEFINITIONS } from "../lib/plan-limits";
@@ -654,6 +662,247 @@ async function seedClimate(orgId: string) {
   console.log("climate readings ensured (90 days)");
 }
 
+// ---- Phase 4 additions ----------------------------------------------------
+
+const DEMO_WORKERS = [
+  { id: "01900000-0000-7000-8000-00000000b001", name: "Pedro Obrero", code: "T-01", type: "fixed", daily: "10.00", hourly: "1.50", active: true },
+  { id: "01900000-0000-7000-8000-00000000b002", name: "María Cortadora", code: "T-02", type: "temporary", daily: "9.00", hourly: "1.35", active: true },
+  { id: "01900000-0000-7000-8000-00000000b003", name: "José Peón", code: "T-03", type: "temporary", daily: "8.50", hourly: "1.30", active: true },
+  { id: "01900000-0000-7000-8000-00000000b004", name: "Rosa Jornalera", code: "T-04", type: "temporary", daily: "8.50", hourly: "1.30", active: true },
+  { id: "01900000-0000-7000-8000-00000000b005", name: "Luis Capataz", code: "T-05", type: "fixed", daily: "12.00", hourly: "1.80", active: true },
+  { id: "01900000-0000-7000-8000-00000000b006", name: "Ana Recolectora", code: "T-06", type: "temporary", daily: "8.00", hourly: "1.20", active: true },
+  { id: "01900000-0000-7000-8000-00000000b007", name: "Carlos Machetero", code: "T-07", type: "temporary", daily: "8.00", hourly: "1.20", active: false },
+] as const;
+
+/**
+ * Hand-computable payroll fixture (see docs/verify/phase-4.md), fortnight
+ * 2026-06-16 → 2026-06-29. Pedro Obrero: 10 present (3h + 2h overtime on the
+ * first two days), 1 half day, 2 absent, 1 sick → 10.5 days, base 105.00,
+ * overtime 7.50, net 112.50. Everyone else: present all 14 days, no overtime
+ * → net = 14 × daily rate.
+ */
+const PEDRO_FORTNIGHT: Array<{
+  status: "present" | "half_day" | "absent" | "sick" | "leave";
+  hours?: string;
+}> = [
+  { status: "present", hours: "3" },
+  { status: "present", hours: "2" },
+  { status: "present" },
+  { status: "present" },
+  { status: "half_day" },
+  { status: "absent" },
+  { status: "present" },
+  { status: "present" },
+  { status: "present" },
+  { status: "sick" },
+  { status: "present" },
+  { status: "absent" },
+  { status: "present" },
+  { status: "present" },
+];
+
+function fortnightDate(index: number): string {
+  return `2026-06-${String(16 + index).padStart(2, "0")}`;
+}
+
+async function seedWorkers(orgId: string) {
+  for (const w of DEMO_WORKERS) {
+    await db
+      .insert(workers)
+      .values({
+        id: w.id,
+        orgId,
+        name: w.name,
+        code: w.code,
+        type: w.type,
+        dailyRate: w.daily,
+        hourlyRate: w.hourly,
+        active: w.active,
+      })
+      .onConflictDoNothing({ target: workers.id });
+  }
+  console.log(`workers ensured (${DEMO_WORKERS.length})`);
+}
+
+async function seedAttendance(orgId: string, createdBy: string) {
+  const activeWorkers = DEMO_WORKERS.filter((w) => w.active);
+  for (let day = 0; day < 14; day++) {
+    for (let w = 0; w < activeWorkers.length; w++) {
+      const worker = activeWorkers[w];
+      const fixture =
+        worker.code === "T-01"
+          ? PEDRO_FORTNIGHT[day]
+          : { status: "present" as const, hours: undefined };
+      await db
+        .insert(attendanceRecords)
+        .values({
+          id: `01900000-0000-7000-8000-0000ad${String(w + 1).padStart(2, "0")}${String(day).padStart(2, "0")}00`,
+          orgId,
+          workerId: worker.id,
+          date: fortnightDate(day),
+          status: fixture.status,
+          hoursWorked: fixture.hours ?? null,
+          dailyRateSnapshot: worker.daily,
+          hourlyRateSnapshot: worker.hourly,
+          createdBy,
+        })
+        .onConflictDoNothing({ target: attendanceRecords.id });
+    }
+  }
+  console.log("attendance ensured (fortnight 2026-06-16..29, 6 workers)");
+}
+
+const INV_ID = {
+  warehouse: "01900000-0000-7000-8000-00000000ba01",
+  supplierAgro: "01900000-0000-7000-8000-00000000de01",
+  supplierFerre: "01900000-0000-7000-8000-00000000de02",
+  purchase1: "01900000-0000-7000-8000-00000000cc01",
+  purchase1LineUrea: "01900000-0000-7000-8000-00000000cc11",
+  purchase1LineGlifo: "01900000-0000-7000-8000-00000000cc12",
+  purchase2: "01900000-0000-7000-8000-00000000cc02",
+  purchase2LineUrea: "01900000-0000-7000-8000-00000000cc21",
+  mov1: "01900000-0000-7000-8000-00000000cc31",
+  mov2: "01900000-0000-7000-8000-00000000cc32",
+  mov3: "01900000-0000-7000-8000-00000000cc33",
+} as const;
+
+/**
+ * Weighted-average fixture: Urea 20 qq @ 32.00 then 10 qq @ 35.00
+ * → 30 qq, avg 33.00, value 990.00. Glifosato 10 L @ 7.50.
+ */
+async function seedInventory(orgId: string, createdBy: string) {
+  await db
+    .insert(warehouses)
+    .values({
+      id: INV_ID.warehouse,
+      orgId,
+      name: "Bodega Central",
+      isDefault: true,
+    })
+    .onConflictDoNothing({ target: warehouses.id });
+
+  await db
+    .insert(suppliers)
+    .values([
+      {
+        id: INV_ID.supplierAgro,
+        orgId,
+        name: "Agroservicio El Progreso",
+        contactName: "Danilo Herrera",
+        phone: "+505 8888 1234",
+      },
+      {
+        id: INV_ID.supplierFerre,
+        orgId,
+        name: "Ferretería La Económica",
+        phone: "+505 8888 5678",
+      },
+    ])
+    .onConflictDoNothing({ target: suppliers.id });
+
+  const urea = DEMO_PRODUCTS[0]; // f001 Urea 46%
+  const glifosato = DEMO_PRODUCTS[2]; // f003 Glifosato
+
+  const purchaseRows = [
+    {
+      purchase: {
+        id: INV_ID.purchase1,
+        orgId,
+        supplierId: INV_ID.supplierAgro,
+        warehouseId: INV_ID.warehouse,
+        date: "2026-06-01",
+        invoiceNumber: "F-00123",
+        currencyCode: "USD",
+        subtotal: "715.0000",
+        total: "715.0000",
+        createdBy,
+      },
+      lines: [
+        { id: INV_ID.purchase1LineUrea, productId: urea.id, quantity: "20.0000", unitCost: "32.0000", total: "640.0000", movId: INV_ID.mov1 },
+        { id: INV_ID.purchase1LineGlifo, productId: glifosato.id, quantity: "10.0000", unitCost: "7.5000", total: "75.0000", movId: INV_ID.mov2 },
+      ],
+    },
+    {
+      purchase: {
+        id: INV_ID.purchase2,
+        orgId,
+        supplierId: INV_ID.supplierAgro,
+        warehouseId: INV_ID.warehouse,
+        date: "2026-06-20",
+        invoiceNumber: "F-00187",
+        currencyCode: "USD",
+        subtotal: "350.0000",
+        total: "350.0000",
+        createdBy,
+      },
+      lines: [
+        { id: INV_ID.purchase2LineUrea, productId: urea.id, quantity: "10.0000", unitCost: "35.0000", total: "350.0000", movId: INV_ID.mov3 },
+      ],
+    },
+  ];
+
+  for (const { purchase, lines } of purchaseRows) {
+    await db
+      .insert(purchases)
+      .values(purchase)
+      .onConflictDoNothing({ target: purchases.id });
+    for (const line of lines) {
+      await db
+        .insert(purchaseLines)
+        .values({
+          id: line.id,
+          orgId,
+          purchaseId: purchase.id,
+          productId: line.productId,
+          quantity: line.quantity,
+          unitCost: line.unitCost,
+          total: line.total,
+        })
+        .onConflictDoNothing({ target: purchaseLines.id });
+      await db
+        .insert(inventoryMovements)
+        .values({
+          id: line.movId,
+          orgId,
+          warehouseId: INV_ID.warehouse,
+          productId: line.productId,
+          date: purchase.date,
+          type: "purchase",
+          quantity: line.quantity,
+          unitCost: line.unitCost,
+          refKind: "purchase_line",
+          refId: line.id,
+          createdBy,
+        })
+        .onConflictDoNothing();
+    }
+  }
+  console.log("inventory ensured (1 warehouse, 2 suppliers, 2 purchases)");
+}
+
+/** Coffee picking in latas on the active cycle; deterministic quantities. */
+async function seedHarvests(orgId: string, createdBy: string) {
+  const pickers = DEMO_WORKERS.filter((w) => w.active);
+  for (let i = 0; i < 12; i++) {
+    await db
+      .insert(harvests)
+      .values({
+        id: `01900000-0000-7000-8000-00000000fa${(i + 1).toString(16).padStart(2, "0")}`,
+        orgId,
+        farmId: ID.farmEsperanza,
+        parcelId: ID.parcelA,
+        cropCycleId: ID.cycleCafeA,
+        workerId: pickers[i % pickers.length].id,
+        date: `2026-06-${String(10 + i).padStart(2, "0")}`,
+        quantity: `${40 + i * 3}.0000`,
+        unit: "lata",
+        createdBy,
+      })
+      .onConflictDoNothing({ target: harvests.id });
+  }
+  console.log("harvests ensured (12 latas entries on Café 2026-A)");
+}
+
 async function main() {
   const users = await ensureUsers();
   await seedCatalog();
@@ -664,6 +913,11 @@ async function main() {
   await seedMonitoring(org.id, users["owner@demo.agropeq.io"]);
   await seedClimate(org.id);
   await seedNeighborOrg();
+  const owner = users["owner@demo.agropeq.io"];
+  await seedWorkers(org.id);
+  await seedAttendance(org.id, owner);
+  await seedInventory(org.id, owner);
+  await seedHarvests(org.id, owner);
   console.log("seed complete: orgs finca-demo + vecino-sa ready");
 }
 

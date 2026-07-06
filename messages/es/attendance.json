@@ -1,0 +1,22 @@
+{
+  "title": "Asistencia",
+  "noWorkers": "No hay trabajadores activos para marcar asistencia. Registra trabajadores primero.",
+  "nav": {
+    "prev": "Día anterior",
+    "next": "Día siguiente",
+    "today": "Hoy"
+  },
+  "statuses": {
+    "present": "Presente",
+    "half_day": "Medio día",
+    "absent": "Ausente",
+    "sick": "Enfermo",
+    "leave": "Permiso"
+  },
+  "summary": {
+    "unmarked": "Sin marcar"
+  },
+  "hoursPlaceholder": "Horas extra",
+  "notesPlaceholder": "Nota (opcional)",
+  "save": "Guardar"
+}

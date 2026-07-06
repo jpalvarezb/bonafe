@@ -8,3 +8,6 @@ export * from "./activities";
 export * from "./monitoring";
 export * from "./climate";
 export * from "./billing";
+export * from "./labor";
+export * from "./harvests";
+export * from "./inventory";

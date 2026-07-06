@@ -1,0 +1,42 @@
+{
+  "title": "Harvests",
+  "empty": "No harvests recorded yet.",
+  "new": "New harvest",
+  "parcel": "Parcel",
+  "cycle": "Cycle",
+  "cycleNone": "No cycle",
+  "worker": "Picker",
+  "workerNone": "No picker",
+  "date": "Date",
+  "quantity": "Quantity",
+  "unit": "Unit",
+  "qualityGrade": "Quality",
+  "notes": "Notes",
+  "create": "Save harvest",
+  "delete": "Delete",
+  "units": {
+    "kg": "kg",
+    "lb": "lb",
+    "qq": "qq",
+    "lata": "lata",
+    "saco": "saco"
+  },
+  "filters": {
+    "allParcels": "All parcels",
+    "allCycles": "All cycles",
+    "apply": "Filter"
+  },
+  "summary": {
+    "title": "Total harvested",
+    "empty": "No data for this filter."
+  },
+  "table": {
+    "date": "Date",
+    "parcel": "Parcel",
+    "cycle": "Cycle",
+    "worker": "Picker",
+    "quantity": "Quantity",
+    "quality": "Quality",
+    "notes": "Notes"
+  }
+}

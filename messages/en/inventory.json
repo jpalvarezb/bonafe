@@ -1,0 +1,25 @@
+{
+  "title": "Inventory",
+  "empty": "No stock yet.",
+  "table": {
+    "product": "Product",
+    "warehouse": "Warehouse",
+    "quantity": "Quantity",
+    "avgCost": "Avg. cost",
+    "totalValue": "Total value",
+    "lowStock": "Low stock",
+    "totalInventoryValue": "Total inventory value"
+  },
+  "adjustment": {
+    "title": "Record adjustment",
+    "product": "Product",
+    "warehouse": "Warehouse",
+    "direction": "Adjustment type",
+    "in": "In",
+    "out": "Out",
+    "quantity": "Quantity",
+    "unitCost": "Unit cost",
+    "notes": "Notes",
+    "save": "Save adjustment"
+  }
+}

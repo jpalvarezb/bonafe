@@ -10,7 +10,9 @@
     "discard": "Descartar",
     "kinds": {
       "activity_create": "Actividad",
-      "monitoring_create": "Monitoreo"
+      "monitoring_create": "Monitoreo",
+      "attendance_upsert": "Asistencia",
+      "harvest_create": "Cosecha"
     }
   },
   "pendingNote": "Se guardó en este dispositivo y se sincronizará al recuperar conexión.",

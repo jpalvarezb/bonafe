@@ -1,0 +1,22 @@
+{
+  "title": "Attendance",
+  "noWorkers": "No active workers to mark attendance for. Register workers first.",
+  "nav": {
+    "prev": "Previous day",
+    "next": "Next day",
+    "today": "Today"
+  },
+  "statuses": {
+    "present": "Present",
+    "half_day": "Half day",
+    "absent": "Absent",
+    "sick": "Sick",
+    "leave": "Leave"
+  },
+  "summary": {
+    "unmarked": "Unmarked"
+  },
+  "hoursPlaceholder": "Overtime hours",
+  "notesPlaceholder": "Note (optional)",
+  "save": "Save"
+}

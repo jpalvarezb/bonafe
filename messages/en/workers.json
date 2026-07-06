@@ -1,0 +1,38 @@
+{
+  "title": "Workers",
+  "empty": "No workers registered yet.",
+  "new": "New worker",
+  "table": {
+    "name": "Name",
+    "code": "Code",
+    "type": "Type",
+    "dailyRate": "Daily rate",
+    "hourlyRate": "Hourly rate",
+    "status": "Status",
+    "actions": "Actions",
+    "edit": "Edit",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate"
+  },
+  "types": {
+    "fixed": "Fixed",
+    "temporary": "Temporary"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "form": {
+    "name": "Full name",
+    "code": "Internal code",
+    "documentId": "ID / document number",
+    "phone": "Phone",
+    "type": "Worker type",
+    "dailyRate": "Daily rate (per day)",
+    "hourlyRate": "Hourly rate",
+    "rateHint": "Amount in the farm's base currency, up to 4 decimals.",
+    "notes": "Notes",
+    "create": "Register worker",
+    "save": "Save changes"
+  }
+}

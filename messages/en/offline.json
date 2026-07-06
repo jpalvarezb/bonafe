@@ -10,7 +10,9 @@
     "discard": "Discard",
     "kinds": {
       "activity_create": "Activity",
-      "monitoring_create": "Monitoring"
+      "monitoring_create": "Monitoring",
+      "attendance_upsert": "Attendance",
+      "harvest_create": "Harvest"
     }
   },
   "pendingNote": "Saved on this device; will sync when back online.",

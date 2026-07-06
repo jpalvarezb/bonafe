@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 const KIND_KEYS: Record<OutboxKind, string> = {
   "activity.create": "activity_create",
   "monitoring.create": "monitoring_create",
+  "attendance.upsert": "attendance_upsert",
+  "harvest.create": "harvest_create",
 };
 
 export function SyncIssuesList({ orgSlug }: { orgSlug: string }) {

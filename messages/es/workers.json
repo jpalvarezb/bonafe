@@ -1,0 +1,38 @@
+{
+  "title": "Trabajadores",
+  "empty": "Todavía no hay trabajadores registrados.",
+  "new": "Nuevo trabajador",
+  "table": {
+    "name": "Nombre",
+    "code": "Código",
+    "type": "Tipo",
+    "dailyRate": "Jornal",
+    "hourlyRate": "Tarifa por hora",
+    "status": "Estado",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "deactivate": "Desactivar",
+    "reactivate": "Reactivar"
+  },
+  "types": {
+    "fixed": "Fijo",
+    "temporary": "Temporal"
+  },
+  "status": {
+    "active": "Activo",
+    "inactive": "Inactivo"
+  },
+  "form": {
+    "name": "Nombre completo",
+    "code": "Código interno",
+    "documentId": "Cédula / documento",
+    "phone": "Teléfono",
+    "type": "Tipo de trabajador",
+    "dailyRate": "Jornal (por día)",
+    "hourlyRate": "Tarifa por hora",
+    "rateHint": "Monto en la moneda base de la finca, hasta 4 decimales.",
+    "notes": "Notas",
+    "create": "Registrar trabajador",
+    "save": "Guardar cambios"
+  }
+}

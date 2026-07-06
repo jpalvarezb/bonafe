@@ -22,6 +22,12 @@ export const statement = {
   catalog: ["manage"],
   settings: ["manage"],
   report: ["view"],
+  worker: ["manage"],
+  attendance: ["create", "update", "delete"],
+  payroll: ["manage"],
+  harvest: ["create", "update", "delete"],
+  inventory: ["manage"],
+  purchase: ["create", "update", "delete"],
 } as const;
 
 export const ac = createAccessControl(statement);
@@ -38,6 +44,12 @@ const fullDomain = {
   catalog: ["manage"],
   settings: ["manage"],
   report: ["view"],
+  worker: ["manage"],
+  attendance: ["create", "update", "delete"],
+  payroll: ["manage"],
+  harvest: ["create", "update", "delete"],
+  inventory: ["manage"],
+  purchase: ["create", "update", "delete"],
 } as const;
 
 export const owner = ac.newRole({
@@ -61,6 +73,12 @@ export const manager = ac.newRole({
   cost_center: ["manage"],
   catalog: ["manage"],
   report: ["view"],
+  worker: ["manage"],
+  attendance: ["create", "update", "delete"],
+  payroll: ["manage"],
+  harvest: ["create", "update", "delete"],
+  inventory: ["manage"],
+  purchase: ["create", "update", "delete"],
 });
 
 export const fieldSupervisor = ac.newRole({
@@ -68,6 +86,8 @@ export const fieldSupervisor = ac.newRole({
   monitoring: ["create", "update"],
   climate: ["create"],
   work_order: ["complete"],
+  attendance: ["create", "update"],
+  harvest: ["create"],
 });
 
 export const roles = {

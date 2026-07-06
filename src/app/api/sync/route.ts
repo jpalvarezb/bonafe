@@ -2,12 +2,16 @@ import { NextResponse } from "next/server";
 import { resolveOrgContext } from "@/lib/tenancy";
 import {
   activityCreatePayload,
+  attendanceUpsertPayload,
+  harvestCreatePayload,
   monitoringCreatePayload,
   syncRequestSchema,
   type SyncItemResult,
 } from "@/lib/offline/schemas";
 import { createActivity } from "@/server/services/activities";
 import { createMonitoringRecord } from "@/server/services/monitoring";
+import { upsertAttendance } from "@/server/services/attendance";
+import { createHarvest } from "@/server/services/harvests";
 
 /**
  * Offline outbox ingest. Items are applied in order; each is idempotent by
@@ -58,6 +62,34 @@ export async function POST(request: Request) {
         });
         // Replays return the existing row (ON CONFLICT DO NOTHING) — from the
         // client's perspective applied and duplicate resolve identically.
+        results.push({ outboxId: item.outboxId, status: "applied" });
+      } else if (item.kind === "attendance.upsert") {
+        const payload = attendanceUpsertPayload.parse(item.payload);
+        await upsertAttendance(ctx, {
+          id: payload.id,
+          workerId: payload.workerId,
+          date: payload.date,
+          status: payload.status,
+          hoursWorked: payload.hoursWorked || null,
+          farmId: payload.farmId ?? null,
+          notes: payload.notes ?? null,
+          createdOffline: true,
+        });
+        results.push({ outboxId: item.outboxId, status: "applied" });
+      } else if (item.kind === "harvest.create") {
+        const payload = harvestCreatePayload.parse(item.payload);
+        await createHarvest(ctx, {
+          id: payload.id,
+          parcelId: payload.parcelId,
+          cropCycleId: payload.cropCycleId ?? null,
+          workerId: payload.workerId ?? null,
+          date: payload.date,
+          quantity: payload.quantity,
+          unit: payload.unit,
+          qualityGrade: payload.qualityGrade ?? null,
+          notes: payload.notes ?? null,
+          createdOffline: true,
+        });
         results.push({ outboxId: item.outboxId, status: "applied" });
       } else {
         const payload = monitoringCreatePayload.parse(item.payload);

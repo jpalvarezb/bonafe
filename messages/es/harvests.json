@@ -1,0 +1,42 @@
+{
+  "title": "Cosechas",
+  "empty": "No hay cosechas registradas todavía.",
+  "new": "Nuevo corte",
+  "parcel": "Parcela",
+  "cycle": "Ciclo",
+  "cycleNone": "Sin ciclo",
+  "worker": "Cortero",
+  "workerNone": "Sin cortero",
+  "date": "Fecha",
+  "quantity": "Cantidad",
+  "unit": "Unidad",
+  "qualityGrade": "Calidad",
+  "notes": "Notas",
+  "create": "Guardar corte",
+  "delete": "Eliminar",
+  "units": {
+    "kg": "kg",
+    "lb": "lb",
+    "qq": "qq",
+    "lata": "lata",
+    "saco": "saco"
+  },
+  "filters": {
+    "allParcels": "Todas las parcelas",
+    "allCycles": "Todos los ciclos",
+    "apply": "Filtrar"
+  },
+  "summary": {
+    "title": "Total cosechado",
+    "empty": "Sin datos para este filtro."
+  },
+  "table": {
+    "date": "Fecha",
+    "parcel": "Parcela",
+    "cycle": "Ciclo",
+    "worker": "Cortero",
+    "quantity": "Cantidad",
+    "quality": "Calidad",
+    "notes": "Notas"
+  }
+}

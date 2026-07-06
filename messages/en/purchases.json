@@ -1,0 +1,40 @@
+{
+  "title": "Purchases",
+  "new": "New purchase",
+  "empty": "No purchases recorded yet.",
+  "lineCount": "{count} lines",
+  "supplier": "Supplier",
+  "date": "Date",
+  "invoiceNumber": "Invoice number",
+  "currency": "Currency",
+  "notes": "Notes",
+  "noSuppliers": "No suppliers yet. Create one first in",
+  "lines": {
+    "title": "Products",
+    "product": "Product",
+    "quantity": "Quantity",
+    "unitCost": "Unit cost",
+    "add": "Add line",
+    "remove": "Remove"
+  },
+  "subtotal": "Subtotal",
+  "total": "Total",
+  "save": "Save purchase",
+  "delete": "Delete",
+  "suppliers": {
+    "title": "Suppliers",
+    "empty": "No suppliers recorded yet.",
+    "noContact": "No contact details",
+    "new": "New supplier",
+    "edit": "Edit",
+    "name": "Name",
+    "contactName": "Contact",
+    "phone": "Phone",
+    "email": "Email",
+    "taxId": "Tax ID",
+    "notes": "Notes",
+    "create": "Create supplier",
+    "save": "Save changes",
+    "delete": "Delete supplier"
+  }
+}

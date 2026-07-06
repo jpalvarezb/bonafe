@@ -1,0 +1,25 @@
+{
+  "title": "Inventario",
+  "empty": "Sin existencias todavía.",
+  "table": {
+    "product": "Producto",
+    "warehouse": "Bodega",
+    "quantity": "Existencias",
+    "avgCost": "Costo promedio",
+    "totalValue": "Valor total",
+    "lowStock": "Stock bajo",
+    "totalInventoryValue": "Valor total del inventario"
+  },
+  "adjustment": {
+    "title": "Registrar ajuste",
+    "product": "Producto",
+    "warehouse": "Bodega",
+    "direction": "Tipo de ajuste",
+    "in": "Entrada",
+    "out": "Salida",
+    "quantity": "Cantidad",
+    "unitCost": "Costo unitario",
+    "notes": "Notas",
+    "save": "Guardar ajuste"
+  }
+}

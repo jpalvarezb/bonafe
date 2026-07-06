@@ -110,6 +110,35 @@ export async function getOrgPlan(orgId: string): Promise<OrgPlan> {
   };
 }
 
+/**
+ * Feature gate for Tier 2/3 modules ("labor", "payroll", "inventory",
+ * "harvest", …). Pages redirect to settings/plan when this returns false.
+ */
+export function hasFeature(plan: OrgPlan, feature: string): boolean {
+  return plan.limits.features.includes(feature);
+}
+
+export class FeatureNotInPlanError extends Error {
+  readonly feature: string;
+  constructor(feature: string) {
+    super(`feature "${feature}" is not included in the org's plan`);
+    this.name = "FeatureNotInPlanError";
+    this.feature = feature;
+  }
+}
+
+/**
+ * Server-side entitlement check for mutations. Pages redirect via hasFeature;
+ * services throw so direct POSTs / sync items can't bypass the page gate.
+ */
+export async function assertOrgFeature(
+  orgId: string,
+  feature: string,
+): Promise<void> {
+  const plan = await getOrgPlan(orgId);
+  if (!hasFeature(plan, feature)) throw new FeatureNotInPlanError(feature);
+}
+
 export class PlanLimitError extends Error {
   readonly limit: "maxUsers" | "maxFarms";
   constructor(limit: "maxUsers" | "maxFarms", message: string) {

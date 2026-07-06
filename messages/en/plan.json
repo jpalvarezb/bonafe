@@ -15,6 +15,7 @@
     "farms": "Farms",
     "pendingInvites": "{count} pending invitations"
   },
+  "featureLocked": "The \"{feature}\" feature is not included in your current plan. Upgrade to use it.",
   "limitReached": {
     "maxUsers": "You've reached your plan's user limit. Upgrade your plan to invite more members.",
     "maxFarms": "You've reached your plan's farm limit. Upgrade your plan to add more farms."

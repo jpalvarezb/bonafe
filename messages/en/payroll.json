@@ -1,0 +1,53 @@
+{
+  "title": "Payroll",
+  "empty": "No payroll periods yet.",
+  "new": "New payroll period",
+  "name": "Name",
+  "namePlaceholder": "e.g. Pay period 1, July 2026",
+  "startDate": "Start date",
+  "endDate": "End date",
+  "create": "Create period",
+  "generate": "Generate entries",
+  "regenerate": "Regenerate entries",
+  "close": "Close period",
+  "status": {
+    "open": "Open",
+    "closed": "Closed"
+  },
+  "entries": {
+    "title": "Payroll book",
+    "empty": "No entries generated for this period yet. Use \"Generate entries\" to calculate them from recorded attendance.",
+    "worker": "Worker",
+    "days": "Days worked",
+    "hours": "Overtime hours",
+    "base": "Base pay",
+    "overtime": "Overtime",
+    "bonuses": "Bonuses",
+    "deductions": "Deductions",
+    "net": "Net pay",
+    "save": "Save",
+    "notesPlaceholder": "Notes (optional)",
+    "total": "Period total"
+  },
+  "reports": {
+    "title": "Labor efficiency",
+    "from": "From",
+    "to": "To",
+    "apply": "Apply",
+    "empty": "No data for the selected date range.",
+    "byWorker": {
+      "title": "Days worked and pay by worker",
+      "worker": "Worker",
+      "days": "Days worked",
+      "hours": "Overtime hours",
+      "grossPay": "Gross pay"
+    },
+    "byActivityType": {
+      "title": "Labor cost by activity type"
+    },
+    "byParcel": {
+      "title": "Labor cost by parcel",
+      "general": "General (no parcel)"
+    }
+  }
+}

@@ -8,6 +8,14 @@ import { z } from "zod";
 
 const uuid = z.string().uuid();
 
+/** Quantities/costs/rates: non-negative decimal strings only — a tampered
+ * payload must not be able to inject negative amounts (e.g. a negative input
+ * quantity would flip into a positive stock movement). */
+const positiveDecimal = z.string().regex(/^\d{1,12}(\.\d{1,8})?$/);
+const optionalDecimal = z
+  .union([positiveDecimal, z.literal("")])
+  .optional();
+
 export const activityCreatePayload = z.object({
   id: uuid,
   parcelId: uuid.optional(),
@@ -16,22 +24,22 @@ export const activityCreatePayload = z.object({
   activityTypeId: uuid,
   date: z.string().min(10),
   description: z.string().optional(),
-  otherCost: z.string().optional(),
+  otherCost: optionalDecimal,
   currencyCode: z.string().length(3).optional(),
   inputs: z.array(
     z.object({
       productId: uuid,
-      quantity: z.string().min(1),
-      unitCost: z.string().min(1),
+      quantity: positiveDecimal,
+      unitCost: positiveDecimal,
     }),
   ),
   labor: z.array(
     z.object({
       workerName: z.string().optional(),
       workersCount: z.coerce.number().int().min(1),
-      hours: z.string().optional(),
+      hours: optionalDecimal,
       rateType: z.enum(["daily", "hourly"]),
-      rate: z.string().min(1),
+      rate: positiveDecimal,
     }),
   ),
 });
@@ -44,14 +52,39 @@ export const monitoringCreatePayload = z.object({
   type: z.enum(["pest", "disease", "weed"]),
   agentName: z.string().min(1),
   severity: z.coerce.number().int().min(1).max(5),
-  incidencePct: z.string().optional(),
+  incidencePct: optionalDecimal,
   notes: z.string().optional(),
   actionsTaken: z.string().optional(),
+});
+
+export const attendanceUpsertPayload = z.object({
+  id: uuid,
+  workerId: uuid,
+  date: z.string().min(10),
+  status: z.enum(["present", "half_day", "absent", "sick", "leave"]),
+  /** Overtime hours beyond the day. Rates are snapshotted server-side. */
+  hoursWorked: optionalDecimal,
+  farmId: uuid.optional(),
+  notes: z.string().optional(),
+});
+
+export const harvestCreatePayload = z.object({
+  id: uuid,
+  parcelId: uuid,
+  cropCycleId: uuid.optional(),
+  workerId: uuid.optional(),
+  date: z.string().min(10),
+  quantity: positiveDecimal,
+  unit: z.string().min(1),
+  qualityGrade: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export const OUTBOX_KINDS = {
   "activity.create": activityCreatePayload,
   "monitoring.create": monitoringCreatePayload,
+  "attendance.upsert": attendanceUpsertPayload,
+  "harvest.create": harvestCreatePayload,
 } as const;
 
 export type OutboxKind = keyof typeof OUTBOX_KINDS;

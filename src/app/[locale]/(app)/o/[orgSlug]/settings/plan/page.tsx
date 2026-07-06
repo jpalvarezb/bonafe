@@ -17,7 +17,7 @@ export default async function PlanPage({
   searchParams,
 }: Readonly<{
   params: Promise<{ locale: string; orgSlug: string }>;
-  searchParams: Promise<{ limit?: string }>;
+  searchParams: Promise<{ limit?: string; feature?: string }>;
 }>) {
   const { locale, orgSlug } = await params;
   const sp = await searchParams;
@@ -47,6 +47,11 @@ export default async function PlanPage({
 
   const limitParam =
     sp.limit === "maxUsers" || sp.limit === "maxFarms" ? sp.limit : undefined;
+  const knownFeatures = new Set(
+    PLAN_DEFINITIONS.flatMap((def) => def.limits.features),
+  );
+  const featureParam =
+    sp.feature && knownFeatures.has(sp.feature) ? sp.feature : undefined;
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
@@ -55,6 +60,12 @@ export default async function PlanPage({
       {limitParam && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
           {t(`limitReached.${limitParam}`)}
+        </div>
+      )}
+
+      {featureParam && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+          {t("featureLocked", { feature: t(`features.${featureParam}`) })}
         </div>
       )}
 

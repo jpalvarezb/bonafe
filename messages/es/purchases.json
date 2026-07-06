@@ -1,0 +1,40 @@
+{
+  "title": "Compras",
+  "new": "Nueva compra",
+  "empty": "No hay compras registradas.",
+  "lineCount": "{count} líneas",
+  "supplier": "Proveedor",
+  "date": "Fecha",
+  "invoiceNumber": "Número de factura",
+  "currency": "Moneda",
+  "notes": "Notas",
+  "noSuppliers": "Todavía no hay proveedores. Crea uno primero en",
+  "lines": {
+    "title": "Productos",
+    "product": "Producto",
+    "quantity": "Cantidad",
+    "unitCost": "Costo unitario",
+    "add": "Agregar línea",
+    "remove": "Quitar"
+  },
+  "subtotal": "Subtotal",
+  "total": "Total",
+  "save": "Guardar compra",
+  "delete": "Eliminar",
+  "suppliers": {
+    "title": "Proveedores",
+    "empty": "No hay proveedores registrados.",
+    "noContact": "Sin datos de contacto",
+    "new": "Nuevo proveedor",
+    "edit": "Editar",
+    "name": "Nombre",
+    "contactName": "Contacto",
+    "phone": "Teléfono",
+    "email": "Correo electrónico",
+    "taxId": "RUC / NIT",
+    "notes": "Notas",
+    "create": "Crear proveedor",
+    "save": "Guardar cambios",
+    "delete": "Eliminar proveedor"
+  }
+}

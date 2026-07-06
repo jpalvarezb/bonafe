@@ -1,4 +1,5 @@
-import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import Decimal from "decimal.js";
 import { db } from "@/lib/db";
 import {
   activities,
@@ -8,6 +9,7 @@ import {
   costCenters,
   cropCycles,
   farms,
+  inventoryMovements,
   parcels,
   products,
 } from "@/lib/db/schema";
@@ -20,6 +22,7 @@ import {
   type LaborLine,
 } from "@/lib/calc/costs";
 import { latestRateToBase } from "@/server/services/exchange-rates";
+import { ensureDefaultWarehouse } from "@/server/services/inventory";
 
 export type ActivityInput = {
   /** Client-generated UUIDv7 for offline idempotency; server fills if absent. */
@@ -130,6 +133,11 @@ export async function createActivity(ctx: OrgContext, input: ActivityInput) {
 
   const activityId = input.id ?? newId();
 
+  // Resolved outside the transaction (ensureDefaultWarehouse does its own
+  // select-then-insert); only needed when the activity actually consumes stock.
+  const warehouse =
+    input.inputs.length > 0 ? await ensureDefaultWarehouse(ctx) : null;
+
   return db.transaction(async (tx) => {
     const [created] = await tx
       .insert(activities)
@@ -170,17 +178,40 @@ export async function createActivity(ctx: OrgContext, input: ActivityInput) {
     }
 
     if (input.inputs.length > 0) {
-      await tx.insert(activityInputs).values(
-        input.inputs.map((line, i) => ({
-          id: newId(),
-          orgId: ctx.org.id,
-          activityId,
-          productId: line.productId,
-          quantity: String(line.quantity),
-          unitCost: String(line.unitCost),
-          total: totals.inputTotals[i],
-        })),
-      );
+      const inputRows = input.inputs.map((line, i) => ({
+        id: newId(),
+        orgId: ctx.org.id,
+        activityId,
+        productId: line.productId,
+        quantity: String(line.quantity),
+        unitCost: String(line.unitCost),
+        total: totals.inputTotals[i],
+      }));
+      await tx.insert(activityInputs).values(inputRows);
+
+      // Consume stock: one signed (negative) movement per input line, tied to
+      // the input row via refKind/refId so a replay can't double-consume.
+      await tx
+        .insert(inventoryMovements)
+        .values(
+          inputRows.map((row) => ({
+            id: newId(),
+            orgId: ctx.org.id,
+            warehouseId: warehouse!.id,
+            productId: row.productId,
+            date: input.date,
+            type: "consumption" as const,
+            quantity: new Decimal(row.quantity).neg().toFixed(4),
+            unitCost: null,
+            refKind: "activity_input",
+            refId: row.id,
+            createdBy: ctx.user.id,
+          })),
+        )
+        .onConflictDoNothing({
+          target: [inventoryMovements.refKind, inventoryMovements.refId],
+          where: sql`${inventoryMovements.refId} IS NOT NULL`,
+        });
     }
 
     if (input.labor.length > 0) {

@@ -14,6 +14,13 @@ import {
   Sprout,
   Users,
   Settings,
+  Wheat,
+  HardHat,
+  CalendarCheck,
+  Wallet,
+  ShoppingCart,
+  Boxes,
+  BarChart3,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
@@ -28,6 +35,13 @@ const NAV_ITEMS = [
   { key: "workOrders", href: "work-orders", icon: ClipboardCheck },
   { key: "monitoring", href: "monitoring", icon: Bug },
   { key: "climate", href: "climate", icon: CloudRain },
+  { key: "harvests", href: "harvests", icon: Wheat },
+  { key: "workers", href: "workers", icon: HardHat },
+  { key: "attendance", href: "attendance", icon: CalendarCheck },
+  { key: "payroll", href: "payroll", icon: Wallet },
+  { key: "purchases", href: "purchases", icon: ShoppingCart },
+  { key: "inventory", href: "inventory", icon: Boxes },
+  { key: "laborReport", href: "reports/labor", icon: BarChart3 },
   { key: "costCenters", href: "cost-centers", icon: FolderTree },
   { key: "products", href: "catalog/products", icon: Package },
   { key: "crops", href: "catalog/crops", icon: Sprout },

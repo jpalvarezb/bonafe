@@ -15,6 +15,7 @@
     "farms": "Fincas",
     "pendingInvites": "{count} invitaciones pendientes"
   },
+  "featureLocked": "La función \"{feature}\" no está incluida en tu plan actual. Mejora tu plan para usarla.",
   "limitReached": {
     "maxUsers": "Alcanzaste el límite de usuarios de tu plan. Mejora tu plan para invitar a más miembros.",
     "maxFarms": "Alcanzaste el límite de fincas de tu plan. Mejora tu plan para agregar más fincas."

@@ -36,6 +36,20 @@
       "when": 1783294263953,
       "tag": "0004_work-order-code-uq",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783308262029,
+      "tag": "0005_phase4-domain",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783310298316,
+      "tag": "0006_warehouse-default-uq",
+      "breakpoints": true
     }
   ]
 }
