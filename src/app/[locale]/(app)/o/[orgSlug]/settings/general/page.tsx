@@ -25,6 +25,7 @@ export default async function GeneralSettingsPage({
     { key: "plan", href: `/o/${orgSlug}/settings/plan` },
     { key: "currencies", href: `/o/${orgSlug}/settings/currencies` },
     { key: "import", href: `/o/${orgSlug}/settings/import` },
+    { key: "audit", href: `/o/${orgSlug}/settings/audit` },
   ] as const;
 
   return (

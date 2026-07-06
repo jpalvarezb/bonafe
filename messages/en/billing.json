@@ -1,0 +1,15 @@
+{
+  "changeTo": "Switch to {plan}",
+  "manageBilling": "Manage billing",
+  "upgraded": {
+    "title": "Payment started",
+    "description": "Your plan will update as soon as Stripe confirms the payment. This can take a few seconds."
+  },
+  "errors": {
+    "notConfigured": "Billing is not configured for this site yet.",
+    "invalidPlan": "That plan isn't valid.",
+    "priceNotConfigured": "This plan doesn't have a Stripe price configured yet.",
+    "checkoutSessionFailed": "Couldn't start checkout. Please try again.",
+    "noCustomer": "You don't have a billing account yet. Upgrade your plan first."
+  }
+}

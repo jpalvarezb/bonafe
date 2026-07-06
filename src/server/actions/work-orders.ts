@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireOrgContext } from "@/lib/tenancy";
 import {
   createWorkOrder,
@@ -70,7 +71,12 @@ export async function updateWorkOrderStatusAction(formData: FormData) {
   const id = z.string().uuid().parse(formData.get("id"));
   const status = statusSchema.parse(formData.get("status"));
   try {
-    await updateWorkOrderStatus(ctx, id, status);
+    const updated = await updateWorkOrderStatus(ctx, id, status);
+    await audit(ctx, "work_order.status", {
+      entity: "work_order",
+      entityId: id,
+      meta: { code: updated.code, to: status },
+    });
   } catch (error) {
     if (error instanceof Error && error.message === "checklist incomplete") {
       redirect(
@@ -103,5 +109,9 @@ export async function deleteWorkOrderAction(formData: FormData) {
   const ctx = await requireOrgContext(locale, orgSlug);
   const id = z.string().uuid().parse(formData.get("id"));
   await deleteWorkOrder(ctx, id);
+  await audit(ctx, "work_order.delete", {
+    entity: "work_order",
+    entityId: id,
+  });
   revalidatePath(`/${locale}/o/${orgSlug}/work-orders`);
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireOrgContext } from "@/lib/tenancy";
 import {
   closePayrollPeriod,
@@ -87,7 +88,12 @@ export async function closePayrollPeriodAction(formData: FormData) {
   });
   const ctx = await requireOrgContext(locale, orgSlug);
   const periodId = z.string().uuid().parse(formData.get("periodId"));
-  await closePayrollPeriod(ctx, periodId);
+  const closed = await closePayrollPeriod(ctx, periodId);
+  await audit(ctx, "payroll.close", {
+    entity: "payroll_period",
+    entityId: periodId,
+    meta: { periodName: closed.name, total: closed.totalAmount },
+  });
   revalidatePath(`/${locale}/o/${orgSlug}/payroll/${periodId}`);
   revalidatePath(`/${locale}/o/${orgSlug}/payroll`);
 }

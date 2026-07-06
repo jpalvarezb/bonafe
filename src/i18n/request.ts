@@ -33,6 +33,8 @@ const NAMESPACES = [
   "processing",
   "sales",
   "piecework",
+  "audit",
+  "billing",
 ] as const;
 
 export default getRequestConfig(async ({ requestLocale }) => {

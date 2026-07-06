@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireOrgContext } from "@/lib/tenancy";
 import { createTransfer } from "@/server/services/transfers";
 
@@ -48,12 +49,17 @@ export async function createTransferAction(formData: FormData) {
   );
 
   try {
-    await createTransfer(ctx, {
+    const created = await createTransfer(ctx, {
       fromWarehouseId: payload.fromWarehouseId,
       toWarehouseId: payload.toWarehouseId,
       date: payload.date,
       notes: payload.notes || null,
       lines: payload.lines,
+    });
+    await audit(ctx, "inventory.transfer", {
+      entity: "inventory_transfer",
+      entityId: created.id,
+      meta: { lines: payload.lines.length },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "";

@@ -1,0 +1,37 @@
+{
+  "title": "Audit log",
+  "filter": {
+    "label": "Filter by action",
+    "placeholder": "e.g. member. or sale.",
+    "apply": "Filter",
+    "clear": "Clear"
+  },
+  "table": {
+    "date": "Date",
+    "actor": "User",
+    "action": "Action",
+    "entity": "Entity",
+    "meta": "Detail",
+    "system": "System"
+  },
+  "empty": "No audit events yet.",
+  "actions": {
+    "member.invite": "Member invited",
+    "work_order.status": "Work order status change",
+    "work_order.delete": "Work order deleted",
+    "payroll.close": "Payroll period closed",
+    "sale.create": "Sale created",
+    "sale.delete": "Sale deleted",
+    "purchase.create": "Purchase created",
+    "purchase.delete": "Purchase deleted",
+    "worker.create": "Worker created",
+    "worker.set_active": "Worker active status change",
+    "exchange_rate.set": "Exchange rate updated",
+    "import.run": "Data import",
+    "org.update": "Organization settings updated",
+    "inventory.transfer": "Inventory transfer",
+    "billing.subscription_updated": "Subscription updated",
+    "billing.checkout_started": "Checkout started",
+    "billing.portal_opened": "Billing portal opened"
+  }
+}

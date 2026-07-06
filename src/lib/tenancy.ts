@@ -3,14 +3,22 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "./auth";
 import { db } from "./db";
-import { member, organization } from "./db/schema";
+import { member, organization, orgSubscriptions } from "./db/schema";
 import type { OrgRole } from "./auth/permissions";
+
+export type SubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled";
 
 export type OrgContext = {
   user: { id: string; name: string; email: string };
   org: typeof organization.$inferSelect;
   role: OrgRole;
   memberId: string;
+  /** Preloaded so assertCan can enforce read-only mode without extra queries. */
+  subscriptionStatus: SubscriptionStatus;
 };
 
 /**
@@ -28,7 +36,11 @@ export async function requireOrgContext(
   }
 
   const rows = await db
-    .select({ org: organization, membership: member })
+    .select({
+      org: organization,
+      membership: member,
+      subscriptionStatus: orgSubscriptions.status,
+    })
     .from(organization)
     .innerJoin(
       member,
@@ -37,6 +49,7 @@ export async function requireOrgContext(
         eq(member.userId, session.user.id),
       ),
     )
+    .leftJoin(orgSubscriptions, eq(orgSubscriptions.orgId, organization.id))
     .where(eq(organization.slug, orgSlug))
     .limit(1);
 
@@ -54,6 +67,9 @@ export async function requireOrgContext(
     org: row.org,
     role: row.membership.role as OrgRole,
     memberId: row.membership.id,
+    // No subscription row = dev/demo Cosecha trial (see getOrgPlan).
+    subscriptionStatus: (row.subscriptionStatus ??
+      "trialing") as SubscriptionStatus,
   };
 }
 
@@ -68,7 +84,11 @@ export async function resolveOrgContext(
   if (!session) return null;
 
   const rows = await db
-    .select({ org: organization, membership: member })
+    .select({
+      org: organization,
+      membership: member,
+      subscriptionStatus: orgSubscriptions.status,
+    })
     .from(organization)
     .innerJoin(
       member,
@@ -77,6 +97,7 @@ export async function resolveOrgContext(
         eq(member.userId, session.user.id),
       ),
     )
+    .leftJoin(orgSubscriptions, eq(orgSubscriptions.orgId, organization.id))
     .where(eq(organization.slug, orgSlug))
     .limit(1);
 
@@ -92,6 +113,9 @@ export async function resolveOrgContext(
     org: row.org,
     role: row.membership.role as OrgRole,
     memberId: row.membership.id,
+    // No subscription row = dev/demo Cosecha trial (see getOrgPlan).
+    subscriptionStatus: (row.subscriptionStatus ??
+      "trialing") as SubscriptionStatus,
   };
 }
 

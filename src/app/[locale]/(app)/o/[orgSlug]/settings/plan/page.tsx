@@ -1,31 +1,37 @@
 import { and, count, eq } from "drizzle-orm";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
-import { farms, invitation, member } from "@/lib/db/schema";
+import { farms, invitation, member, orgSubscriptions } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { getOrgPlan, PLAN_DEFINITIONS } from "@/lib/plan-limits";
-import { Button } from "@/components/ui/button";
+import { isStripeConfigured } from "@/lib/stripe";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  createCheckoutSessionAction,
+  createPortalSessionAction,
+} from "@/server/actions/billing";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function PlanPage({
   params,
   searchParams,
 }: Readonly<{
   params: Promise<{ locale: string; orgSlug: string }>;
-  searchParams: Promise<{ limit?: string; feature?: string }>;
+  searchParams: Promise<{
+    limit?: string;
+    feature?: string;
+    upgraded?: string;
+  }>;
 }>) {
   const { locale, orgSlug } = await params;
   const sp = await searchParams;
   setRequestLocale(locale);
   const ctx = await requireOrgContext(locale, orgSlug);
   const t = await getTranslations("plan");
+  const tBilling = await getTranslations("billing");
 
   const plan = await getOrgPlan(ctx.org.id);
+  const stripeEnabled = isStripeConfigured();
 
   const [{ value: memberCount }] = await db
     .select({ value: count() })
@@ -44,6 +50,12 @@ export default async function PlanPage({
     .select({ value: count() })
     .from(farms)
     .where(eq(farms.orgId, ctx.org.id));
+  const [subscriptionRow] = await db
+    .select({ stripeCustomerId: orgSubscriptions.stripeCustomerId })
+    .from(orgSubscriptions)
+    .where(eq(orgSubscriptions.orgId, ctx.org.id))
+    .limit(1);
+  const hasStripeCustomer = Boolean(subscriptionRow?.stripeCustomerId);
 
   const limitParam =
     sp.limit === "maxUsers" || sp.limit === "maxFarms" ? sp.limit : undefined;
@@ -52,10 +64,25 @@ export default async function PlanPage({
   );
   const featureParam =
     sp.feature && knownFeatures.has(sp.feature) ? sp.feature : undefined;
+  const showUpgraded = sp.upgraded === "1";
+  const isReadOnly = plan.status === "past_due" || plan.status === "canceled";
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
+
+      {showUpgraded && (
+        <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100">
+          <p>{tBilling("upgraded.title")}</p>
+          <p className="font-normal">{tBilling("upgraded.description")}</p>
+        </div>
+      )}
+
+      {isReadOnly && (
+        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
+          {t("readOnlyNotice", { status: t(`status.${plan.status}`) })}
+        </div>
+      )}
 
       {limitParam && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
@@ -88,6 +115,15 @@ export default async function PlanPage({
             {t("usage.farms")}: {farmCount} /{" "}
             {plan.limits.maxFarms ?? t("unlimited")}
           </p>
+          {stripeEnabled && hasStripeCustomer && (
+            <form action={createPortalSessionAction} className="mt-2">
+              <input type="hidden" name="locale" value={locale} />
+              <input type="hidden" name="orgSlug" value={orgSlug} />
+              <Button type="submit" variant="outline" size="sm">
+                {tBilling("manageBilling")}
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
 
@@ -133,7 +169,17 @@ export default async function PlanPage({
                     <li key={feature}>· {t(`features.${feature}`)}</li>
                   ))}
                 </ul>
-                {!isCurrent && (
+                {!isCurrent && stripeEnabled && (
+                  <form action={createCheckoutSessionAction} className="mt-2">
+                    <input type="hidden" name="locale" value={locale} />
+                    <input type="hidden" name="orgSlug" value={orgSlug} />
+                    <input type="hidden" name="planId" value={def.id} />
+                    <Button type="submit" variant="outline" className="w-full">
+                      {tBilling("changeTo", { plan: def.name })}
+                    </Button>
+                  </form>
+                )}
+                {!isCurrent && !stripeEnabled && (
                   <Button disabled variant="outline" className="mt-2">
                     {t("upgradeSoon")}
                   </Button>

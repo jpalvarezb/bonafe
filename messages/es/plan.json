@@ -15,6 +15,7 @@
     "farms": "Fincas",
     "pendingInvites": "{count} invitaciones pendientes"
   },
+  "readOnlyNotice": "Tu organización está en modo de solo lectura por un problema de pago ({status}). Puedes seguir gestionando miembros y configuración para resolverlo, pero el resto de acciones están bloqueadas hasta que se regularice el pago.",
   "featureLocked": "La función \"{feature}\" no está incluida en tu plan actual. Mejora tu plan para usarla.",
   "limitReached": {
     "maxUsers": "Alcanzaste el límite de usuarios de tu plan. Mejora tu plan para invitar a más miembros.",
@@ -45,7 +46,8 @@
       "members": "Miembros",
       "plan": "Plan y límites",
       "currencies": "Monedas",
-      "import": "Importar datos"
+      "import": "Importar datos",
+      "audit": "Registro de auditoría"
     }
   }
 }

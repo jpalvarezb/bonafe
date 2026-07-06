@@ -2,7 +2,7 @@ import { and, asc, desc, eq, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { orgExchangeRates } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
-import { assertCan } from "@/lib/authz";
+import { assertCan, ReadOnlyOrgError } from "@/lib/authz";
 import { newId } from "@/lib/ids";
 
 export type ExchangeRateInput = {
@@ -53,6 +53,15 @@ export async function upsertExchangeRate(
   input: ExchangeRateInput,
 ) {
   assertCan(ctx, "settings", "manage");
+  // Exchange rates are business data, not billing controls: even though the
+  // "settings" resource stays writable for billing recovery, rate mutations
+  // are blocked while the org is in degraded read-only mode.
+  if (
+    ctx.subscriptionStatus === "past_due" ||
+    ctx.subscriptionStatus === "canceled"
+  ) {
+    throw new ReadOnlyOrgError(ctx.subscriptionStatus);
+  }
   const [rate] = await db
     .insert(orgExchangeRates)
     .values({
@@ -78,6 +87,15 @@ export async function upsertExchangeRate(
 
 export async function deleteExchangeRate(ctx: OrgContext, id: string) {
   assertCan(ctx, "settings", "manage");
+  // Exchange rates are business data, not billing controls: even though the
+  // "settings" resource stays writable for billing recovery, rate mutations
+  // are blocked while the org is in degraded read-only mode.
+  if (
+    ctx.subscriptionStatus === "past_due" ||
+    ctx.subscriptionStatus === "canceled"
+  ) {
+    throw new ReadOnlyOrgError(ctx.subscriptionStatus);
+  }
   await db
     .delete(orgExchangeRates)
     .where(

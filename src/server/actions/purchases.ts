@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireOrgContext } from "@/lib/tenancy";
 import { createPurchase, deletePurchase } from "@/server/services/purchases";
 
@@ -46,6 +47,12 @@ export async function createPurchaseAction(formData: FormData) {
     lines: payload.lines,
   });
 
+  await audit(ctx, "purchase.create", {
+    entity: "purchase",
+    entityId: created.id,
+    meta: { total: created.total, currency: created.currencyCode },
+  });
+
   redirect(`/${locale}/o/${orgSlug}/purchases/${created.id}`);
 }
 
@@ -57,5 +64,9 @@ export async function deletePurchaseAction(formData: FormData) {
   const ctx = await requireOrgContext(locale, orgSlug);
   const purchaseId = z.string().uuid().parse(formData.get("purchaseId"));
   await deletePurchase(ctx, purchaseId);
+  await audit(ctx, "purchase.delete", {
+    entity: "purchase",
+    entityId: purchaseId,
+  });
   redirect(`/${locale}/o/${orgSlug}/purchases`);
 }

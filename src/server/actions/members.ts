@@ -7,6 +7,7 @@ import { and, count, eq } from "drizzle-orm";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { ORG_ROLES } from "@/lib/auth/permissions";
+import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { invitation, member } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
@@ -15,6 +16,14 @@ import {
   getOrgPlan,
   PlanLimitError,
 } from "@/lib/plan-limits";
+
+// Never write the invited email in full to the append-only audit trail —
+// only enough to recognize it later (first char + domain).
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "***";
+  return `${local[0] ?? "*"}***@${domain}`;
+}
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -69,13 +78,19 @@ export async function inviteMemberAction(formData: FormData) {
     }
   }
 
-  await auth.api.createInvitation({
+  const created = await auth.api.createInvitation({
     body: {
       email: parsed.email,
       role: parsed.role as "owner" | "admin" | "manager" | "field_supervisor",
       organizationId: orgId,
     },
     headers: await headers(),
+  });
+
+  await audit(ctx, "member.invite", {
+    entity: "invitation",
+    entityId: created.id,
+    meta: { role: parsed.role, email: maskEmail(parsed.email) },
   });
 
   revalidatePath(parsed.path);

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import Papa from "papaparse";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { farms, importJobs, parcels, products } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
@@ -138,6 +139,7 @@ export async function importCsvAction(formData: FormData) {
 
   // Data rows and the job log land atomically: a mid-batch failure leaves
   // neither orphaned rows nor a missing history entry.
+  const importJobId = newId();
   await db.transaction(async (tx) => {
     if (productValues.length > 0) {
       await tx.insert(products).values(productValues);
@@ -146,7 +148,7 @@ export async function importCsvAction(formData: FormData) {
       await tx.insert(parcels).values(parcelValues);
     }
     await tx.insert(importJobs).values({
-      id: newId(),
+      id: importJobId,
       orgId: ctx.org.id,
       type,
       fileName: file.name,
@@ -155,6 +157,12 @@ export async function importCsvAction(formData: FormData) {
       errorReport: errors,
       createdBy: ctx.user.id,
     });
+  });
+
+  await audit(ctx, "import.run", {
+    entity: "import_job",
+    entityId: importJobId,
+    meta: { type, rows: imported },
   });
 
   revalidatePath(`/${locale}/o/${orgSlug}/settings/import`);

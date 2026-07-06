@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireOrgContext } from "@/lib/tenancy";
 import {
   createWorker,
@@ -48,7 +49,12 @@ export async function createWorkerAction(formData: FormData) {
     hourlyRate: str(formData, "hourlyRate"),
     notes: str(formData, "notes"),
   });
-  await createWorker(ctx, input);
+  const created = await createWorker(ctx, input);
+  await audit(ctx, "worker.create", {
+    entity: "worker",
+    entityId: created.id,
+    meta: { name: created.name },
+  });
   redirect(`/${locale}/o/${orgSlug}/workers`);
 }
 
@@ -82,5 +88,10 @@ export async function setWorkerActiveAction(formData: FormData) {
   const workerId = z.string().uuid().parse(formData.get("workerId"));
   const active = formData.get("active") === "true";
   await setWorkerActive(ctx, workerId, active);
+  await audit(ctx, "worker.set_active", {
+    entity: "worker",
+    entityId: workerId,
+    meta: { active },
+  });
   revalidatePath(`/${locale}/o/${orgSlug}/workers`);
 }

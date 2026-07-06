@@ -5,8 +5,10 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { organization } from "@/lib/db/schema";
+import { requireOrgContext } from "@/lib/tenancy";
 
 const createOrgSchema = z.object({
   name: z.string().min(2).max(120),
@@ -58,6 +60,19 @@ export async function createOrganizationAction(formData: FormData) {
       country: parsed.country ?? null,
     })
     .where(eq(organization.id, created.id));
+
+  // The creator is auto-added as owner by createOrganization above, so a
+  // full OrgContext can be resolved here to log the settings this action
+  // just wrote (currency/country), same as any other settings update.
+  const ctx = await requireOrgContext(parsed.locale, created.slug);
+  await audit(ctx, "org.update", {
+    entity: "organization",
+    entityId: created.id,
+    meta: {
+      name: parsed.name,
+      baseCurrencyCode: parsed.baseCurrencyCode.toUpperCase(),
+    },
+  });
 
   redirect(`/${parsed.locale}/o/${created.slug}/dashboard`);
 }

@@ -1,0 +1,15 @@
+{
+  "changeTo": "Cambiar a {plan}",
+  "manageBilling": "Gestionar facturación",
+  "upgraded": {
+    "title": "Pago iniciado",
+    "description": "Tu plan se actualizará en cuanto Stripe confirme el pago. Esto puede tardar unos segundos."
+  },
+  "errors": {
+    "notConfigured": "La facturación todavía no está configurada para este sitio.",
+    "invalidPlan": "Ese plan no es válido.",
+    "priceNotConfigured": "Este plan todavía no tiene un precio configurado en Stripe.",
+    "checkoutSessionFailed": "No se pudo iniciar el proceso de pago. Inténtalo de nuevo.",
+    "noCustomer": "Todavía no tienes una cuenta de facturación asociada. Actualiza tu plan primero."
+  }
+}

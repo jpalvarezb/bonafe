@@ -64,6 +64,20 @@
       "when": 1783313272150,
       "tag": "0008_phase6-domain",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783315188919,
+      "tag": "0009_phase7-hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1783316660850,
+      "tag": "0010_stripe-event-ordering",
+      "breakpoints": true
     }
   ]
 }

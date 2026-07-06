@@ -15,6 +15,7 @@
     "farms": "Farms",
     "pendingInvites": "{count} pending invitations"
   },
+  "readOnlyNotice": "Your organization is read-only because of a billing issue ({status}). You can still manage members and settings to fix it, but everything else is blocked until payment is resolved.",
   "featureLocked": "The \"{feature}\" feature is not included in your current plan. Upgrade to use it.",
   "limitReached": {
     "maxUsers": "You've reached your plan's user limit. Upgrade your plan to invite more members.",
@@ -45,7 +46,8 @@
       "members": "Members",
       "plan": "Plan & limits",
       "currencies": "Currencies",
-      "import": "Import data"
+      "import": "Import data",
+      "audit": "Audit log"
     }
   }
 }

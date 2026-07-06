@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveOrgContext } from "@/lib/tenancy";
+import { cleanupExpiredWindows, rateLimit } from "@/lib/rate-limit";
 import {
   activityCreatePayload,
   attendanceUpsertPayload,
@@ -20,6 +21,22 @@ import { createHarvest } from "@/server/services/harvests";
  * only that item — the rest of the batch still applies.
  */
 export async function POST(request: Request) {
+  // Cheap pre-auth per-IP throttle: an unauthenticated flood would otherwise
+  // pay for JSON parse + zod + a session lookup on every request.
+  cleanupExpiredWindows();
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  const ipLimit = rateLimit(`sync-ip:${ip}`, { max: 120, windowMs: 60_000 });
+  if (!ipLimit.allowed) {
+    return NextResponse.json(
+      { error: "rate limited" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(ipLimit.retryAfterSeconds) },
+      },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -35,6 +52,22 @@ export async function POST(request: Request) {
   const ctx = await resolveOrgContext(parsed.data.orgSlug);
   if (!ctx) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  // Generous for legitimate offline flushes (batches of ≤100), hostile to
+  // scripted hammering. 429 is transient client-side: entries stay pending.
+  const limit = rateLimit(`sync:${ctx.user.id}`, {
+    max: 30,
+    windowMs: 60_000,
+  });
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "rate limited" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      },
+    );
   }
 
   const results: SyncItemResult[] = [];

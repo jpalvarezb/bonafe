@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireOrgContext } from "@/lib/tenancy";
 import { CURRENCY_CODES } from "@/lib/currency";
 import {
@@ -32,10 +33,17 @@ export async function upsertExchangeRateAction(formData: FormData) {
     throw new Error("cannot set a rate for the base currency");
   }
 
-  await upsertExchangeRate(ctx, {
+  const rateToBase = rateSchema.parse(formData.get("rateToBase"));
+  const rate = await upsertExchangeRate(ctx, {
     currencyCode,
-    rateToBase: rateSchema.parse(formData.get("rateToBase")),
+    rateToBase,
     validDate: z.string().min(10).parse(formData.get("validDate")),
+  });
+
+  await audit(ctx, "exchange_rate.set", {
+    entity: "exchange_rate",
+    entityId: rate.id,
+    meta: { currency: currencyCode, rate: rateToBase },
   });
 
   revalidatePath(`/${locale}/o/${orgSlug}/settings/currencies`);

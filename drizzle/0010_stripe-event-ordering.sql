@@ -1,0 +1,1 @@
+ALTER TABLE "org_subscriptions" ADD COLUMN "last_stripe_event_at" timestamp;

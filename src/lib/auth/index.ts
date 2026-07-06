@@ -16,6 +16,13 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  // Brute-force protection on auth endpoints (per-IP, in-memory; sign-in and
+  // similar sensitive routes get Better Auth's stricter built-in overrides).
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 60,
+  },
   user: {
     additionalFields: {
       locale: {
