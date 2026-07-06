@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   date,
   index,
   integer,
@@ -12,29 +14,37 @@ import { farms, parcels } from "./farms";
 import { id, timestamps } from "./helpers";
 
 /** org_id NULL = global seeded catalog row visible to every org. */
-export const crops = pgTable("crops", {
-  id: id(),
-  orgId: text("org_id").references(() => organization.id, {
-    onDelete: "cascade",
-  }),
-  name: text("name").notNull(),
-  scientificName: text("scientific_name"),
-  defaultCycleDays: integer("default_cycle_days"),
-  ...timestamps,
-});
+export const crops = pgTable(
+  "crops",
+  {
+    id: id(),
+    orgId: text("org_id").references(() => organization.id, {
+      onDelete: "cascade",
+    }),
+    name: text("name").notNull(),
+    scientificName: text("scientific_name"),
+    defaultCycleDays: integer("default_cycle_days"),
+    ...timestamps,
+  },
+  (t) => [index("crops_org_idx").on(t.orgId)],
+);
 
-export const cropVarieties = pgTable("crop_varieties", {
-  id: id(),
-  cropId: uuid("crop_id")
-    .notNull()
-    .references(() => crops.id, { onDelete: "cascade" }),
-  orgId: text("org_id").references(() => organization.id, {
-    onDelete: "cascade",
-  }),
-  name: text("name").notNull(),
-  notes: text("notes"),
-  ...timestamps,
-});
+export const cropVarieties = pgTable(
+  "crop_varieties",
+  {
+    id: id(),
+    cropId: uuid("crop_id")
+      .notNull()
+      .references(() => crops.id, { onDelete: "cascade" }),
+    orgId: text("org_id").references(() => organization.id, {
+      onDelete: "cascade",
+    }),
+    name: text("name").notNull(),
+    notes: text("notes"),
+    ...timestamps,
+  },
+  (t) => [index("crop_varieties_org_idx").on(t.orgId)],
+);
 
 /** Phenological stages per crop (org_id NULL = global defaults). */
 export const cropStages = pgTable(
@@ -92,5 +102,16 @@ export const cropCycles = pgTable(
   (t) => [
     index("crop_cycles_org_idx").on(t.orgId),
     index("crop_cycles_parcel_idx").on(t.orgId, t.parcelId),
+    index("crop_cycles_crop_idx").on(t.cropId),
+    index("crop_cycles_variety_idx").on(t.varietyId),
+    index("crop_cycles_current_stage_idx").on(t.currentStageId),
+    check(
+      "crop_cycles_status_check",
+      sql`${t.status} IN ('planned', 'active', 'closed')`,
+    ),
+    check(
+      "crop_cycles_date_range_check",
+      sql`${t.endDate} IS NULL OR ${t.endDate} >= ${t.startDate}`,
+    ),
   ],
 );

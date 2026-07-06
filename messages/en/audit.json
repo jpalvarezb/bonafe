@@ -38,6 +38,12 @@
       "create": "Worker created",
       "set_active": "Worker active status change"
     },
+    "farm": {
+      "set_active": "Farm active status change"
+    },
+    "parcel": {
+      "set_active": "Parcel active status change"
+    },
     "exchange_rate": {
       "set": "Exchange rate updated"
     },

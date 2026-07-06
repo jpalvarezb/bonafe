@@ -6,8 +6,12 @@
   "areaHa": "Area (ha)",
   "notes": "Notes",
   "create": "Create farm",
-  "delete": "Delete farm",
-  "deleteConfirm": "The farm and all its parcels will be deleted.",
+  "deactivate": "Deactivate",
+  "reactivate": "Reactivate",
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
   "parcels": {
     "title": "Parcels",
     "empty": "This farm has no parcels yet.",
@@ -22,7 +26,12 @@
     "clearDrawing": "Clear drawing",
     "create": "Create parcel",
     "save": "Save changes",
-    "delete": "Delete parcel",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
     "edit": "Edit",
     "attributes": {
       "title": "Custom attributes",

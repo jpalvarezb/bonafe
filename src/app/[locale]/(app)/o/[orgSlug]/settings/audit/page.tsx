@@ -2,7 +2,7 @@ import { and, desc, eq, like } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
-import { auditLog, user } from "@/lib/db/schema";
+import { auditLog } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ const KNOWN_ACTIONS = new Set([
   "purchase.delete",
   "worker.create",
   "worker.set_active",
+  "farm.set_active",
+  "parcel.set_active",
   "exchange_rate.set",
   "import.run",
   "org.update",
@@ -74,10 +76,11 @@ export default async function AuditLogPage({
       entityId: auditLog.entityId,
       meta: auditLog.meta,
       createdAt: auditLog.createdAt,
-      actorName: user.name,
+      // Snapshot taken at write time (see lib/audit.ts) — stays readable
+      // even after the user is renamed or removed; no join needed.
+      actorName: auditLog.actorName,
     })
     .from(auditLog)
-    .leftJoin(user, eq(auditLog.actorUserId, user.id))
     .where(
       and(
         eq(auditLog.orgId, ctx.org.id),

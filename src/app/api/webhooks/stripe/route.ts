@@ -268,6 +268,10 @@ async function writeAudit(result: SubscriptionStateResult): Promise<void> {
     await db.insert(auditLog).values({
       orgId: result.orgId,
       actorUserId: null,
+      // No human actor on a webhook-driven write; a stable constant marks
+      // the row as system-originated (mirrors the `audit()` user snapshot).
+      actorName: "stripe-webhook",
+      actorEmail: null,
       action: "billing.subscription_updated",
       entity: "org_subscription",
       entityId: result.orgId,

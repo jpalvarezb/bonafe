@@ -62,7 +62,7 @@ export default async function ClimatePage({
   const t = await getTranslations("climate");
   const sp = await searchParams;
 
-  const farmsList = await listFarms(ctx);
+  const farmsList = await listFarms(ctx, { includeInactive: true });
 
   if (farmsList.length === 0) {
     return (

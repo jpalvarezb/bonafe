@@ -105,14 +105,27 @@ export async function updateParcel(
   return updated;
 }
 
-export async function deleteParcel(ctx: OrgContext, parcelId: string) {
+/** Soft toggle of active/inactive; parcels are never hard-deleted. */
+export async function setParcelActive(
+  ctx: OrgContext,
+  parcelId: string,
+  active: boolean,
+) {
   assertCan(ctx, "parcel", "delete");
-  await db
-    .delete(parcels)
-    .where(and(eq(parcels.id, parcelId), eq(parcels.orgId, ctx.org.id)));
+  const [updated] = await db
+    .update(parcels)
+    .set({ active })
+    .where(and(eq(parcels.id, parcelId), eq(parcels.orgId, ctx.org.id)))
+    .returning();
+  return updated;
 }
 
-export async function listParcels(ctx: OrgContext, farmId?: string) {
+/** Full parcel list. Pass includeInactive to also show deactivated parcels. */
+export async function listParcels(
+  ctx: OrgContext,
+  farmId?: string,
+  filter?: { includeInactive?: boolean },
+) {
   return db
     .select()
     .from(parcels)
@@ -120,6 +133,7 @@ export async function listParcels(ctx: OrgContext, farmId?: string) {
       and(
         eq(parcels.orgId, ctx.org.id),
         farmId ? eq(parcels.farmId, farmId) : undefined,
+        filter?.includeInactive ? undefined : eq(parcels.active, true),
       ),
     )
     .orderBy(parcels.name);

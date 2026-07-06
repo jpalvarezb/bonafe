@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   date,
   index,
   jsonb,
@@ -63,5 +65,9 @@ export const workOrders = pgTable(
     index("work_orders_org_status_idx").on(t.orgId, t.status),
     index("work_orders_org_assignee_idx").on(t.orgId, t.assignedToMemberId),
     uniqueIndex("work_orders_org_code_uq").on(t.orgId, t.code),
+    check(
+      "work_orders_status_check",
+      sql`${t.status} IN ('draft', 'assigned', 'in_progress', 'done', 'cancelled')`,
+    ),
   ],
 );

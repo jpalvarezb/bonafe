@@ -38,6 +38,12 @@
       "create": "Trabajador creado",
       "set_active": "Cambio de estado de trabajador"
     },
+    "farm": {
+      "set_active": "Cambio de estado de finca"
+    },
+    "parcel": {
+      "set_active": "Cambio de estado de parcela"
+    },
     "exchange_rate": {
       "set": "Tasa de cambio actualizada"
     },

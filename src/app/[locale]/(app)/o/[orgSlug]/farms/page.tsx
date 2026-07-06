@@ -21,7 +21,7 @@ export default async function FarmsPage({
   setRequestLocale(locale);
   const ctx = await requireOrgContext(locale, orgSlug);
   const t = await getTranslations("farms");
-  const farms = await listFarms(ctx);
+  const farms = await listFarms(ctx, { includeInactive: true });
   const canCreate = can(ctx.role, "farm", "create");
 
   return (
@@ -35,8 +35,13 @@ export default async function FarmsPage({
           {farms.map((farm) => (
             <Link key={farm.id} href={`/o/${orgSlug}/farms/${farm.id}`}>
               <Card className="transition-colors hover:bg-accent/40">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between gap-2">
                   <CardTitle>{farm.name}</CardTitle>
+                  {!farm.active && (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      {t("status.inactive")}
+                    </span>
+                  )}
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">
                   {farm.areaHa ? `${farm.areaHa} ha` : "—"}

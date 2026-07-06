@@ -1,11 +1,15 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
+  foreignKey,
   index,
   numeric,
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -34,7 +38,14 @@ export const workers = pgTable(
     notes: text("notes"),
     ...timestamps,
   },
-  (t) => [index("workers_org_idx").on(t.orgId)],
+  (t) => [
+    index("workers_org_idx").on(t.orgId),
+    uniqueIndex("workers_org_code_uq")
+      .on(t.orgId, t.code)
+      .where(sql`${t.code} IS NOT NULL`),
+    check("workers_daily_rate_nonneg_check", sql`${t.dailyRate} >= 0`),
+    check("workers_hourly_rate_nonneg_check", sql`${t.hourlyRate} >= 0`),
+  ],
 );
 
 export const attendanceRecords = pgTable(
@@ -42,9 +53,11 @@ export const attendanceRecords = pgTable(
   {
     id: id(),
     orgId: orgId(),
+    // Financial/ledger row: a worker delete must not erase attendance
+    // history, so this is RESTRICT, not CASCADE (workers are soft-deleted).
     workerId: uuid("worker_id")
       .notNull()
-      .references(() => workers.id, { onDelete: "cascade" }),
+      .references(() => workers.id, { onDelete: "no action" }),
     date: date("date").notNull(),
     status: text("status", {
       enum: ["present", "half_day", "absent", "sick", "leave"],
@@ -72,6 +85,22 @@ export const attendanceRecords = pgTable(
       t.date,
     ),
     index("attendance_org_date_idx").on(t.orgId, t.date),
+    check(
+      "attendance_records_status_check",
+      sql`${t.status} IN ('present', 'half_day', 'absent', 'sick', 'leave')`,
+    ),
+    check(
+      "attendance_records_hours_worked_nonneg_check",
+      sql`${t.hoursWorked} IS NULL OR ${t.hoursWorked} >= 0`,
+    ),
+    check(
+      "attendance_records_daily_rate_nonneg_check",
+      sql`${t.dailyRateSnapshot} >= 0`,
+    ),
+    check(
+      "attendance_records_hourly_rate_nonneg_check",
+      sql`${t.hourlyRateSnapshot} >= 0`,
+    ),
   ],
 );
 
@@ -87,7 +116,14 @@ export const pieceRates = pgTable(
     active: boolean("active").notNull().default(true),
     ...timestamps,
   },
-  (t) => [index("piece_rates_org_idx").on(t.orgId)],
+  (t) => [
+    index("piece_rates_org_idx").on(t.orgId),
+    uniqueIndex("piece_rates_org_name_uq").on(t.orgId, t.name),
+    check("piece_rates_rate_nonneg_check", sql`${t.rate} >= 0`),
+    // Lets children add a composite (org_id, piece_rate_id) FK so a
+    // cross-tenant reference is impossible at the DB level.
+    unique("piece_rates_org_id_uq").on(t.orgId, t.id),
+  ],
 );
 
 /** One captured piecework quantity; amount = quantity × rate snapshot. */
@@ -96,9 +132,11 @@ export const pieceworkEntries = pgTable(
   {
     id: id(),
     orgId: orgId(),
+    // Financial/ledger row: a worker delete must not erase piecework
+    // history, so this is RESTRICT, not CASCADE (workers are soft-deleted).
     workerId: uuid("worker_id")
       .notNull()
-      .references(() => workers.id, { onDelete: "cascade" }),
+      .references(() => workers.id, { onDelete: "no action" }),
     pieceRateId: uuid("piece_rate_id")
       .notNull()
       .references(() => pieceRates.id),
@@ -114,6 +152,12 @@ export const pieceworkEntries = pgTable(
   (t) => [
     index("piecework_org_worker_date_idx").on(t.orgId, t.workerId, t.date),
     index("piecework_org_date_idx").on(t.orgId, t.date),
+    // Additional guard alongside the single-column pieceRateId FK above:
+    // makes a cross-tenant piece-rate reference impossible at the DB level.
+    foreignKey({
+      columns: [t.orgId, t.pieceRateId],
+      foreignColumns: [pieceRates.orgId, pieceRates.id],
+    }).onDelete("no action"),
   ],
 );
 
@@ -128,14 +172,28 @@ export const payrollPeriods = pgTable(
     status: text("status", { enum: ["open", "closed"] })
       .notNull()
       .default("open"),
-    closedAt: timestamp("closed_at"),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
     // Denormalized sum of entry net amounts, in the org base currency.
     totalAmount: money("total_amount").notNull().default("0"),
     currencyCode: text("currency_code").notNull().default("USD"),
     createdBy: text("created_by").references(() => user.id),
     ...timestamps,
   },
-  (t) => [index("payroll_periods_org_idx").on(t.orgId, t.startDate)],
+  (t) => [
+    index("payroll_periods_org_idx").on(t.orgId, t.startDate),
+    check(
+      "payroll_periods_status_check",
+      sql`${t.status} IN ('open', 'closed')`,
+    ),
+    check(
+      "payroll_periods_date_range_check",
+      sql`${t.endDate} >= ${t.startDate}`,
+    ),
+    check(
+      "payroll_periods_currency_code_check",
+      sql`char_length(${t.currencyCode}) = 3`,
+    ),
+  ],
 );
 
 export const payrollEntries = pgTable(
@@ -146,9 +204,11 @@ export const payrollEntries = pgTable(
     periodId: uuid("period_id")
       .notNull()
       .references(() => payrollPeriods.id, { onDelete: "cascade" }),
+    // Financial/ledger row: a worker delete must not erase payroll history,
+    // so this is RESTRICT, not CASCADE (workers are soft-deleted).
     workerId: uuid("worker_id")
       .notNull()
-      .references(() => workers.id, { onDelete: "cascade" }),
+      .references(() => workers.id, { onDelete: "no action" }),
     // present = 1, half_day = 0.5
     daysWorked: numeric("days_worked", { precision: 6, scale: 2 })
       .notNull()
@@ -168,5 +228,6 @@ export const payrollEntries = pgTable(
   (t) => [
     uniqueIndex("payroll_entries_period_worker_uq").on(t.periodId, t.workerId),
     index("payroll_entries_org_idx").on(t.orgId),
+    index("payroll_entries_worker_idx").on(t.workerId),
   ],
 );

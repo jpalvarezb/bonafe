@@ -1,4 +1,4 @@
-import { index, numeric, pgTable, text } from "drizzle-orm/pg-core";
+import { index, numeric, pgTable, text, unique } from "drizzle-orm/pg-core";
 import { organization } from "./tenancy";
 import { id, orgId, timestamps } from "./helpers";
 
@@ -34,5 +34,10 @@ export const products = pgTable(
     minStock: numeric("min_stock", { precision: 14, scale: 4 }),
     ...timestamps,
   },
-  (t) => [index("products_org_idx").on(t.orgId)],
+  (t) => [
+    index("products_org_idx").on(t.orgId),
+    // Lets children add a composite (org_id, product_id) FK so a cross-tenant
+    // reference is impossible at the DB level, not just app-checked.
+    unique("products_org_id_uq").on(t.orgId, t.id),
+  ],
 );

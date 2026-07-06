@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   date,
   index,
   integer,
@@ -40,5 +42,10 @@ export const monitoringRecords = pgTable(
   (t) => [
     index("monitoring_org_date_idx").on(t.orgId, t.date),
     index("monitoring_org_parcel_idx").on(t.orgId, t.parcelId),
+    check("monitoring_records_severity_check", sql`${t.severity} BETWEEN 1 AND 5`),
+    check(
+      "monitoring_records_incidence_pct_check",
+      sql`${t.incidencePct} IS NULL OR (${t.incidencePct} BETWEEN 0 AND 100)`,
+    ),
   ],
 );

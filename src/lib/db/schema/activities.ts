@@ -1,6 +1,9 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
+  foreignKey,
   index,
   integer,
   numeric,
@@ -23,12 +26,14 @@ export const activities = pgTable(
   {
     id: id(),
     orgId: orgId(),
+    // Financial ledger row: a farm/parcel delete must not silently erase
+    // activity cost history, so these are RESTRICT, not CASCADE.
     farmId: uuid("farm_id").references(() => farms.id, {
-      onDelete: "cascade",
+      onDelete: "no action",
     }),
     // NULL parcel = general (non-parcel) activity, Tier 2
     parcelId: uuid("parcel_id").references(() => parcels.id, {
-      onDelete: "cascade",
+      onDelete: "no action",
     }),
     cropCycleId: uuid("crop_cycle_id").references(() => cropCycles.id, {
       onDelete: "set null",
@@ -63,6 +68,13 @@ export const activities = pgTable(
     index("activities_org_date_idx").on(t.orgId, t.date),
     index("activities_org_parcel_idx").on(t.orgId, t.parcelId),
     index("activities_org_cycle_idx").on(t.orgId, t.cropCycleId),
+    index("activities_farm_idx").on(t.farmId),
+    index("activities_activity_type_idx").on(t.activityTypeId),
+    index("activities_cost_center_idx").on(t.costCenterId),
+    check(
+      "activities_currency_code_check",
+      sql`char_length(${t.currencyCode}) = 3`,
+    ),
   ],
 );
 
@@ -82,7 +94,15 @@ export const activityInputs = pgTable(
     total: money("total").notNull().default("0"),
     ...timestamps,
   },
-  (t) => [index("activity_inputs_activity_idx").on(t.activityId)],
+  (t) => [
+    index("activity_inputs_activity_idx").on(t.activityId),
+    // Additional guard alongside the single-column productId FK above: makes
+    // a cross-tenant product reference impossible at the DB level.
+    foreignKey({
+      columns: [t.orgId, t.productId],
+      foreignColumns: [products.orgId, products.id],
+    }).onDelete("no action"),
+  ],
 );
 
 export const activityLabor = pgTable(
@@ -109,5 +129,14 @@ export const activityLabor = pgTable(
     amount: money("amount").notNull().default("0"),
     ...timestamps,
   },
-  (t) => [index("activity_labor_activity_idx").on(t.activityId)],
+  (t) => [
+    index("activity_labor_activity_idx").on(t.activityId),
+    check(
+      "activity_labor_rate_type_check",
+      sql`${t.rateType} IN ('daily', 'hourly', 'piecework')`,
+    ),
+    check("activity_labor_hours_nonneg_check", sql`${t.hours} IS NULL OR ${t.hours} >= 0`),
+    check("activity_labor_rate_nonneg_check", sql`${t.rate} >= 0`),
+    check("activity_labor_amount_nonneg_check", sql`${t.amount} >= 0`),
+  ],
 );

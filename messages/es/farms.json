@@ -6,8 +6,12 @@
   "areaHa": "Área (ha)",
   "notes": "Notas",
   "create": "Crear finca",
-  "delete": "Eliminar finca",
-  "deleteConfirm": "Se eliminarán la finca y todas sus parcelas.",
+  "deactivate": "Desactivar",
+  "reactivate": "Reactivar",
+  "status": {
+    "active": "Activa",
+    "inactive": "Inactiva"
+  },
   "parcels": {
     "title": "Parcelas",
     "empty": "Esta finca no tiene parcelas todavía.",
@@ -22,7 +26,12 @@
     "clearDrawing": "Borrar dibujo",
     "create": "Crear parcela",
     "save": "Guardar cambios",
-    "delete": "Eliminar parcela",
+    "deactivate": "Desactivar",
+    "reactivate": "Reactivar",
+    "status": {
+      "active": "Activa",
+      "inactive": "Inactiva"
+    },
     "edit": "Editar",
     "attributes": {
       "title": "Atributos personalizados",

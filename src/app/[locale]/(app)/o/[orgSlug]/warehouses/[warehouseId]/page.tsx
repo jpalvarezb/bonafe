@@ -36,7 +36,7 @@ export default async function EditWarehousePage({
   const t = await getTranslations("warehouses");
   const [warehouse, farms] = await Promise.all([
     getWarehouse(ctx, warehouseId),
-    listFarms(ctx),
+    listFarms(ctx, { includeInactive: true }),
   ]);
   if (!warehouse) notFound();
 

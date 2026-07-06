@@ -5,7 +5,10 @@ import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
 import { getFarm } from "@/server/services/farms";
 import { listParcels } from "@/server/services/parcels";
-import { deleteFarmAction, deleteParcelAction } from "@/server/actions/farms";
+import {
+  setFarmActiveAction,
+  setParcelActiveAction,
+} from "@/server/actions/farms";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,7 +33,7 @@ export default async function FarmDetailPage({
 
   const farm = await getFarm(ctx, farmId);
   if (!farm) notFound();
-  const parcels = await listParcels(ctx, farmId);
+  const parcels = await listParcels(ctx, farmId, { includeInactive: true });
 
   const canEditParcel = can(ctx.role, "parcel", "create");
   const canDeleteFarm = can(ctx.role, "farm", "delete");
@@ -39,18 +42,34 @@ export default async function FarmDetailPage({
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{farm.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold">{farm.name}</h1>
+            {!farm.active && (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {t("status.inactive")}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">
             {farm.areaHa ? `${farm.areaHa} ha` : ""}
           </p>
         </div>
         {canDeleteFarm && (
-          <form action={deleteFarmAction}>
+          <form action={setFarmActiveAction}>
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="orgSlug" value={orgSlug} />
             <input type="hidden" name="farmId" value={farm.id} />
-            <Button variant="destructive" size="sm" type="submit">
-              {t("delete")}
+            <input
+              type="hidden"
+              name="active"
+              value={(!farm.active).toString()}
+            />
+            <Button
+              variant={farm.active ? "destructive" : "outline"}
+              size="sm"
+              type="submit"
+            >
+              {t(farm.active ? "deactivate" : "reactivate")}
             </Button>
           </form>
         )}
@@ -95,7 +114,14 @@ export default async function FarmDetailPage({
                   className="flex items-center justify-between py-3"
                 >
                   <div>
-                    <p className="font-medium">{parcel.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{parcel.name}</p>
+                      {!parcel.active && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          {t("parcels.status.inactive")}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       {parcel.code ? `${parcel.code} · ` : ""}
                       {parcel.areaHa ? `${parcel.areaHa} ha` : "—"}
@@ -123,7 +149,7 @@ export default async function FarmDetailPage({
                             {t("parcels.edit")}
                           </Link>
                         </Button>
-                        <form action={deleteParcelAction}>
+                        <form action={setParcelActiveAction}>
                           <input type="hidden" name="locale" value={locale} />
                           <input type="hidden" name="orgSlug" value={orgSlug} />
                           <input type="hidden" name="farmId" value={farm.id} />
@@ -132,8 +158,17 @@ export default async function FarmDetailPage({
                             name="parcelId"
                             value={parcel.id}
                           />
+                          <input
+                            type="hidden"
+                            name="active"
+                            value={(!parcel.active).toString()}
+                          />
                           <Button variant="ghost" size="sm" type="submit">
-                            {t("parcels.delete")}
+                            {t(
+                              parcel.active
+                                ? "parcels.deactivate"
+                                : "parcels.reactivate",
+                            )}
                           </Button>
                         </form>
                       </>

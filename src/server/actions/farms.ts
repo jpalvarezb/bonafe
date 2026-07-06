@@ -3,17 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireOrgContext } from "@/lib/tenancy";
 import { assertCanAddFarm, PlanLimitError } from "@/lib/plan-limits";
 import {
   createFarm,
-  deleteFarm,
+  setFarmActive,
   updateFarm,
 } from "@/server/services/farms";
 import {
   createParcel,
-  deleteParcel,
   parcelAttributesSchema,
+  setParcelActive,
   updateParcel,
 } from "@/server/services/parcels";
 import type { GeoJsonPolygon } from "@/lib/db/geometry";
@@ -98,15 +99,22 @@ export async function updateFarmAction(formData: FormData) {
   revalidatePath(`/${locale}/o/${orgSlug}/farms/${farmId}`);
 }
 
-export async function deleteFarmAction(formData: FormData) {
+export async function setFarmActiveAction(formData: FormData) {
   const { locale, orgSlug } = scope.parse({
     locale: formData.get("locale"),
     orgSlug: formData.get("orgSlug"),
   });
   const ctx = await requireOrgContext(locale, orgSlug);
   const farmId = z.string().uuid().parse(formData.get("farmId"));
-  await deleteFarm(ctx, farmId);
-  redirect(`/${locale}/o/${orgSlug}/farms`);
+  const active = formData.get("active") === "true";
+  await setFarmActive(ctx, farmId, active);
+  await audit(ctx, "farm.set_active", {
+    entity: "farm",
+    entityId: farmId,
+    meta: { active },
+  });
+  revalidatePath(`/${locale}/o/${orgSlug}/farms`);
+  revalidatePath(`/${locale}/o/${orgSlug}/farms/${farmId}`);
 }
 
 export async function createParcelAction(formData: FormData) {
@@ -154,7 +162,7 @@ export async function updateParcelAction(formData: FormData) {
   revalidatePath(`/${locale}/o/${orgSlug}/farms/${farmId}`);
 }
 
-export async function deleteParcelAction(formData: FormData) {
+export async function setParcelActiveAction(formData: FormData) {
   const { locale, orgSlug } = scope.parse({
     locale: formData.get("locale"),
     orgSlug: formData.get("orgSlug"),
@@ -162,6 +170,12 @@ export async function deleteParcelAction(formData: FormData) {
   const ctx = await requireOrgContext(locale, orgSlug);
   const parcelId = z.string().uuid().parse(formData.get("parcelId"));
   const farmId = z.string().uuid().parse(formData.get("farmId"));
-  await deleteParcel(ctx, parcelId);
+  const active = formData.get("active") === "true";
+  await setParcelActive(ctx, parcelId, active);
+  await audit(ctx, "parcel.set_active", {
+    entity: "parcel",
+    entityId: parcelId,
+    meta: { active },
+  });
   revalidatePath(`/${locale}/o/${orgSlug}/farms/${farmId}`);
 }

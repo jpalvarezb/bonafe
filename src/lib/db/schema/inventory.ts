@@ -1,11 +1,14 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
+  foreignKey,
   index,
   numeric,
   pgTable,
   text,
+  unique,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
@@ -30,7 +33,12 @@ export const suppliers = pgTable(
     notes: text("notes"),
     ...timestamps,
   },
-  (t) => [index("suppliers_org_idx").on(t.orgId)],
+  (t) => [
+    index("suppliers_org_idx").on(t.orgId),
+    // Lets children add a composite (org_id, supplier_id) FK so a
+    // cross-tenant reference is impossible at the DB level.
+    unique("suppliers_org_id_uq").on(t.orgId, t.id),
+  ],
 );
 
 /** Phase 4 ships a single default warehouse per org; transfers arrive Phase 5. */
@@ -52,6 +60,9 @@ export const warehouses = pgTable(
     uniqueIndex("warehouses_org_default_uq")
       .on(t.orgId)
       .where(sql`${t.isDefault}`),
+    // Lets children add a composite (org_id, warehouse_id) FK so a
+    // cross-tenant reference is impossible at the DB level.
+    unique("warehouses_org_id_uq").on(t.orgId, t.id),
   ],
 );
 
@@ -79,7 +90,22 @@ export const purchases = pgTable(
     createdBy: text("created_by").references(() => user.id),
     ...timestamps,
   },
-  (t) => [index("purchases_org_date_idx").on(t.orgId, t.date)],
+  (t) => [
+    index("purchases_org_date_idx").on(t.orgId, t.date),
+    index("purchases_supplier_idx").on(t.supplierId),
+    index("purchases_warehouse_idx").on(t.warehouseId),
+    check("purchases_currency_code_check", sql`char_length(${t.currencyCode}) = 3`),
+    // Additional guards alongside the single-column FKs above: make
+    // cross-tenant supplier/warehouse references impossible at the DB level.
+    foreignKey({
+      columns: [t.orgId, t.supplierId],
+      foreignColumns: [suppliers.orgId, suppliers.id],
+    }).onDelete("no action"),
+    foreignKey({
+      columns: [t.orgId, t.warehouseId],
+      foreignColumns: [warehouses.orgId, warehouses.id],
+    }).onDelete("no action"),
+  ],
 );
 
 export const purchaseLines = pgTable(
@@ -98,7 +124,15 @@ export const purchaseLines = pgTable(
     total: money("total").notNull().default("0"),
     ...timestamps,
   },
-  (t) => [index("purchase_lines_purchase_idx").on(t.purchaseId)],
+  (t) => [
+    index("purchase_lines_purchase_idx").on(t.purchaseId),
+    // Additional guard alongside the single-column productId FK above: makes
+    // a cross-tenant product reference impossible at the DB level.
+    foreignKey({
+      columns: [t.orgId, t.productId],
+      foreignColumns: [products.orgId, products.id],
+    }).onDelete("no action"),
+  ],
 );
 
 /** Atomic stock moves between warehouses; lines value at the source average. */
@@ -118,7 +152,23 @@ export const inventoryTransfers = pgTable(
     createdBy: text("created_by").references(() => user.id),
     ...timestamps,
   },
-  (t) => [index("inv_transfers_org_date_idx").on(t.orgId, t.date)],
+  (t) => [
+    index("inv_transfers_org_date_idx").on(t.orgId, t.date),
+    check(
+      "inventory_transfers_diff_warehouse_check",
+      sql`${t.fromWarehouseId} <> ${t.toWarehouseId}`,
+    ),
+    // Additional guards alongside the single-column FKs above: make
+    // cross-tenant warehouse references impossible at the DB level.
+    foreignKey({
+      columns: [t.orgId, t.fromWarehouseId],
+      foreignColumns: [warehouses.orgId, warehouses.id],
+    }).onDelete("no action"),
+    foreignKey({
+      columns: [t.orgId, t.toWarehouseId],
+      foreignColumns: [warehouses.orgId, warehouses.id],
+    }).onDelete("no action"),
+  ],
 );
 
 export const inventoryTransferLines = pgTable(
@@ -138,7 +188,15 @@ export const inventoryTransferLines = pgTable(
     unitCostSnapshot: money("unit_cost_snapshot").notNull().default("0"),
     ...timestamps,
   },
-  (t) => [index("inv_transfer_lines_transfer_idx").on(t.transferId)],
+  (t) => [
+    index("inv_transfer_lines_transfer_idx").on(t.transferId),
+    // Additional guard alongside the single-column productId FK above: makes
+    // a cross-tenant product reference impossible at the DB level.
+    foreignKey({
+      columns: [t.orgId, t.productId],
+      foreignColumns: [products.orgId, products.id],
+    }).onDelete("no action"),
+  ],
 );
 
 /**
@@ -181,9 +239,32 @@ export const inventoryMovements = pgTable(
   },
   (t) => [
     index("inv_mov_org_wh_product_idx").on(t.orgId, t.warehouseId, t.productId),
+    index("inv_mov_org_date_idx").on(t.orgId, t.date),
     // A source row generates at most one movement — replay-safe consumption.
     uniqueIndex("inv_mov_ref_uq")
       .on(t.refKind, t.refId)
       .where(sql`${t.refId} IS NOT NULL`),
+    check(
+      "inventory_movements_type_check",
+      sql`${t.type} IN ('purchase', 'consumption', 'adjustment_in', 'adjustment_out', 'harvest_in', 'transfer_in', 'transfer_out')`,
+    ),
+    // ref_kind has no TS enum (plain text); constrained to the literal
+    // values the services actually write (purchases/transfers/activities).
+    // Manual adjustments leave it NULL.
+    check(
+      "inventory_movements_ref_kind_check",
+      sql`${t.refKind} IS NULL OR ${t.refKind} IN ('purchase_line', 'transfer_line_out', 'transfer_line_in', 'activity_input')`,
+    ),
+    check("inventory_movements_quantity_nonzero_check", sql`${t.quantity} <> 0`),
+    // Additional guards alongside the single-column FKs above: make
+    // cross-tenant product/warehouse references impossible at the DB level.
+    foreignKey({
+      columns: [t.orgId, t.productId],
+      foreignColumns: [products.orgId, products.id],
+    }).onDelete("no action"),
+    foreignKey({
+      columns: [t.orgId, t.warehouseId],
+      foreignColumns: [warehouses.orgId, warehouses.id],
+    }).onDelete("no action"),
   ],
 );

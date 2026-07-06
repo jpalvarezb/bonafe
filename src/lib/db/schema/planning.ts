@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   date,
   index,
   integer,
@@ -73,7 +75,10 @@ export const budgets = pgTable(
     createdBy: text("created_by").references(() => user.id),
     ...timestamps,
   },
-  (t) => [index("budgets_org_idx").on(t.orgId, t.year)],
+  (t) => [
+    index("budgets_org_idx").on(t.orgId, t.year),
+    check("budgets_currency_code_check", sql`char_length(${t.currencyCode}) = 3`),
+  ],
 );
 
 /** One amount per month × cost category; variance compares to activities. */

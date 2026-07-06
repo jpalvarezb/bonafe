@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   date,
   index,
   numeric,
@@ -21,9 +23,11 @@ export const harvestLots = pgTable(
   {
     id: id(),
     orgId: orgId(),
+    // Financial/ledger row: a cycle delete must not erase harvest-lot
+    // history, so this is RESTRICT, not CASCADE.
     cropCycleId: uuid("crop_cycle_id")
       .notNull()
-      .references(() => cropCycles.id, { onDelete: "cascade" }),
+      .references(() => cropCycles.id, { onDelete: "no action" }),
     name: text("name").notNull(),
     status: text("status", { enum: ["open", "closed"] })
       .notNull()
@@ -61,9 +65,11 @@ export const processingRuns = pgTable(
   {
     id: id(),
     orgId: orgId(),
+    // Financial/ledger row: a cycle delete must not erase processing-run
+    // history, so this is RESTRICT, not CASCADE.
     cropCycleId: uuid("crop_cycle_id")
       .notNull()
-      .references(() => cropCycles.id, { onDelete: "cascade" }),
+      .references(() => cropCycles.id, { onDelete: "no action" }),
     harvestLotId: uuid("harvest_lot_id").references(() => harvestLots.id, {
       onDelete: "set null",
     }),
@@ -106,6 +112,7 @@ export const sales = pgTable(
   (t) => [
     index("sales_org_date_idx").on(t.orgId, t.date),
     index("sales_org_cycle_idx").on(t.orgId, t.cropCycleId),
+    check("sales_currency_code_check", sql`char_length(${t.currencyCode}) = 3`),
   ],
 );
 

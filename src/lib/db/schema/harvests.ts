@@ -19,12 +19,14 @@ export const harvests = pgTable(
   {
     id: id(),
     orgId: orgId(),
+    // Financial/ledger row: a farm/parcel delete must not silently erase
+    // harvest history, so these are RESTRICT, not CASCADE.
     farmId: uuid("farm_id").references(() => farms.id, {
-      onDelete: "cascade",
+      onDelete: "no action",
     }),
     parcelId: uuid("parcel_id")
       .notNull()
-      .references(() => parcels.id, { onDelete: "cascade" }),
+      .references(() => parcels.id, { onDelete: "no action" }),
     cropCycleId: uuid("crop_cycle_id").references(() => cropCycles.id, {
       onDelete: "set null",
     }),
@@ -44,5 +46,7 @@ export const harvests = pgTable(
   (t) => [
     index("harvests_org_date_idx").on(t.orgId, t.date),
     index("harvests_org_cycle_idx").on(t.orgId, t.cropCycleId),
+    index("harvests_parcel_idx").on(t.parcelId),
+    index("harvests_worker_idx").on(t.workerId),
   ],
 );

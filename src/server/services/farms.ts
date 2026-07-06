@@ -40,18 +40,35 @@ export async function updateFarm(
   return updated;
 }
 
-export async function deleteFarm(ctx: OrgContext, farmId: string) {
+/** Soft toggle of active/inactive; farms are never hard-deleted. */
+export async function setFarmActive(
+  ctx: OrgContext,
+  farmId: string,
+  active: boolean,
+) {
   assertCan(ctx, "farm", "delete");
-  await db
-    .delete(farms)
-    .where(and(eq(farms.id, farmId), eq(farms.orgId, ctx.org.id)));
+  const [updated] = await db
+    .update(farms)
+    .set({ active })
+    .where(and(eq(farms.id, farmId), eq(farms.orgId, ctx.org.id)))
+    .returning();
+  return updated;
 }
 
-export async function listFarms(ctx: OrgContext) {
+/** Full farm list. Pass includeInactive to also show deactivated farms. */
+export async function listFarms(
+  ctx: OrgContext,
+  filter?: { includeInactive?: boolean },
+) {
   return db
     .select()
     .from(farms)
-    .where(eq(farms.orgId, ctx.org.id))
+    .where(
+      and(
+        eq(farms.orgId, ctx.org.id),
+        filter?.includeInactive ? undefined : eq(farms.active, true),
+      ),
+    )
     .orderBy(farms.name);
 }
 

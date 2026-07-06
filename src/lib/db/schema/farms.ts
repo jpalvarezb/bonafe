@@ -1,9 +1,12 @@
+import { sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   jsonb,
   numeric,
   pgTable,
   text,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { geoPoint, geoPolygon } from "../geometry";
@@ -17,6 +20,8 @@ export const farms = pgTable(
     name: text("name").notNull(),
     location: geoPoint("location"),
     areaHa: numeric("area_ha", { precision: 12, scale: 4 }),
+    // Soft-deactivation: farms are never hard-deleted from the app.
+    active: boolean("active").notNull().default(true),
     notes: text("notes"),
     ...timestamps,
   },
@@ -37,7 +42,14 @@ export const parcels = pgTable(
     areaHa: numeric("area_ha", { precision: 12, scale: 4 }),
     soilType: text("soil_type"),
     attributes: jsonb("attributes").notNull().default({}),
+    // Soft-deactivation: parcels are never hard-deleted from the app.
+    active: boolean("active").notNull().default(true),
     ...timestamps,
   },
-  (t) => [index("parcels_org_farm_idx").on(t.orgId, t.farmId)],
+  (t) => [
+    index("parcels_org_farm_idx").on(t.orgId, t.farmId),
+    uniqueIndex("parcels_farm_code_uq")
+      .on(t.farmId, t.code)
+      .where(sql`${t.code} IS NOT NULL`),
+  ],
 );

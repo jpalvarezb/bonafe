@@ -21,6 +21,10 @@ export async function audit(
     await db.insert(auditLog).values({
       orgId: ctx.org.id,
       actorUserId: ctx.user.id,
+      // Snapshot the actor's current name/email so the trail stays
+      // readable even after the user is renamed or removed.
+      actorName: ctx.user.name,
+      actorEmail: ctx.user.email,
       action,
       entity: options?.entity ?? null,
       entityId: options?.entityId ?? null,
