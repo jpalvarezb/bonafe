@@ -23,7 +23,14 @@
     "create": "Crear parcela",
     "save": "Guardar cambios",
     "delete": "Eliminar parcela",
-    "edit": "Editar"
+    "edit": "Editar",
+    "attributes": {
+      "title": "Atributos personalizados",
+      "key": "Nombre",
+      "value": "Valor",
+      "add": "Agregar atributo",
+      "remove": "Quitar"
+    }
   },
   "map": {
     "title": "Mapa de la finca",

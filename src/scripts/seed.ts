@@ -17,7 +17,15 @@ import {
   climateReadings,
   cropCycles,
   crops,
+  cropStages,
   cropVarieties,
+  harvestLotItems,
+  harvestLots,
+  pieceRates,
+  pieceworkEntries,
+  processingRuns,
+  saleLines,
+  sales,
   farms,
   harvests,
   inventoryMovements,
@@ -1148,6 +1156,160 @@ async function seedPlanning(orgId: string, createdBy: string) {
   console.log("planned activities ensured (3, July 2026)");
 }
 
+// ---- Phase 6 additions ----------------------------------------------------
+
+const P6_ID = {
+  lot: "01900000-0000-7000-8000-00000000fd01",
+  run: "01900000-0000-7000-8000-00000000fe01",
+  sale: "01900000-0000-7000-8000-00000000ff01",
+  saleLine: "01900000-0000-7000-8000-00000000ff11",
+  rateCorte: "01900000-0000-7000-8000-00000000fc01",
+  rateChapoda: "01900000-0000-7000-8000-00000000fc02",
+} as const;
+
+/** Global phenological stages for the two seeded crops. */
+async function seedStages() {
+  const stages = [
+    { crop: 0, idx: 1, name: "Floración", days: 45 },
+    { crop: 0, idx: 2, name: "Desarrollo del fruto", days: 120 },
+    { crop: 0, idx: 3, name: "Maduración", days: 60 },
+    { crop: 0, idx: 4, name: "Cosecha", days: 90 },
+    { crop: 1, idx: 1, name: "Siembra", days: 10 },
+    { crop: 1, idx: 2, name: "Desarrollo vegetativo", days: 45 },
+    { crop: 1, idx: 3, name: "Floración", days: 20 },
+    { crop: 1, idx: 4, name: "Cosecha", days: 25 },
+  ];
+  for (const [i, stage] of stages.entries()) {
+    await db
+      .insert(cropStages)
+      .values({
+        id: `01900000-0000-7000-8000-00000000cf${(i + 1).toString(16).padStart(2, "0")}`,
+        orgId: null,
+        cropId: GLOBAL_CROPS[stage.crop].id,
+        name: stage.name,
+        orderIndex: stage.idx,
+        typicalDurationDays: stage.days,
+      })
+      .onConflictDoNothing({ target: cropStages.id });
+  }
+  console.log("crop stages ensured (8 global)");
+}
+
+/**
+ * Processing + sale fixture on Café 2026-A: the 12 seeded harvests
+ * (678 lata) grouped into one lot, processed to 1560 kg pergamino at a cost
+ * of 250.00, sold at 3.20/kg = 4,992.00 — the profitability report
+ * reconciles income − (activity costs + 250) for the cycle.
+ */
+async function seedProcessingAndSale(orgId: string, createdBy: string) {
+  await db
+    .insert(harvestLots)
+    .values({
+      id: P6_ID.lot,
+      orgId,
+      cropCycleId: ID.cycleCafeA,
+      name: "Lote Café Junio 2026",
+      status: "closed",
+      createdBy,
+    })
+    .onConflictDoNothing({ target: harvestLots.id });
+
+  for (let i = 0; i < 12; i++) {
+    await db
+      .insert(harvestLotItems)
+      .values({
+        id: `01900000-0000-7000-8000-00000000fd${(17 + i).toString(16)}`,
+        orgId,
+        lotId: P6_ID.lot,
+        harvestId: `01900000-0000-7000-8000-00000000fa${(i + 1).toString(16).padStart(2, "0")}`,
+      })
+      .onConflictDoNothing();
+  }
+
+  await db
+    .insert(processingRuns)
+    .values({
+      id: P6_ID.run,
+      orgId,
+      cropCycleId: ID.cycleCafeA,
+      harvestLotId: P6_ID.lot,
+      date: "2026-06-30",
+      inputQuantity: "678.0000",
+      inputUnit: "lata",
+      outputQuantity: "1560.0000",
+      outputUnit: "kg",
+      cost: "250.0000",
+      notes: "Beneficiado húmedo + secado",
+      createdBy,
+    })
+    .onConflictDoNothing({ target: processingRuns.id });
+
+  await db
+    .insert(sales)
+    .values({
+      id: P6_ID.sale,
+      orgId,
+      cropCycleId: ID.cycleCafeA,
+      date: "2026-07-02",
+      buyerName: "Exportadora Atlantic",
+      invoiceNumber: "V-00051",
+      currencyCode: "USD",
+      exchangeRate: "1",
+      subtotal: "4992.0000",
+      total: "4992.0000",
+      createdBy,
+    })
+    .onConflictDoNothing({ target: sales.id });
+  await db
+    .insert(saleLines)
+    .values({
+      id: P6_ID.saleLine,
+      orgId,
+      saleId: P6_ID.sale,
+      description: "Café pergamino",
+      quantity: "1560.0000",
+      unit: "kg",
+      unitPrice: "3.2000",
+      total: "4992.0000",
+    })
+    .onConflictDoNothing({ target: saleLines.id });
+  console.log("processing + sale ensured (678 lata → 1560 kg → 4,992.00)");
+}
+
+/** Piecework: José 40 lata, Rosa 35 lata @1.10; Ana 50 surcos @0.80. */
+async function seedPiecework(orgId: string, createdBy: string) {
+  await db
+    .insert(pieceRates)
+    .values([
+      { id: P6_ID.rateCorte, orgId, name: "Corte de café", unit: "lata", rate: "1.1000" },
+      { id: P6_ID.rateChapoda, orgId, name: "Chapoda por surco", unit: "surco", rate: "0.8000" },
+    ])
+    .onConflictDoNothing({ target: pieceRates.id });
+
+  const entries = [
+    { id: "01900000-0000-7000-8000-00000000fb11", workerId: DEMO_WORKERS[2].id, rateId: P6_ID.rateCorte, date: "2026-06-20", qty: "40.0000", rate: "1.1000", amount: "44.0000" },
+    { id: "01900000-0000-7000-8000-00000000fb12", workerId: DEMO_WORKERS[3].id, rateId: P6_ID.rateCorte, date: "2026-06-21", qty: "35.0000", rate: "1.1000", amount: "38.5000" },
+    { id: "01900000-0000-7000-8000-00000000fb13", workerId: DEMO_WORKERS[5].id, rateId: P6_ID.rateChapoda, date: "2026-06-22", qty: "50.0000", rate: "0.8000", amount: "40.0000" },
+  ];
+  for (const entry of entries) {
+    await db
+      .insert(pieceworkEntries)
+      .values({
+        id: entry.id,
+        orgId,
+        workerId: entry.workerId,
+        pieceRateId: entry.rateId,
+        date: entry.date,
+        quantity: entry.qty,
+        rateSnapshot: entry.rate,
+        amount: entry.amount,
+        createdBy,
+      })
+      .onConflictDoNothing({ target: pieceworkEntries.id });
+  }
+  console.log("piecework ensured (2 rates, 3 entries)");
+}
+
 async function main() {
   const users = await ensureUsers();
   await seedCatalog();
@@ -1167,6 +1329,9 @@ async function main() {
   await seedTransfer(org.id, owner);
   await seedBudget(org.id, owner);
   await seedPlanning(org.id, owner);
+  await seedStages();
+  await seedProcessingAndSale(org.id, owner);
+  await seedPiecework(org.id, owner);
   console.log("seed complete: orgs finca-demo + vecino-sa ready");
 }
 

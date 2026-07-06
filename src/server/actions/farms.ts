@@ -13,6 +13,7 @@ import {
 import {
   createParcel,
   deleteParcel,
+  parcelAttributesSchema,
   updateParcel,
 } from "@/server/services/parcels";
 import type { GeoJsonPolygon } from "@/lib/db/geometry";
@@ -46,6 +47,11 @@ const parcelSchema = z.object({
     .optional()
     .transform((raw) => (raw ? (JSON.parse(raw) as unknown) : null))
     .pipe(boundarySchema),
+  attributes: z
+    .string()
+    .optional()
+    .transform((raw) => (raw ? (JSON.parse(raw) as unknown) : {}))
+    .pipe(parcelAttributesSchema),
 });
 
 function str(formData: FormData, key: string): string | undefined {
@@ -116,6 +122,7 @@ export async function createParcelAction(formData: FormData) {
     soilType: str(formData, "soilType"),
     areaHa: str(formData, "areaHa"),
     boundary: str(formData, "boundary"),
+    attributes: str(formData, "attributes"),
   });
   await createParcel(ctx, {
     ...input,
@@ -138,6 +145,7 @@ export async function updateParcelAction(formData: FormData) {
     soilType: str(formData, "soilType"),
     areaHa: str(formData, "areaHa"),
     boundary: str(formData, "boundary"),
+    attributes: str(formData, "attributes"),
   });
   await updateParcel(ctx, parcelId, {
     ...input,

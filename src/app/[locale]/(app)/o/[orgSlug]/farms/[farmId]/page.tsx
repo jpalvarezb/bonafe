@@ -85,7 +85,11 @@ export default async function FarmDetailPage({
             </p>
           ) : (
             <div className="divide-y">
-              {parcels.map((parcel) => (
+              {parcels.map((parcel) => {
+                const attributes = Object.entries(
+                  (parcel.attributes as Record<string, string> | null) ?? {},
+                );
+                return (
                 <div
                   key={parcel.id}
                   className="flex items-center justify-between py-3"
@@ -96,6 +100,18 @@ export default async function FarmDetailPage({
                       {parcel.code ? `${parcel.code} · ` : ""}
                       {parcel.areaHa ? `${parcel.areaHa} ha` : "—"}
                     </p>
+                    {attributes.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {attributes.map(([key, value]) => (
+                          <span
+                            key={key}
+                            className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                          >
+                            {key}: {value}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     {canEditParcel && (
@@ -124,7 +140,8 @@ export default async function FarmDetailPage({
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

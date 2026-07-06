@@ -25,6 +25,10 @@ import {
   Tractor,
   CalendarDays,
   Calculator,
+  Factory,
+  Receipt,
+  Scissors,
+  TrendingUp,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
@@ -40,9 +44,12 @@ const NAV_ITEMS = [
   { key: "monitoring", href: "monitoring", icon: Bug },
   { key: "climate", href: "climate", icon: CloudRain },
   { key: "harvests", href: "harvests", icon: Wheat },
+  { key: "processing", href: "processing", icon: Factory },
+  { key: "sales", href: "sales", icon: Receipt },
   { key: "workers", href: "workers", icon: HardHat },
   { key: "attendance", href: "attendance", icon: CalendarCheck },
   { key: "payroll", href: "payroll", icon: Wallet },
+  { key: "piecework", href: "piecework", icon: Scissors },
   { key: "purchases", href: "purchases", icon: ShoppingCart },
   { key: "inventory", href: "inventory", icon: Boxes },
   { key: "warehouses", href: "warehouses", icon: Warehouse },
@@ -50,6 +57,7 @@ const NAV_ITEMS = [
   { key: "planning", href: "planning", icon: CalendarDays },
   { key: "budgets", href: "budgets", icon: Calculator },
   { key: "laborReport", href: "reports/labor", icon: BarChart3 },
+  { key: "profitability", href: "reports/profitability", icon: TrendingUp },
   { key: "costCenters", href: "cost-centers", icon: FolderTree },
   { key: "products", href: "catalog/products", icon: Package },
   { key: "crops", href: "catalog/crops", icon: Sprout },

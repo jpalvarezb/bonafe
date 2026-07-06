@@ -1,10 +1,29 @@
 import { and, desc, eq, ne, sql } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { machines, member, parcels, user, workOrders } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
 import { assertOrgFeature } from "@/lib/plan-limits";
 import { newId } from "@/lib/ids";
+
+const checklistItemSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1).max(200),
+  done: z.boolean(),
+});
+
+const checklistSchema = z.object({
+  checklist: z.array(checklistItemSchema).max(20),
+});
+
+export type ChecklistItem = z.infer<typeof checklistItemSchema>;
+
+/** Tolerant parse: any legacy/malformed config lands on an empty checklist. */
+export function parseChecklist(config: unknown): ChecklistItem[] {
+  const result = checklistSchema.safeParse(config);
+  return result.success ? result.data.checklist : [];
+}
 
 export type WorkOrderStatus =
   | "draft"
@@ -30,6 +49,8 @@ export type WorkOrderInput = {
   assignedToMemberId?: string | null;
   scheduledDate?: string | null;
   instructions?: string | null;
+  /** Pre-built checklist items (id/label/done) — see actions/work-orders.ts. */
+  checklist?: ChecklistItem[];
 };
 
 export async function listWorkOrders(
@@ -119,6 +140,10 @@ export async function createWorkOrder(ctx: OrgContext, input: WorkOrderInput) {
     await assertMemberInOrg(ctx, input.assignedToMemberId);
   }
 
+  const checklist = checklistSchema.parse({
+    checklist: input.checklist ?? [],
+  });
+
   // Retry on the (org_id, code) unique index in case of concurrent creates.
   for (let attempt = 0; ; attempt++) {
     const code = await nextWorkOrderCode(ctx);
@@ -137,6 +162,7 @@ export async function createWorkOrder(ctx: OrgContext, input: WorkOrderInput) {
           parcelId: input.parcelId ?? null,
           machineId: input.machineId ?? null,
           instructions: input.instructions ?? null,
+          config: checklist,
         })
         .returning();
       return created;
@@ -161,6 +187,7 @@ export async function updateWorkOrderStatus(
     .select({
       status: workOrders.status,
       assignedToMemberId: workOrders.assignedToMemberId,
+      config: workOrders.config,
     })
     .from(workOrders)
     .where(and(eq(workOrders.id, id), eq(workOrders.orgId, ctx.org.id)))
@@ -174,6 +201,12 @@ export async function updateWorkOrderStatus(
   if (status === "assigned" && !current.assignedToMemberId) {
     throw new Error("cannot assign a work order without an assignee");
   }
+  if (status === "done") {
+    const checklist = parseChecklist(current.config);
+    if (checklist.some((item) => !item.done)) {
+      throw new Error("checklist incomplete");
+    }
+  }
 
   const [updated] = await db
     .update(workOrders)
@@ -181,6 +214,54 @@ export async function updateWorkOrderStatus(
     .where(and(eq(workOrders.id, id), eq(workOrders.orgId, ctx.org.id)))
     .returning();
   return updated;
+}
+
+const CHECKLIST_TOGGLE_STATUSES: WorkOrderStatus[] = ["assigned", "in_progress"];
+
+/**
+ * Checks/unchecks a single checklist item. Field supervisors ("complete"
+ * permission) may toggle items only while the order is assigned or in
+ * progress — not on draft, done, or cancelled orders.
+ */
+export async function toggleChecklistItem(
+  ctx: OrgContext,
+  workOrderId: string,
+  itemId: string,
+  done: boolean,
+) {
+  assertCan(ctx, "work_order", "complete");
+
+  // Locked read-modify-write: the config jsonb is rewritten whole, so two
+  // supervisors toggling different items concurrently must serialize here or
+  // the second write would silently drop the first toggle.
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select({ status: workOrders.status, config: workOrders.config })
+      .from(workOrders)
+      .where(
+        and(eq(workOrders.id, workOrderId), eq(workOrders.orgId, ctx.org.id)),
+      )
+      .limit(1)
+      .for("update");
+    if (!current) throw new Error("work order not found");
+    if (!CHECKLIST_TOGGLE_STATUSES.includes(current.status as WorkOrderStatus)) {
+      throw new Error("checklist can only change while assigned or in progress");
+    }
+
+    const checklist = parseChecklist(current.config);
+    const item = checklist.find((entry) => entry.id === itemId);
+    if (!item) throw new Error("checklist item not found");
+    item.done = done;
+
+    const [updated] = await tx
+      .update(workOrders)
+      .set({ config: checklistSchema.parse({ checklist }) })
+      .where(
+        and(eq(workOrders.id, workOrderId), eq(workOrders.orgId, ctx.org.id)),
+      )
+      .returning();
+    return updated;
+  });
 }
 
 export async function deleteWorkOrder(ctx: OrgContext, id: string) {

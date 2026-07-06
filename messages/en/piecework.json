@@ -1,0 +1,54 @@
+{
+  "title": "Piecework",
+  "rates": {
+    "title": "Piece rates",
+    "empty": "No piece rates registered yet.",
+    "table": {
+      "name": "Name",
+      "unit": "Unit",
+      "rate": "Rate",
+      "status": "Status",
+      "actions": "Actions",
+      "deactivate": "Deactivate",
+      "reactivate": "Reactivate"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "form": {
+      "name": "Rate name",
+      "namePlaceholder": "e.g. Coffee cutting (lata)",
+      "unit": "Unit",
+      "rate": "Rate per unit",
+      "create": "Save rate"
+    }
+  },
+  "entries": {
+    "title": "Piecework entries",
+    "empty": "No piecework entries in this date range.",
+    "from": "From",
+    "to": "To",
+    "apply": "Filter",
+    "delete": "Delete",
+    "grandTotal": "Grand total",
+    "table": {
+      "date": "Date",
+      "worker": "Worker",
+      "rate": "Rate",
+      "quantity": "Quantity",
+      "amount": "Amount"
+    },
+    "form": {
+      "worker": "Worker",
+      "workerPlaceholder": "Select a worker",
+      "rate": "Rate",
+      "ratePlaceholder": "Select a rate",
+      "date": "Date",
+      "quantity": "Quantity",
+      "notes": "Notes",
+      "create": "Save entry",
+      "needsSetup": "You need at least one active worker and one active rate to record piecework."
+    }
+  }
+}

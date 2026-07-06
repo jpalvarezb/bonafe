@@ -75,6 +75,48 @@ export const attendanceRecords = pgTable(
   ],
 );
 
+/** Piecework tariffs: pay per unit of work (lata cut, surco weeded…). */
+export const pieceRates = pgTable(
+  "piece_rates",
+  {
+    id: id(),
+    orgId: orgId(),
+    name: text("name").notNull(),
+    unit: text("unit").notNull().default("unidad"),
+    rate: money("rate").notNull().default("0"),
+    active: boolean("active").notNull().default(true),
+    ...timestamps,
+  },
+  (t) => [index("piece_rates_org_idx").on(t.orgId)],
+);
+
+/** One captured piecework quantity; amount = quantity × rate snapshot. */
+export const pieceworkEntries = pgTable(
+  "piecework_entries",
+  {
+    id: id(),
+    orgId: orgId(),
+    workerId: uuid("worker_id")
+      .notNull()
+      .references(() => workers.id, { onDelete: "cascade" }),
+    pieceRateId: uuid("piece_rate_id")
+      .notNull()
+      .references(() => pieceRates.id),
+    date: date("date").notNull(),
+    quantity: numeric("quantity", { precision: 14, scale: 4 }).notNull(),
+    // Rate frozen at capture so later tariff edits don't rewrite history.
+    rateSnapshot: money("rate_snapshot").notNull().default("0"),
+    amount: money("amount").notNull().default("0"),
+    notes: text("notes"),
+    createdBy: text("created_by").references(() => user.id),
+    ...timestamps,
+  },
+  (t) => [
+    index("piecework_org_worker_date_idx").on(t.orgId, t.workerId, t.date),
+    index("piecework_org_date_idx").on(t.orgId, t.date),
+  ],
+);
+
 export const payrollPeriods = pgTable(
   "payroll_periods",
   {

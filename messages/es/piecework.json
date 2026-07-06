@@ -1,0 +1,54 @@
+{
+  "title": "Destajo",
+  "rates": {
+    "title": "Tarifas de destajo",
+    "empty": "Todavía no hay tarifas registradas.",
+    "table": {
+      "name": "Nombre",
+      "unit": "Unidad",
+      "rate": "Tarifa",
+      "status": "Estado",
+      "actions": "Acciones",
+      "deactivate": "Desactivar",
+      "reactivate": "Reactivar"
+    },
+    "status": {
+      "active": "Activa",
+      "inactive": "Inactiva"
+    },
+    "form": {
+      "name": "Nombre de la tarifa",
+      "namePlaceholder": "Ej. Corte de café (lata)",
+      "unit": "Unidad",
+      "rate": "Tarifa por unidad",
+      "create": "Registrar tarifa"
+    }
+  },
+  "entries": {
+    "title": "Registros de destajo",
+    "empty": "No hay registros de destajo en este rango de fechas.",
+    "from": "Desde",
+    "to": "Hasta",
+    "apply": "Filtrar",
+    "delete": "Eliminar",
+    "grandTotal": "Total general",
+    "table": {
+      "date": "Fecha",
+      "worker": "Trabajador",
+      "rate": "Tarifa",
+      "quantity": "Cantidad",
+      "amount": "Monto"
+    },
+    "form": {
+      "worker": "Trabajador",
+      "workerPlaceholder": "Selecciona un trabajador",
+      "rate": "Tarifa",
+      "ratePlaceholder": "Selecciona una tarifa",
+      "date": "Fecha",
+      "quantity": "Cantidad",
+      "notes": "Notas",
+      "create": "Registrar destajo",
+      "needsSetup": "Necesitas al menos un trabajador activo y una tarifa activa para registrar destajo."
+    }
+  }
+}

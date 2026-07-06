@@ -36,6 +36,25 @@ export const cropVarieties = pgTable("crop_varieties", {
   ...timestamps,
 });
 
+/** Phenological stages per crop (org_id NULL = global defaults). */
+export const cropStages = pgTable(
+  "crop_stages",
+  {
+    id: id(),
+    orgId: text("org_id").references(() => organization.id, {
+      onDelete: "cascade",
+    }),
+    cropId: uuid("crop_id")
+      .notNull()
+      .references(() => crops.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    orderIndex: integer("order_index").notNull().default(0),
+    typicalDurationDays: integer("typical_duration_days"),
+    ...timestamps,
+  },
+  (t) => [index("crop_stages_crop_idx").on(t.cropId)],
+);
+
 export const cropCycles = pgTable(
   "crop_cycles",
   {
@@ -64,6 +83,10 @@ export const cropCycles = pgTable(
       .default("active"),
     plantedAreaHa: numeric("planted_area_ha", { precision: 12, scale: 4 }),
     plantCount: integer("plant_count"),
+    // Current phenological stage (Tier 3); validated against the cycle's crop.
+    currentStageId: uuid("current_stage_id").references(() => cropStages.id, {
+      onDelete: "set null",
+    }),
     ...timestamps,
   },
   (t) => [

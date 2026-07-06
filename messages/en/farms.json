@@ -23,7 +23,14 @@
     "create": "Create parcel",
     "save": "Save changes",
     "delete": "Delete parcel",
-    "edit": "Edit"
+    "edit": "Edit",
+    "attributes": {
+      "title": "Custom attributes",
+      "key": "Key",
+      "value": "Value",
+      "add": "Add attribute",
+      "remove": "Remove"
+    }
   },
   "map": {
     "title": "Farm map",

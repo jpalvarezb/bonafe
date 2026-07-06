@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireOrgContext } from "@/lib/tenancy";
 import {
   createWorkOrder,
   deleteWorkOrder,
+  toggleChecklistItem,
   updateWorkOrderStatus,
 } from "@/server/services/work-orders";
 
@@ -24,12 +26,28 @@ function str(formData: FormData, key: string): string | undefined {
   return typeof value === "string" && value !== "" ? value : undefined;
 }
 
+/** Splits the "one per line" checklist textarea into non-empty labels. */
+function parseChecklistLines(formData: FormData): string[] {
+  const raw = str(formData, "checklistText");
+  if (!raw) return [];
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .slice(0, 20);
+}
+
 export async function createWorkOrderAction(formData: FormData) {
   const { locale, orgSlug } = scope.parse({
     locale: formData.get("locale"),
     orgSlug: formData.get("orgSlug"),
   });
   const ctx = await requireOrgContext(locale, orgSlug);
+  const checklist = parseChecklistLines(formData).map((label) => ({
+    id: crypto.randomUUID(),
+    label,
+    done: false,
+  }));
   await createWorkOrder(ctx, {
     title: z.string().min(1).parse(formData.get("title")),
     type: z.enum(["field", "machine"]).parse(formData.get("type")),
@@ -38,6 +56,7 @@ export async function createWorkOrderAction(formData: FormData) {
     assignedToMemberId: str(formData, "assignedToMemberId") ?? null,
     scheduledDate: str(formData, "scheduledDate") ?? null,
     instructions: str(formData, "instructions") ?? null,
+    checklist,
   });
   revalidatePath(`/${locale}/o/${orgSlug}/work-orders`);
 }
@@ -50,7 +69,29 @@ export async function updateWorkOrderStatusAction(formData: FormData) {
   const ctx = await requireOrgContext(locale, orgSlug);
   const id = z.string().uuid().parse(formData.get("id"));
   const status = statusSchema.parse(formData.get("status"));
-  await updateWorkOrderStatus(ctx, id, status);
+  try {
+    await updateWorkOrderStatus(ctx, id, status);
+  } catch (error) {
+    if (error instanceof Error && error.message === "checklist incomplete") {
+      redirect(
+        `/${locale}/o/${orgSlug}/work-orders?error=checklistIncomplete`,
+      );
+    }
+    throw error;
+  }
+  revalidatePath(`/${locale}/o/${orgSlug}/work-orders`);
+}
+
+export async function toggleChecklistItemAction(formData: FormData) {
+  const { locale, orgSlug } = scope.parse({
+    locale: formData.get("locale"),
+    orgSlug: formData.get("orgSlug"),
+  });
+  const ctx = await requireOrgContext(locale, orgSlug);
+  const workOrderId = z.string().uuid().parse(formData.get("workOrderId"));
+  const itemId = z.string().min(1).parse(formData.get("itemId"));
+  const done = z.enum(["true", "false"]).parse(formData.get("done")) === "true";
+  await toggleChecklistItem(ctx, workOrderId, itemId, done);
   revalidatePath(`/${locale}/o/${orgSlug}/work-orders`);
 }
 

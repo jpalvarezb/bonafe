@@ -45,6 +45,7 @@ export default async function EditParcelPage({
           soilType: parcel.soilType,
           areaHa: parcel.areaHa,
           boundary: parcel.boundary as GeoJsonPolygon | null,
+          attributes: parcel.attributes as Record<string, string> | null,
         }}
       />
     </div>

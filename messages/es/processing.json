@@ -1,0 +1,68 @@
+{
+  "title": "Procesamiento",
+  "units": {
+    "kg": "kg",
+    "lb": "lb",
+    "qq": "qq",
+    "lata": "lata",
+    "saco": "saco"
+  },
+  "runs": {
+    "title": "Corridas de beneficiado",
+    "empty": "Aún no hay corridas de beneficiado registradas.",
+    "new": "Nueva corrida de beneficiado",
+    "date": "Fecha",
+    "cycle": "Ciclo",
+    "lot": "Lote de cosecha",
+    "lotNone": "Sin lote",
+    "input": "Entrada",
+    "inputQuantity": "Cantidad de entrada",
+    "inputUnit": "Unidad de entrada",
+    "output": "Salida",
+    "outputQuantity": "Cantidad de salida",
+    "outputUnit": "Unidad de salida",
+    "yield": "Rendimiento",
+    "cost": "Costo",
+    "notes": "Notas",
+    "create": "Guardar corrida",
+    "delete": "Eliminar",
+    "overOutputWarning": "La salida es mayor que la entrada — normalmente solo hay merma, revisa las cantidades."
+  },
+  "lots": {
+    "link": "Gestionar lotes de cosecha",
+    "backToRuns": "Volver a procesamiento",
+    "backToLots": "Volver a lotes",
+    "summaryTitle": "Lotes de cosecha",
+    "summaryEmpty": "Aún no hay lotes de cosecha.",
+    "summaryCount": "{open} abiertos de {total} lotes en total.",
+    "title": "Lotes de cosecha",
+    "subtitle": "Agrupa las cosechas de campo en un lote antes de enviarlo a beneficiado.",
+    "empty": "Aún no hay lotes de cosecha.",
+    "itemCount": "{count} cosechas",
+    "status": {
+      "open": "Abierto",
+      "closed": "Cerrado"
+    },
+    "new": "Nuevo lote de cosecha",
+    "cycle": "Ciclo",
+    "name": "Nombre del lote",
+    "namePlaceholder": "p. ej. Lote 1, julio 2026",
+    "notes": "Notas",
+    "create": "Crear lote",
+    "close": "Cerrar lote",
+    "totalsTitle": "Totales por unidad",
+    "totalsEmpty": "Aún no hay cosechas asignadas.",
+    "membersTitle": "Cosechas en este lote",
+    "membersEmpty": "Aún no hay cosechas asignadas.",
+    "table": {
+      "date": "Fecha",
+      "parcel": "Parcela",
+      "worker": "Recolector",
+      "quantity": "Cantidad"
+    },
+    "remove": "Quitar",
+    "attachTitle": "Asignar cosechas",
+    "attachEmpty": "No quedan cosechas sin asignar para este ciclo.",
+    "attach": "Asignar seleccionadas"
+  }
+}

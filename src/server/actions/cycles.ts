@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireOrgContext } from "@/lib/tenancy";
-import { closeCycle, createCycle } from "@/server/services/cycles";
+import {
+  closeCycle,
+  createCycle,
+  setCycleStage,
+} from "@/server/services/cycles";
 
 const scope = z.object({ locale: z.string(), orgSlug: z.string() });
 
@@ -43,5 +47,17 @@ export async function closeCycleAction(formData: FormData) {
   const cycleId = z.string().uuid().parse(formData.get("cycleId"));
   const endDate = z.string().min(10).parse(formData.get("endDate"));
   await closeCycle(ctx, cycleId, endDate);
+  revalidatePath(`/${locale}/o/${orgSlug}/cycles`);
+}
+
+export async function setCycleStageAction(formData: FormData) {
+  const { locale, orgSlug } = scope.parse({
+    locale: formData.get("locale"),
+    orgSlug: formData.get("orgSlug"),
+  });
+  const ctx = await requireOrgContext(locale, orgSlug);
+  const cycleId = z.string().uuid().parse(formData.get("cycleId"));
+  const stageId = str(formData, "stageId") ?? null;
+  await setCycleStage(ctx, cycleId, stageId ? z.string().uuid().parse(stageId) : null);
   revalidatePath(`/${locale}/o/${orgSlug}/cycles`);
 }

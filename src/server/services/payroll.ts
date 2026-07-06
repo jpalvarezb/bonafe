@@ -9,6 +9,7 @@ import {
   parcels,
   payrollEntries,
   payrollPeriods,
+  pieceworkEntries,
   workers,
 } from "@/lib/db/schema";
 import { listAttendanceRange } from "@/server/services/attendance";
@@ -105,11 +106,12 @@ export async function listPayrollEntries(ctx: OrgContext, periodId: string) {
 }
 
 /**
- * (Re)generates entries for a period from attendance in [startDate, endDate].
- * Preserves each worker's manually-entered bonuses/deductions/notes across
- * regeneration; only the attendance-derived fields (days/hours/base/overtime)
- * and the recomputed net are refreshed. Workers with no attendance left in
- * range have their entry removed.
+ * (Re)generates entries for a period from attendance and piecework in
+ * [startDate, endDate]. Preserves each worker's manually-entered
+ * bonuses/deductions/notes across regeneration; the attendance-derived
+ * fields (days/hours/base/overtime), the piecework total, and the
+ * recomputed net are refreshed. Workers with neither attendance nor
+ * piecework left in range have their entry removed.
  */
 export async function generatePayrollEntries(
   ctx: OrgContext,
@@ -139,7 +141,31 @@ export async function generatePayrollEntries(
     if (existing) existing.push(line);
     else byWorker.set(row.record.workerId, [line]);
   }
-  const workerIds = [...byWorker.keys()];
+
+  // Piecework is derived from records (like days/hours), not preserved from
+  // the prior generation: one grouped query for all workers in range.
+  const pieceworkRows = await db
+    .select({
+      workerId: pieceworkEntries.workerId,
+      total: sum(pieceworkEntries.amount),
+    })
+    .from(pieceworkEntries)
+    .where(
+      and(
+        eq(pieceworkEntries.orgId, ctx.org.id),
+        between(pieceworkEntries.date, period.startDate, period.endDate),
+      ),
+    )
+    .groupBy(pieceworkEntries.workerId);
+  const pieceworkByWorker = new Map(
+    pieceworkRows.map((row) => [row.workerId, row.total ?? "0"]),
+  );
+
+  // A worker with piecework but no attendance in range must still get an
+  // entry, so the worker set is the union of both sources.
+  const workerIds = [
+    ...new Set([...byWorker.keys(), ...pieceworkByWorker.keys()]),
+  ];
 
   const existingEntries = await db
     .select()
@@ -155,7 +181,7 @@ export async function generatePayrollEntries(
   );
 
   await db.transaction(async (tx) => {
-    // Drop entries for workers who no longer have attendance in range.
+    // Drop entries for workers with neither attendance nor piecework in range.
     if (workerIds.length > 0) {
       await tx
         .delete(payrollEntries)
@@ -180,8 +206,8 @@ export async function generatePayrollEntries(
     for (const workerId of workerIds) {
       const preserved = existingByWorker.get(workerId);
       const totals = computePayrollEntry({
-        attendance: byWorker.get(workerId)!,
-        pieceworkAmount: preserved?.pieceworkAmount ?? "0",
+        attendance: byWorker.get(workerId) ?? [],
+        pieceworkAmount: pieceworkByWorker.get(workerId) ?? "0",
         bonuses: preserved?.bonuses ?? "0",
         deductions: preserved?.deductions ?? "0",
       });

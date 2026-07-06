@@ -19,5 +19,22 @@
     "active": "Active",
     "closed": "Closed"
   },
-  "costToDate": "Cost to date"
+  "costToDate": "Cost to date",
+  "stage": "Stage",
+  "stageNone": "No stage",
+  "stageChange": "Change",
+  "stageCatalog": {
+    "title": "Phenological stages",
+    "empty": "No stages yet.",
+    "global": "Global",
+    "custom": "Custom",
+    "daysSuffix": "d",
+    "new": "New stage",
+    "crop": "Crop",
+    "name": "Name",
+    "orderIndex": "Order",
+    "duration": "Typical duration (days)",
+    "create": "Create stage",
+    "delete": "Delete"
+  }
 }

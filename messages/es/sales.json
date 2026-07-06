@@ -1,0 +1,41 @@
+{
+  "title": "Ventas",
+  "new": "Nueva venta",
+  "empty": "No hay ventas registradas.",
+  "lineCount": "{count} líneas",
+  "buyer": "Comprador",
+  "date": "Fecha",
+  "cropCycle": "Ciclo de cultivo",
+  "noCycle": "Sin ciclo asociado",
+  "invoiceNumber": "Número de factura",
+  "currency": "Moneda",
+  "notes": "Notas",
+  "lines": {
+    "title": "Detalle de la venta",
+    "description": "Descripción",
+    "quantity": "Cantidad",
+    "unit": "Unidad",
+    "unitPrice": "Precio unitario",
+    "add": "Agregar línea",
+    "remove": "Quitar"
+  },
+  "subtotal": "Subtotal",
+  "total": "Total",
+  "save": "Guardar venta",
+  "delete": "Eliminar",
+  "profitability": {
+    "title": "Rentabilidad por ciclo",
+    "cycle": "Ciclo",
+    "allCycles": "Todos los ciclos",
+    "apply": "Filtrar",
+    "empty": "No hay ciclos con datos para mostrar.",
+    "income": "Ingresos por venta",
+    "activityCost": "Costo de actividades",
+    "processingCost": "Costo de beneficiado",
+    "profit": "Utilidad",
+    "margin": "Margen",
+    "profitPerHa": "Utilidad/ha",
+    "costPerUnit": "Costo por unidad",
+    "pieceworkFootnote": "El destajo ({amount}) no se atribuye a ciclos específicos porque los registros de destajo no guardan el ciclo de cultivo; se muestra aquí como un costo a nivel de la organización."
+  }
+}

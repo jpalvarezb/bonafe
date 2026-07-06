@@ -13,3 +13,4 @@ export * from "./harvests";
 export * from "./inventory";
 export * from "./machinery";
 export * from "./planning";
+export * from "./processing";

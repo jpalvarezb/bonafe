@@ -1,7 +1,8 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   cropCycles,
+  cropStages,
   crops,
   cropVarieties,
   farms,
@@ -57,6 +58,50 @@ export async function closeCycle(ctx: OrgContext, cycleId: string, endDate: stri
     .update(cropCycles)
     .set({ status: "closed", endDate })
     .where(and(eq(cropCycles.id, cycleId), eq(cropCycles.orgId, ctx.org.id)));
+}
+
+/**
+ * Sets (or clears) the cycle's current phenological stage. The stage must be
+ * global-or-org visible and must belong to the cycle's own crop — a stage
+ * from a different crop is rejected even if it's otherwise visible.
+ */
+export async function setCycleStage(
+  ctx: OrgContext,
+  cycleId: string,
+  stageId: string | null,
+) {
+  assertCan(ctx, "cycle", "update");
+
+  const [cycle] = await db
+    .select({ id: cropCycles.id, cropId: cropCycles.cropId })
+    .from(cropCycles)
+    .where(and(eq(cropCycles.id, cycleId), eq(cropCycles.orgId, ctx.org.id)))
+    .limit(1);
+  if (!cycle) throw new Error("cycle not found");
+
+  if (stageId) {
+    const [stage] = await db
+      .select({ id: cropStages.id, cropId: cropStages.cropId })
+      .from(cropStages)
+      .where(
+        and(
+          eq(cropStages.id, stageId),
+          or(isNull(cropStages.orgId), eq(cropStages.orgId, ctx.org.id)),
+        ),
+      )
+      .limit(1);
+    if (!stage) throw new Error("stage not found");
+    if (stage.cropId !== cycle.cropId) {
+      throw new Error("stage does not belong to the cycle's crop");
+    }
+  }
+
+  const [updated] = await db
+    .update(cropCycles)
+    .set({ currentStageId: stageId })
+    .where(and(eq(cropCycles.id, cycleId), eq(cropCycles.orgId, ctx.org.id)))
+    .returning();
+  return updated;
 }
 
 export async function listCycles(

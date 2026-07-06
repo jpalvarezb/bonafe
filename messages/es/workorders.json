@@ -27,5 +27,15 @@
     "in_progress": "Iniciar",
     "done": "Completar",
     "cancelled": "Cancelar"
+  },
+  "checklist": {
+    "title": "Lista de verificación",
+    "field": "Lista de verificación (una por línea)",
+    "placeholder": "Revisar aspersores\nCargar producto\nVerificar EPP",
+    "hint": "Cada línea se convierte en un punto de la lista, máximo 20."
+  },
+  "errors": {
+    "checklistIncomplete": "No se puede completar la orden: hay puntos de la lista de verificación sin marcar.",
+    "unknown": "Ocurrió un error al actualizar la orden de trabajo."
   }
 }

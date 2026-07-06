@@ -4,7 +4,12 @@ import { can } from "@/lib/authz";
 import { listCycles } from "@/server/services/cycles";
 import { listCrops, listVarieties } from "@/server/services/catalog";
 import { listParcels } from "@/server/services/parcels";
-import { closeCycleAction, createCycleAction } from "@/server/actions/cycles";
+import { listStages } from "@/server/services/stages";
+import {
+  closeCycleAction,
+  createCycleAction,
+  setCycleStageAction,
+} from "@/server/actions/cycles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,14 +28,18 @@ export default async function CyclesPage({
   const ctx = await requireOrgContext(locale, orgSlug);
   const t = await getTranslations("cycles");
 
-  const [cycles, crops, varieties, parcels] = await Promise.all([
+  const [cycles, crops, varieties, parcels, stages] = await Promise.all([
     listCycles(ctx),
     listCrops(ctx),
     listVarieties(ctx),
     listParcels(ctx),
+    listStages(ctx),
   ]);
   const canCreate = can(ctx.role, "cycle", "create");
+  const canSetStage = can(ctx.role, "cycle", "update");
   const today = new Date().toISOString().slice(0, 10);
+  const selectClass =
+    "border-input h-8 rounded-md border bg-transparent px-2 text-xs shadow-xs";
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -41,43 +50,78 @@ export default async function CyclesPage({
       ) : (
         <Card>
           <CardContent className="divide-y">
-            {cycles.map(({ cycle, cropName, varietyName, parcelName, farmName }) => (
-              <div
-                key={cycle.id}
-                className="flex items-center justify-between py-3"
-              >
-                <div>
-                  <p className="font-medium">{cycle.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {cropName}
-                    {varietyName ? ` (${varietyName})` : ""} · {farmName} /{" "}
-                    {parcelName} · {cycle.startDate}
-                  </p>
+            {cycles.map(({ cycle, cropName, varietyName, parcelName, farmName }) => {
+              const cropStageOptions = stages
+                .filter((s) => s.cropId === cycle.cropId)
+                .sort((a, b) => a.orderIndex - b.orderIndex);
+              const currentStage = stages.find(
+                (s) => s.id === cycle.currentStageId,
+              );
+              return (
+                <div
+                  key={cycle.id}
+                  className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="font-medium">{cycle.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {cropName}
+                      {varietyName ? ` (${varietyName})` : ""} · {farmName} /{" "}
+                      {parcelName} · {cycle.startDate}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("stage")}: {currentStage ? currentStage.name : t("stageNone")}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span
+                      className={
+                        cycle.status === "active"
+                          ? "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100"
+                          : "rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                      }
+                    >
+                      {t(`status.${cycle.status}`)}
+                    </span>
+                    {cycle.status === "active" &&
+                      canSetStage &&
+                      cropStageOptions.length > 0 && (
+                        <form action={setCycleStageAction} className="flex items-center gap-1">
+                          <input type="hidden" name="locale" value={locale} />
+                          <input type="hidden" name="orgSlug" value={orgSlug} />
+                          <input type="hidden" name="cycleId" value={cycle.id} />
+                          <select
+                            name="stageId"
+                            defaultValue={cycle.currentStageId ?? ""}
+                            className={selectClass}
+                          >
+                            <option value="">{t("stageNone")}</option>
+                            {cropStageOptions.map((stage) => (
+                              <option key={stage.id} value={stage.id}>
+                                {stage.name}
+                              </option>
+                            ))}
+                          </select>
+                          <Button variant="ghost" size="sm" type="submit">
+                            {t("stageChange")}
+                          </Button>
+                        </form>
+                      )}
+                    {cycle.status === "active" && canCreate && (
+                      <form action={closeCycleAction}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="orgSlug" value={orgSlug} />
+                        <input type="hidden" name="cycleId" value={cycle.id} />
+                        <input type="hidden" name="endDate" value={today} />
+                        <Button variant="ghost" size="sm" type="submit">
+                          {t("close")}
+                        </Button>
+                      </form>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={
-                      cycle.status === "active"
-                        ? "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100"
-                        : "rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                    }
-                  >
-                    {t(`status.${cycle.status}`)}
-                  </span>
-                  {cycle.status === "active" && canCreate && (
-                    <form action={closeCycleAction}>
-                      <input type="hidden" name="locale" value={locale} />
-                      <input type="hidden" name="orgSlug" value={orgSlug} />
-                      <input type="hidden" name="cycleId" value={cycle.id} />
-                      <input type="hidden" name="endDate" value={today} />
-                      <Button variant="ghost" size="sm" type="submit">
-                        {t("close")}
-                      </Button>
-                    </form>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       )}

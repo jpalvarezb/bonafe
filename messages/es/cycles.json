@@ -19,5 +19,22 @@
     "active": "Activo",
     "closed": "Cerrado"
   },
-  "costToDate": "Costo acumulado"
+  "costToDate": "Costo acumulado",
+  "stage": "Etapa",
+  "stageNone": "Sin etapa",
+  "stageChange": "Cambiar",
+  "stageCatalog": {
+    "title": "Etapas fenológicas",
+    "empty": "Sin etapas todavía.",
+    "global": "Global",
+    "custom": "Personalizado",
+    "daysSuffix": "d",
+    "new": "Nueva etapa",
+    "crop": "Cultivo",
+    "name": "Nombre",
+    "orderIndex": "Orden",
+    "duration": "Duración típica (días)",
+    "create": "Crear etapa",
+    "delete": "Eliminar"
+  }
 }

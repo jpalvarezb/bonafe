@@ -27,5 +27,15 @@
     "in_progress": "Start",
     "done": "Complete",
     "cancelled": "Cancel"
+  },
+  "checklist": {
+    "title": "Checklist",
+    "field": "Checklist items (one per line)",
+    "placeholder": "Check sprayers\nLoad product\nVerify PPE",
+    "hint": "Each line becomes a checklist item, up to 20."
+  },
+  "errors": {
+    "checklistIncomplete": "Cannot complete the work order: some checklist items are still unchecked.",
+    "unknown": "Something went wrong updating the work order."
   }
 }

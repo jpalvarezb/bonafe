@@ -1,0 +1,68 @@
+{
+  "title": "Processing",
+  "units": {
+    "kg": "kg",
+    "lb": "lb",
+    "qq": "qq",
+    "lata": "lata",
+    "saco": "saco"
+  },
+  "runs": {
+    "title": "Processing runs",
+    "empty": "No processing runs recorded yet.",
+    "new": "New processing run",
+    "date": "Date",
+    "cycle": "Cycle",
+    "lot": "Harvest lot",
+    "lotNone": "No lot",
+    "input": "Input",
+    "inputQuantity": "Input quantity",
+    "inputUnit": "Input unit",
+    "output": "Output",
+    "outputQuantity": "Output quantity",
+    "outputUnit": "Output unit",
+    "yield": "Yield",
+    "cost": "Cost",
+    "notes": "Notes",
+    "create": "Save run",
+    "delete": "Delete",
+    "overOutputWarning": "Output is greater than input — please double-check the quantities."
+  },
+  "lots": {
+    "link": "Manage harvest lots",
+    "backToRuns": "Back to processing",
+    "backToLots": "Back to lots",
+    "summaryTitle": "Harvest lots",
+    "summaryEmpty": "No harvest lots yet.",
+    "summaryCount": "{open} open of {total} lots total.",
+    "title": "Harvest lots",
+    "subtitle": "Group field harvests into a lot before sending it through processing.",
+    "empty": "No harvest lots yet.",
+    "itemCount": "{count} harvests",
+    "status": {
+      "open": "Open",
+      "closed": "Closed"
+    },
+    "new": "New harvest lot",
+    "cycle": "Cycle",
+    "name": "Lot name",
+    "namePlaceholder": "e.g. Lot 1, July 2026",
+    "notes": "Notes",
+    "create": "Create lot",
+    "close": "Close lot",
+    "totalsTitle": "Totals by unit",
+    "totalsEmpty": "No harvests attached yet.",
+    "membersTitle": "Harvests in this lot",
+    "membersEmpty": "No harvests attached yet.",
+    "table": {
+      "date": "Date",
+      "parcel": "Parcel",
+      "worker": "Picker",
+      "quantity": "Quantity"
+    },
+    "remove": "Remove",
+    "attachTitle": "Attach harvests",
+    "attachEmpty": "No unattached harvests left for this cycle.",
+    "attach": "Attach selected"
+  }
+}
