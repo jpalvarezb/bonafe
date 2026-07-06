@@ -29,7 +29,13 @@ export async function createMonitoringAction(formData: FormData) {
     type: z.enum(["pest", "disease", "weed"]).parse(formData.get("type")),
     agentName: z.string().min(1).parse(formData.get("agentName")),
     severity: z.coerce.number().int().min(1).max(5).parse(formData.get("severity")),
-    incidencePct: str(formData, "incidencePct") ?? null,
+    incidencePct: z
+      .string()
+      .refine((v) => /^\d+(\.\d+)?$/.test(v) && Number(v) <= 100, {
+        message: "must be between 0 and 100",
+      })
+      .nullable()
+      .parse(str(formData, "incidencePct") ?? null),
     notes: str(formData, "notes") ?? null,
     actionsTaken: str(formData, "actionsTaken") ?? null,
   });

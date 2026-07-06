@@ -47,13 +47,14 @@ export async function createActivity(ctx: OrgContext, input: ActivityInput) {
   let farmId: string | null = null;
   if (input.parcelId) {
     const [parcel] = await db
-      .select({ farmId: parcels.farmId })
+      .select({ farmId: parcels.farmId, active: parcels.active })
       .from(parcels)
       .where(
         and(eq(parcels.id, input.parcelId), eq(parcels.orgId, ctx.org.id)),
       )
       .limit(1);
     if (!parcel) throw new Error("parcel not found");
+    if (!parcel.active) throw new Error("parcel is inactive");
     farmId = parcel.farmId;
   }
 

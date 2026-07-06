@@ -50,11 +50,12 @@ export async function createMonitoringRecord(
 ) {
   assertCan(ctx, "monitoring", "create");
   const [parcel] = await db
-    .select({ id: parcels.id })
+    .select({ id: parcels.id, active: parcels.active })
     .from(parcels)
     .where(and(eq(parcels.id, input.parcelId), eq(parcels.orgId, ctx.org.id)))
     .limit(1);
   if (!parcel) throw new Error("parcel not found");
+  if (!parcel.active) throw new Error("parcel is inactive");
 
   if (input.cropCycleId) {
     const [cycle] = await db

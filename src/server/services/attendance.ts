@@ -44,11 +44,12 @@ export async function upsertAttendance(
 
   if (input.farmId) {
     const [farm] = await db
-      .select({ id: farms.id })
+      .select({ id: farms.id, active: farms.active })
       .from(farms)
       .where(and(eq(farms.id, input.farmId), eq(farms.orgId, ctx.org.id)))
       .limit(1);
     if (!farm) throw new Error("farm not found");
+    if (!farm.active) throw new Error("farm is inactive");
   }
 
   const [row] = await db

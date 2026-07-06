@@ -25,11 +25,12 @@ export async function createHarvest(ctx: OrgContext, input: HarvestCreateInput) 
   await assertOrgFeature(ctx.org.id, "harvest");
 
   const [parcel] = await db
-    .select({ id: parcels.id, farmId: parcels.farmId })
+    .select({ id: parcels.id, farmId: parcels.farmId, active: parcels.active })
     .from(parcels)
     .where(and(eq(parcels.id, input.parcelId), eq(parcels.orgId, ctx.org.id)))
     .limit(1);
   if (!parcel) throw new Error("parcel not found");
+  if (!parcel.active) throw new Error("parcel is inactive");
 
   if (input.cropCycleId) {
     const [cycle] = await db

@@ -16,6 +16,26 @@ const optionalDecimal = z
   .union([positiveDecimal, z.literal("")])
   .optional();
 
+/** Activity input quantity feeds a signed inventory movement 1:1
+ * (createActivity negates it), and the DB rejects a movement of exactly
+ * zero (inventory_movements_quantity_nonzero_check). Unlike other
+ * non-negative decimals here, this one must be strictly greater than 0. */
+const positiveNonZeroDecimal = positiveDecimal.refine(
+  (value) => Number(value) > 0,
+  { message: "must be greater than 0" },
+);
+
+/** monitoring_records_incidence_pct_check allows NULL or 0–100 inclusive;
+ * positiveDecimal alone has no upper bound. */
+const percentDecimal = z
+  .union([
+    positiveDecimal.refine((value) => Number(value) <= 100, {
+      message: "must be between 0 and 100",
+    }),
+    z.literal(""),
+  ])
+  .optional();
+
 export const activityCreatePayload = z.object({
   id: uuid,
   parcelId: uuid.optional(),
@@ -29,7 +49,7 @@ export const activityCreatePayload = z.object({
   inputs: z.array(
     z.object({
       productId: uuid,
-      quantity: positiveDecimal,
+      quantity: positiveNonZeroDecimal,
       unitCost: positiveDecimal,
     }),
   ),
@@ -52,7 +72,7 @@ export const monitoringCreatePayload = z.object({
   type: z.enum(["pest", "disease", "weed"]),
   agentName: z.string().min(1),
   severity: z.coerce.number().int().min(1).max(5),
-  incidencePct: optionalDecimal,
+  incidencePct: percentDecimal,
   notes: z.string().optional(),
   actionsTaken: z.string().optional(),
 });

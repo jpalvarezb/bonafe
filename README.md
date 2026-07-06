@@ -103,6 +103,16 @@ All env vars are documented in `.env.example`. Notable:
    jsonb, transfer stock checks) take row locks (`FOR UPDATE`).
 6. Never trust client-supplied paths/ids for `revalidatePath` or org
    identity — derive from the validated context.
+7. Since migrations 0011–0014 the DB enforces what the app promises:
+   CHECK constraints mirror the TS enums on money-relevant state machines,
+   composite `(org_id, id)` FKs block cross-org references, and deletes of
+   entities with financial history are RESTRICTed (use the `active` flags —
+   farms, parcels, workers, machines soft-deactivate; nothing hard-deletes).
+   **Widening a CHECK-guarded enum now requires a migration** (drop +
+   re-add the constraint) alongside the TS enum change — `pnpm db:generate`
+   picks it up from the schema's `check()` definitions.
+8. A constraint-violation error in production logs is an app bug the DB
+   caught — alert on SQLSTATE 23xxx, don't ignore them.
 
 ## Deployment notes
 
