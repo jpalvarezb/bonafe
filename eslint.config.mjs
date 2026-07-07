@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Serwist-generated service worker output (built from src/app/sw.ts via
+    // next.config.ts swDest) — not source, must not be linted.
+    "public/sw.js",
+    "public/sw.js.map",
   ]),
 ]);
 
