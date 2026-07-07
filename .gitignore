@@ -46,3 +46,7 @@ next-env.d.ts
 
 # Claude Code runtime state (not source)
 .claude/*.lock
+
+# Serwist-generated service worker (built from src/app/sw.ts on every `pnpm build`)
+/public/sw.js
+/public/sw.js.map

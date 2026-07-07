@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm typecheck
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    # Placeholders only — the production build must not require real secrets.
+    # db/index.ts warns (not throws) if these are unset; Stripe/Auth read lazily.
+    env:
+      DATABASE_URL: postgres://u:p@localhost:5432/db
+      APP_DATABASE_URL: postgres://u:p@localhost:5432/db
+      BETTER_AUTH_SECRET: ci-placeholder-ci-placeholder-ci-xx
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+
+  db:
+    name: DB + RLS
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4 # matches docker-compose.yml + README
+        env:
+          POSTGRES_USER: agropeq
+          POSTGRES_PASSWORD: agropeq
+          POSTGRES_DB: agropeq
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agropeq"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://agropeq:agropeq@localhost:5432/agropeq
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # db:verify-rls runs via `tsx --env-file=.env`; Node errors if .env is
+      # missing, so write one with the owner connection string. (Copying
+      # .env.example would set an empty DATABASE_URL= and clobber the job env.)
+      - run: echo "DATABASE_URL=$DATABASE_URL" > .env
+      - run: pnpm db:migrate
+      - run: pnpm db:verify-rls
