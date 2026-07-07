@@ -8,20 +8,29 @@ import {
 } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
-export const organization = pgTable("organization", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
-  logo: text("logo"),
-  metadata: text("metadata"),
-  // AgroPeq extensions (managed outside Better Auth)
-  baseCurrencyCode: text("base_currency_code").notNull().default("USD"),
-  country: text("country"),
-  timezone: text("timezone").notNull().default("America/Managua"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const organization = pgTable(
+  "organization",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    logo: text("logo"),
+    metadata: text("metadata"),
+    // AgroPeq extensions (managed outside Better Auth)
+    baseCurrencyCode: text("base_currency_code").notNull().default("USD"),
+    country: text("country"),
+    timezone: text("timezone").notNull().default("America/Managua"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    check(
+      "organization_base_currency_code_check",
+      sql`char_length(${t.baseCurrencyCode}) = 3`,
+    ),
+  ],
+);
 
 export const member = pgTable(
   "member",

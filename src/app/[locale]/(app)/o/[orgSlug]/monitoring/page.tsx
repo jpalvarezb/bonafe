@@ -61,6 +61,16 @@ export default async function MonitoringPage({
                       {t("severity")} {record.severity}
                     </span>
                     <span className="font-medium">{record.agentName}</span>
+                    {record.location && (
+                      <span
+                        title={t("locationTitle", {
+                          lat: record.location.coordinates[1].toFixed(5),
+                          lng: record.location.coordinates[0].toFixed(5),
+                        })}
+                      >
+                        📍
+                      </span>
+                    )}
                   </div>
                   <p className="truncate text-sm text-muted-foreground">
                     {record.date} · {parcelName}

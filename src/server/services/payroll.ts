@@ -1,6 +1,6 @@
 import { and, between, desc, eq, notInArray, sql, sum } from "drizzle-orm";
 import Decimal from "decimal.js";
-import { db } from "@/lib/db";
+import { withOrgRls, type Tx } from "@/lib/db/rls";
 import {
   activities,
   activityLabor,
@@ -12,7 +12,7 @@ import {
   pieceworkEntries,
   workers,
 } from "@/lib/db/schema";
-import { listAttendanceRange } from "@/server/services/attendance";
+import { listAttendanceRangeInTx } from "@/server/services/attendance";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
 import { assertOrgFeature } from "@/lib/plan-limits";
@@ -40,16 +40,18 @@ export type PayrollEntryAdjustmentInput = {
 // ---------------------------------------------------------------------------
 
 export async function listPayrollPeriods(ctx: OrgContext) {
-  return db
-    .select()
-    .from(payrollPeriods)
-    .where(eq(payrollPeriods.orgId, ctx.org.id))
-    .orderBy(desc(payrollPeriods.startDate));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(payrollPeriods)
+      .where(eq(payrollPeriods.orgId, ctx.org.id))
+      .orderBy(desc(payrollPeriods.startDate)),
+  );
 }
 
 /** Org-scoped lookup; returns null (not a throw) so pages can 404. */
-export async function getPayrollPeriod(ctx: OrgContext, periodId: string) {
-  const [period] = await db
+async function getPayrollPeriodInTx(tx: Tx, ctx: OrgContext, periodId: string) {
+  const [period] = await tx
     .select()
     .from(payrollPeriods)
     .where(
@@ -59,8 +61,12 @@ export async function getPayrollPeriod(ctx: OrgContext, periodId: string) {
   return period ?? null;
 }
 
-async function requirePeriodInOrg(ctx: OrgContext, periodId: string) {
-  const period = await getPayrollPeriod(ctx, periodId);
+export async function getPayrollPeriod(ctx: OrgContext, periodId: string) {
+  return withOrgRls(ctx.org.id, (tx) => getPayrollPeriodInTx(tx, ctx, periodId));
+}
+
+async function requirePeriodInOrgInTx(tx: Tx, ctx: OrgContext, periodId: string) {
+  const period = await getPayrollPeriodInTx(tx, ctx, periodId);
   if (!period) throw new Error("payroll period not found");
   return period;
 }
@@ -71,28 +77,30 @@ export async function createPayrollPeriod(
 ) {
   assertCan(ctx, "payroll", "manage");
   await assertOrgFeature(ctx.org.id, "payroll");
-  const [created] = await db
-    .insert(payrollPeriods)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      name: input.name,
-      startDate: input.startDate,
-      endDate: input.endDate,
-      status: "open",
-      currencyCode: ctx.org.baseCurrencyCode,
-      createdBy: ctx.user.id,
-    })
-    .returning();
-  return created;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [created] = await tx
+      .insert(payrollPeriods)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        name: input.name,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        status: "open",
+        currencyCode: ctx.org.baseCurrencyCode,
+        createdBy: ctx.user.id,
+      })
+      .returning();
+    return created;
+  });
 }
 
 // ---------------------------------------------------------------------------
 // Entries (the payroll book)
 // ---------------------------------------------------------------------------
 
-export async function listPayrollEntries(ctx: OrgContext, periodId: string) {
-  return db
+async function listPayrollEntriesInTx(tx: Tx, ctx: OrgContext, periodId: string) {
+  return tx
     .select({ entry: payrollEntries, workerName: workers.name })
     .from(payrollEntries)
     .innerJoin(workers, eq(payrollEntries.workerId, workers.id))
@@ -103,6 +111,12 @@ export async function listPayrollEntries(ctx: OrgContext, periodId: string) {
       ),
     )
     .orderBy(workers.name);
+}
+
+export async function listPayrollEntries(ctx: OrgContext, periodId: string) {
+  return withOrgRls(ctx.org.id, (tx) =>
+    listPayrollEntriesInTx(tx, ctx, periodId),
+  );
 }
 
 /**
@@ -119,68 +133,69 @@ export async function generatePayrollEntries(
 ) {
   assertCan(ctx, "payroll", "manage");
   await assertOrgFeature(ctx.org.id, "payroll");
-  const period = await requirePeriodInOrg(ctx, periodId);
-  if (period.status !== "open") {
-    throw new Error("cannot regenerate a closed payroll period");
-  }
 
-  const attendanceRows = await listAttendanceRange(ctx, {
-    from: period.startDate,
-    to: period.endDate,
-  });
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const period = await requirePeriodInOrgInTx(tx, ctx, periodId);
+    if (period.status !== "open") {
+      throw new Error("cannot regenerate a closed payroll period");
+    }
 
-  const byWorker = new Map<string, AttendanceLine[]>();
-  for (const row of attendanceRows) {
-    const line: AttendanceLine = {
-      status: row.record.status as AttendanceLine["status"],
-      hoursWorked: row.record.hoursWorked,
-      dailyRateSnapshot: row.record.dailyRateSnapshot,
-      hourlyRateSnapshot: row.record.hourlyRateSnapshot,
-    };
-    const existing = byWorker.get(row.record.workerId);
-    if (existing) existing.push(line);
-    else byWorker.set(row.record.workerId, [line]);
-  }
+    const attendanceRows = await listAttendanceRangeInTx(tx, ctx, {
+      from: period.startDate,
+      to: period.endDate,
+    });
 
-  // Piecework is derived from records (like days/hours), not preserved from
-  // the prior generation: one grouped query for all workers in range.
-  const pieceworkRows = await db
-    .select({
-      workerId: pieceworkEntries.workerId,
-      total: sum(pieceworkEntries.amount),
-    })
-    .from(pieceworkEntries)
-    .where(
-      and(
-        eq(pieceworkEntries.orgId, ctx.org.id),
-        between(pieceworkEntries.date, period.startDate, period.endDate),
-      ),
-    )
-    .groupBy(pieceworkEntries.workerId);
-  const pieceworkByWorker = new Map(
-    pieceworkRows.map((row) => [row.workerId, row.total ?? "0"]),
-  );
+    const byWorker = new Map<string, AttendanceLine[]>();
+    for (const row of attendanceRows) {
+      const line: AttendanceLine = {
+        status: row.record.status as AttendanceLine["status"],
+        hoursWorked: row.record.hoursWorked,
+        dailyRateSnapshot: row.record.dailyRateSnapshot,
+        hourlyRateSnapshot: row.record.hourlyRateSnapshot,
+      };
+      const existing = byWorker.get(row.record.workerId);
+      if (existing) existing.push(line);
+      else byWorker.set(row.record.workerId, [line]);
+    }
 
-  // A worker with piecework but no attendance in range must still get an
-  // entry, so the worker set is the union of both sources.
-  const workerIds = [
-    ...new Set([...byWorker.keys(), ...pieceworkByWorker.keys()]),
-  ];
-
-  const existingEntries = await db
-    .select()
-    .from(payrollEntries)
-    .where(
-      and(
-        eq(payrollEntries.periodId, periodId),
-        eq(payrollEntries.orgId, ctx.org.id),
-      ),
+    // Piecework is derived from records (like days/hours), not preserved from
+    // the prior generation: one grouped query for all workers in range.
+    const pieceworkRows = await tx
+      .select({
+        workerId: pieceworkEntries.workerId,
+        total: sum(pieceworkEntries.amount),
+      })
+      .from(pieceworkEntries)
+      .where(
+        and(
+          eq(pieceworkEntries.orgId, ctx.org.id),
+          between(pieceworkEntries.date, period.startDate, period.endDate),
+        ),
+      )
+      .groupBy(pieceworkEntries.workerId);
+    const pieceworkByWorker = new Map(
+      pieceworkRows.map((row) => [row.workerId, row.total ?? "0"]),
     );
-  const existingByWorker = new Map(
-    existingEntries.map((entry) => [entry.workerId, entry]),
-  );
 
-  await db.transaction(async (tx) => {
+    // A worker with piecework but no attendance in range must still get an
+    // entry, so the worker set is the union of both sources.
+    const workerIds = [
+      ...new Set([...byWorker.keys(), ...pieceworkByWorker.keys()]),
+    ];
+
+    const existingEntries = await tx
+      .select()
+      .from(payrollEntries)
+      .where(
+        and(
+          eq(payrollEntries.periodId, periodId),
+          eq(payrollEntries.orgId, ctx.org.id),
+        ),
+      );
+    const existingByWorker = new Map(
+      existingEntries.map((entry) => [entry.workerId, entry]),
+    );
+
     // Drop entries for workers with neither attendance nor piecework in range.
     if (workerIds.length > 0) {
       await tx
@@ -240,13 +255,14 @@ export async function generatePayrollEntries(
           orgId: ctx.org.id,
           periodId,
           workerId,
+          createdBy: ctx.user.id,
           ...values,
         });
       }
     }
-  });
 
-  return listPayrollEntries(ctx, periodId);
+    return listPayrollEntriesInTx(tx, ctx, periodId);
+  });
 }
 
 /**
@@ -262,105 +278,111 @@ export async function updatePayrollEntryAdjustments(
 ) {
   assertCan(ctx, "payroll", "manage");
   await assertOrgFeature(ctx.org.id, "payroll");
-  const period = await requirePeriodInOrg(ctx, periodId);
-  if (period.status !== "open") {
-    throw new Error("cannot edit entries on a closed payroll period");
-  }
 
-  const [entry] = await db
-    .select()
-    .from(payrollEntries)
-    .where(
-      and(
-        eq(payrollEntries.id, entryId),
-        eq(payrollEntries.periodId, periodId),
-        eq(payrollEntries.orgId, ctx.org.id),
-      ),
-    )
-    .limit(1);
-  if (!entry) throw new Error("payroll entry not found");
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const period = await requirePeriodInOrgInTx(tx, ctx, periodId);
+    if (period.status !== "open") {
+      throw new Error("cannot edit entries on a closed payroll period");
+    }
 
-  const attendanceRows = await db
-    .select({
-      status: attendanceRecords.status,
-      hoursWorked: attendanceRecords.hoursWorked,
-      dailyRateSnapshot: attendanceRecords.dailyRateSnapshot,
-      hourlyRateSnapshot: attendanceRecords.hourlyRateSnapshot,
-    })
-    .from(attendanceRecords)
-    .where(
-      and(
-        eq(attendanceRecords.orgId, ctx.org.id),
-        eq(attendanceRecords.workerId, entry.workerId),
-        between(attendanceRecords.date, period.startDate, period.endDate),
-      ),
-    );
+    const [entry] = await tx
+      .select()
+      .from(payrollEntries)
+      .where(
+        and(
+          eq(payrollEntries.id, entryId),
+          eq(payrollEntries.periodId, periodId),
+          eq(payrollEntries.orgId, ctx.org.id),
+        ),
+      )
+      .limit(1);
+    if (!entry) throw new Error("payroll entry not found");
 
-  const totals = computePayrollEntry({
-    attendance: attendanceRows.map((row) => ({
-      status: row.status as AttendanceLine["status"],
-      hoursWorked: row.hoursWorked,
-      dailyRateSnapshot: row.dailyRateSnapshot,
-      hourlyRateSnapshot: row.hourlyRateSnapshot,
-    })),
-    pieceworkAmount: entry.pieceworkAmount,
-    bonuses: input.bonuses,
-    deductions: input.deductions,
+    const attendanceRows = await tx
+      .select({
+        status: attendanceRecords.status,
+        hoursWorked: attendanceRecords.hoursWorked,
+        dailyRateSnapshot: attendanceRecords.dailyRateSnapshot,
+        hourlyRateSnapshot: attendanceRecords.hourlyRateSnapshot,
+      })
+      .from(attendanceRecords)
+      .where(
+        and(
+          eq(attendanceRecords.orgId, ctx.org.id),
+          eq(attendanceRecords.workerId, entry.workerId),
+          between(attendanceRecords.date, period.startDate, period.endDate),
+        ),
+      );
+
+    const totals = computePayrollEntry({
+      attendance: attendanceRows.map((row) => ({
+        status: row.status as AttendanceLine["status"],
+        hoursWorked: row.hoursWorked,
+        dailyRateSnapshot: row.dailyRateSnapshot,
+        hourlyRateSnapshot: row.hourlyRateSnapshot,
+      })),
+      pieceworkAmount: entry.pieceworkAmount,
+      bonuses: input.bonuses,
+      deductions: input.deductions,
+    });
+
+    const [updated] = await tx
+      .update(payrollEntries)
+      .set({
+        daysWorked: totals.daysWorked,
+        hoursWorked: totals.hoursWorked,
+        baseAmount: totals.baseAmount,
+        overtimeAmount: totals.overtimeAmount,
+        pieceworkAmount: totals.pieceworkAmount,
+        bonuses: totals.bonuses,
+        deductions: totals.deductions,
+        netAmount: totals.netAmount,
+        notes: input.notes ?? null,
+      })
+      .where(
+        and(
+          eq(payrollEntries.id, entryId),
+          eq(payrollEntries.orgId, ctx.org.id),
+        ),
+      )
+      .returning();
+    return updated;
   });
-
-  const [updated] = await db
-    .update(payrollEntries)
-    .set({
-      daysWorked: totals.daysWorked,
-      hoursWorked: totals.hoursWorked,
-      baseAmount: totals.baseAmount,
-      overtimeAmount: totals.overtimeAmount,
-      pieceworkAmount: totals.pieceworkAmount,
-      bonuses: totals.bonuses,
-      deductions: totals.deductions,
-      netAmount: totals.netAmount,
-      notes: input.notes ?? null,
-    })
-    .where(
-      and(
-        eq(payrollEntries.id, entryId),
-        eq(payrollEntries.orgId, ctx.org.id),
-      ),
-    )
-    .returning();
-  return updated;
 }
 
 export async function closePayrollPeriod(ctx: OrgContext, periodId: string) {
   assertCan(ctx, "payroll", "manage");
   await assertOrgFeature(ctx.org.id, "payroll");
-  const period = await requirePeriodInOrg(ctx, periodId);
-  if (period.status !== "open") {
-    throw new Error("payroll period is already closed");
-  }
 
-  const entries = await db
-    .select({ netAmount: payrollEntries.netAmount })
-    .from(payrollEntries)
-    .where(
-      and(
-        eq(payrollEntries.periodId, periodId),
-        eq(payrollEntries.orgId, ctx.org.id),
-      ),
-    );
-  if (entries.length === 0) {
-    throw new Error("cannot close a payroll period with no entries");
-  }
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const period = await requirePeriodInOrgInTx(tx, ctx, periodId);
+    if (period.status !== "open") {
+      throw new Error("payroll period is already closed");
+    }
 
-  const total = periodTotal(entries);
-  const [updated] = await db
-    .update(payrollPeriods)
-    .set({ status: "closed", closedAt: new Date(), totalAmount: total })
-    .where(
-      and(eq(payrollPeriods.id, periodId), eq(payrollPeriods.orgId, ctx.org.id)),
-    )
-    .returning();
-  return updated;
+    const entries = await tx
+      .select({ netAmount: payrollEntries.netAmount })
+      .from(payrollEntries)
+      .where(
+        and(
+          eq(payrollEntries.periodId, periodId),
+          eq(payrollEntries.orgId, ctx.org.id),
+        ),
+      );
+    if (entries.length === 0) {
+      throw new Error("cannot close a payroll period with no entries");
+    }
+
+    const total = periodTotal(entries);
+    const [updated] = await tx
+      .update(payrollPeriods)
+      .set({ status: "closed", closedAt: new Date(), totalAmount: total })
+      .where(
+        and(eq(payrollPeriods.id, periodId), eq(payrollPeriods.orgId, ctx.org.id)),
+      )
+      .returning();
+    return updated;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -371,42 +393,44 @@ export type DateRange = { from: string; to: string };
 
 /** Per worker: days worked and gross pay (base + overtime) in a date range. */
 export async function laborByWorkerReport(ctx: OrgContext, range: DateRange) {
-  const rows = await listAttendanceRange(ctx, range);
-  const byWorker = new Map<
-    string,
-    { workerName: string; attendance: AttendanceLine[] }
-  >();
-  for (const row of rows) {
-    const line: AttendanceLine = {
-      status: row.record.status as AttendanceLine["status"],
-      hoursWorked: row.record.hoursWorked,
-      dailyRateSnapshot: row.record.dailyRateSnapshot,
-      hourlyRateSnapshot: row.record.hourlyRateSnapshot,
-    };
-    const existing = byWorker.get(row.record.workerId);
-    if (existing) existing.attendance.push(line);
-    else
-      byWorker.set(row.record.workerId, {
-        workerName: row.workerName,
-        attendance: [line],
-      });
-  }
-
-  return [...byWorker.entries()]
-    .map(([workerId, { workerName, attendance }]) => {
-      const totals = computePayrollEntry({ attendance });
-      const grossPay = new Decimal(totals.baseAmount)
-        .add(totals.overtimeAmount)
-        .toFixed(4);
-      return {
-        workerId,
-        workerName,
-        daysWorked: totals.daysWorked,
-        hoursWorked: totals.hoursWorked,
-        grossPay,
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const rows = await listAttendanceRangeInTx(tx, ctx, range);
+    const byWorker = new Map<
+      string,
+      { workerName: string; attendance: AttendanceLine[] }
+    >();
+    for (const row of rows) {
+      const line: AttendanceLine = {
+        status: row.record.status as AttendanceLine["status"],
+        hoursWorked: row.record.hoursWorked,
+        dailyRateSnapshot: row.record.dailyRateSnapshot,
+        hourlyRateSnapshot: row.record.hourlyRateSnapshot,
       };
-    })
-    .sort((a, b) => a.workerName.localeCompare(b.workerName));
+      const existing = byWorker.get(row.record.workerId);
+      if (existing) existing.attendance.push(line);
+      else
+        byWorker.set(row.record.workerId, {
+          workerName: row.workerName,
+          attendance: [line],
+        });
+    }
+
+    return [...byWorker.entries()]
+      .map(([workerId, { workerName, attendance }]) => {
+        const totals = computePayrollEntry({ attendance });
+        const grossPay = new Decimal(totals.baseAmount)
+          .add(totals.overtimeAmount)
+          .toFixed(4);
+        return {
+          workerId,
+          workerName,
+          daysWorked: totals.daysWorked,
+          hoursWorked: totals.hoursWorked,
+          grossPay,
+        };
+      })
+      .sort((a, b) => a.workerName.localeCompare(b.workerName));
+  });
 }
 
 // activity_labor.amount is denominated in its parent activity's own
@@ -420,41 +444,45 @@ export async function laborCostByActivityType(
   ctx: OrgContext,
   range: DateRange,
 ) {
-  return db
-    .select({
-      typeName: activityTypes.name,
-      totalAmount: sum(laborAmountInBase),
-    })
-    .from(activityLabor)
-    .innerJoin(activities, eq(activityLabor.activityId, activities.id))
-    .innerJoin(activityTypes, eq(activities.activityTypeId, activityTypes.id))
-    .where(
-      and(
-        eq(activities.orgId, ctx.org.id),
-        between(activities.date, range.from, range.to),
-      ),
-    )
-    .groupBy(activityTypes.name)
-    .orderBy(desc(sum(laborAmountInBase)));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        typeName: activityTypes.name,
+        totalAmount: sum(laborAmountInBase),
+      })
+      .from(activityLabor)
+      .innerJoin(activities, eq(activityLabor.activityId, activities.id))
+      .innerJoin(activityTypes, eq(activities.activityTypeId, activityTypes.id))
+      .where(
+        and(
+          eq(activities.orgId, ctx.org.id),
+          between(activities.date, range.from, range.to),
+        ),
+      )
+      .groupBy(activityTypes.name)
+      .orderBy(desc(sum(laborAmountInBase))),
+  );
 }
 
 /** Labor cost by parcel name; activities with no parcel roll into "general". */
 export async function laborCostByParcel(ctx: OrgContext, range: DateRange) {
-  return db
-    .select({
-      parcelId: parcels.id,
-      parcelName: parcels.name,
-      totalAmount: sum(laborAmountInBase),
-    })
-    .from(activityLabor)
-    .innerJoin(activities, eq(activityLabor.activityId, activities.id))
-    .leftJoin(parcels, eq(activities.parcelId, parcels.id))
-    .where(
-      and(
-        eq(activities.orgId, ctx.org.id),
-        between(activities.date, range.from, range.to),
-      ),
-    )
-    .groupBy(parcels.id, parcels.name)
-    .orderBy(desc(sum(laborAmountInBase)));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        parcelId: parcels.id,
+        parcelName: parcels.name,
+        totalAmount: sum(laborAmountInBase),
+      })
+      .from(activityLabor)
+      .innerJoin(activities, eq(activityLabor.activityId, activities.id))
+      .leftJoin(parcels, eq(activities.parcelId, parcels.id))
+      .where(
+        and(
+          eq(activities.orgId, ctx.org.id),
+          between(activities.date, range.from, range.to),
+        ),
+      )
+      .groupBy(parcels.id, parcels.name)
+      .orderBy(desc(sum(laborAmountInBase))),
+  );
 }

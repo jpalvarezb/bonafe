@@ -20,6 +20,10 @@ type CycleOption = Option & { parcelId: string };
 
 type MonitoringType = "pest" | "disease" | "weed";
 
+type GeoLocation = { lat: number; lng: number };
+
+type LocationStatus = "idle" | "capturing" | "success" | "denied" | "unavailable";
+
 type Props = {
   readonly locale: string;
   readonly orgSlug: string;
@@ -30,6 +34,15 @@ type Props = {
 function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
+
+/** Device GPS fix — works fully offline, no network round trip needed.
+ * enableHighAccuracy trades battery/time for precision; the timeout keeps a
+ * denied/unavailable sensor from stalling the form. */
+const GEOLOCATION_OPTIONS: PositionOptions = {
+  enableHighAccuracy: true,
+  timeout: 10_000,
+  maximumAge: 0,
+};
 
 export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
   const t = useTranslations("monitoring");
@@ -45,6 +58,9 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
   const [actionsTaken, setActionsTaken] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [location, setLocation] = useState<GeoLocation | null>(null);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const tOffline = useTranslations("offline");
 
   const parcelCycles = cycles.filter(
@@ -60,6 +76,34 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
     setIncidencePct("");
     setNotes("");
     setActionsTaken("");
+    setLocation(null);
+    setAccuracy(null);
+    setLocationStatus("idle");
+  }
+
+  function captureLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setLocationStatus("unavailable");
+      return;
+    }
+    setLocationStatus("capturing");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setAccuracy(position.coords.accuracy);
+        setLocationStatus("success");
+      },
+      (error) => {
+        // Location is optional — the form still submits fine without it.
+        setLocationStatus(
+          error.code === error.PERMISSION_DENIED ? "denied" : "unavailable",
+        );
+      },
+      GEOLOCATION_OPTIONS,
+    );
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -78,6 +122,7 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
         incidencePct: incidencePct || undefined,
         notes: notes || undefined,
         actionsTaken: actionsTaken || undefined,
+        location: location ?? undefined,
       };
       await enqueue(orgSlug, "monitoring.create", payload);
       if (navigator.onLine) {
@@ -217,6 +262,40 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
               value={actionsTaken}
               onChange={(e) => setActionsTaken(e.target.value)}
             />
+          </div>
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <Label>{t("location")}</Label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={captureLocation}
+                disabled={locationStatus === "capturing"}
+              >
+                {locationStatus === "capturing"
+                  ? t("locationCapturing")
+                  : t("locationUse")}
+              </Button>
+              {locationStatus === "success" && location && accuracy !== null && (
+                <span
+                  className="text-sm text-muted-foreground"
+                  title={`${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`}
+                >
+                  {t("locationCaptured", { accuracy: Math.round(accuracy) })}
+                </span>
+              )}
+              {locationStatus === "denied" && (
+                <span className="text-sm text-muted-foreground">
+                  {t("locationDenied")}
+                </span>
+              )}
+              {locationStatus === "unavailable" && (
+                <span className="text-sm text-muted-foreground">
+                  {t("locationUnavailable")}
+                </span>
+              )}
+            </div>
           </div>
           {saveError && (
             <p className="text-sm text-destructive sm:col-span-2">

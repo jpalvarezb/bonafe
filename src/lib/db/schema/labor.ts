@@ -15,7 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { farms } from "./farms";
 import { user } from "./auth";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 const money = (name: string) => numeric(name, { precision: 14, scale: 4 });
 
@@ -45,8 +45,10 @@ export const workers = pgTable(
       .where(sql`${t.code} IS NOT NULL`),
     check("workers_daily_rate_nonneg_check", sql`${t.dailyRate} >= 0`),
     check("workers_hourly_rate_nonneg_check", sql`${t.hourlyRate} >= 0`),
+    check("workers_type_check", sql`${t.type} IN ('fixed', 'temporary')`),
+    ...orgIsolationPolicy("workers"),
   ],
-);
+).enableRLS();
 
 export const attendanceRecords = pgTable(
   "attendance_records",
@@ -101,8 +103,9 @@ export const attendanceRecords = pgTable(
       "attendance_records_hourly_rate_nonneg_check",
       sql`${t.hourlyRateSnapshot} >= 0`,
     ),
+    ...orgIsolationPolicy("attendance_records"),
   ],
-);
+).enableRLS();
 
 /** Piecework tariffs: pay per unit of work (lata cut, surco weeded…). */
 export const pieceRates = pgTable(
@@ -123,8 +126,9 @@ export const pieceRates = pgTable(
     // Lets children add a composite (org_id, piece_rate_id) FK so a
     // cross-tenant reference is impossible at the DB level.
     unique("piece_rates_org_id_uq").on(t.orgId, t.id),
+    ...orgIsolationPolicy("piece_rates"),
   ],
-);
+).enableRLS();
 
 /** One captured piecework quantity; amount = quantity × rate snapshot. */
 export const pieceworkEntries = pgTable(
@@ -158,8 +162,9 @@ export const pieceworkEntries = pgTable(
       columns: [t.orgId, t.pieceRateId],
       foreignColumns: [pieceRates.orgId, pieceRates.id],
     }).onDelete("no action"),
+    ...orgIsolationPolicy("piecework_entries"),
   ],
-);
+).enableRLS();
 
 export const payrollPeriods = pgTable(
   "payroll_periods",
@@ -193,8 +198,9 @@ export const payrollPeriods = pgTable(
       "payroll_periods_currency_code_check",
       sql`char_length(${t.currencyCode}) = 3`,
     ),
+    ...orgIsolationPolicy("payroll_periods"),
   ],
-);
+).enableRLS();
 
 export const payrollEntries = pgTable(
   "payroll_entries",
@@ -223,11 +229,13 @@ export const payrollEntries = pgTable(
     deductions: money("deductions").notNull().default("0"),
     netAmount: money("net_amount").notNull().default("0"),
     notes: text("notes"),
+    createdBy: text("created_by").references(() => user.id),
     ...timestamps,
   },
   (t) => [
     uniqueIndex("payroll_entries_period_worker_uq").on(t.periodId, t.workerId),
     index("payroll_entries_org_idx").on(t.orgId),
     index("payroll_entries_worker_idx").on(t.workerId),
+    ...orgIsolationPolicy("payroll_entries"),
   ],
-);
+).enableRLS();

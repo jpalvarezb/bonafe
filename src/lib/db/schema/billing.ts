@@ -3,6 +3,7 @@ import {
   check,
   date,
   index,
+  integer,
   jsonb,
   numeric,
   pgTable,
@@ -11,7 +12,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { organization } from "./tenancy";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 /** Plan codes are stable identifiers: semilla | cultivo | cosecha. */
 export const plans = pgTable("plans", {
@@ -57,8 +58,9 @@ export const orgSubscriptions = pgTable(
       "org_subscriptions_status_check",
       sql`${t.status} IN ('trialing', 'active', 'past_due', 'canceled')`,
     ),
+    ...orgIsolationPolicy("org_subscriptions"),
   ],
-);
+).enableRLS();
 
 export const orgExchangeRates = pgTable(
   "org_exchange_rates",
@@ -78,8 +80,9 @@ export const orgExchangeRates = pgTable(
       "org_exchange_rates_currency_code_check",
       sql`char_length(${t.currencyCode}) = 3`,
     ),
+    ...orgIsolationPolicy("org_exchange_rates"),
   ],
-);
+).enableRLS();
 
 /** Processed Stripe webhook events — the unique id makes replays no-ops. */
 export const stripeEvents = pgTable("stripe_events", {
@@ -111,8 +114,11 @@ export const auditLog = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (t) => [index("audit_log_org_created_idx").on(t.orgId, t.createdAt)],
-);
+  (t) => [
+    index("audit_log_org_created_idx").on(t.orgId, t.createdAt),
+    ...orgIsolationPolicy("audit_log"),
+  ],
+).enableRLS();
 
 export const importJobs = pgTable(
   "import_jobs",
@@ -122,12 +128,18 @@ export const importJobs = pgTable(
     type: text("type", { enum: ["products", "parcels", "activities"] }).notNull(),
     fileName: text("file_name").notNull(),
     status: text("status", { enum: ["done", "failed"] }).notNull(),
-    rowsImported: numeric("rows_imported", { precision: 10, scale: 0 })
-      .notNull()
-      .default("0"),
+    rowsImported: integer("rows_imported").notNull().default(0),
     errorReport: jsonb("error_report").notNull().default([]),
     createdBy: text("created_by"),
     ...timestamps,
   },
-  (t) => [index("import_jobs_org_idx").on(t.orgId)],
-);
+  (t) => [
+    index("import_jobs_org_idx").on(t.orgId),
+    check(
+      "import_jobs_type_check",
+      sql`${t.type} IN ('products', 'parcels', 'activities')`,
+    ),
+    check("import_jobs_status_check", sql`${t.status} IN ('done', 'failed')`),
+    ...orgIsolationPolicy("import_jobs"),
+  ],
+).enableRLS();

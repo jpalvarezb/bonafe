@@ -1,7 +1,11 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { db } from "@/lib/db";
+// dbSystem (owner connection, bypasses RLS): this whole handler is
+// server-to-server (Stripe -> us), unauthenticated by session, with the org
+// resolved from Stripe identifiers rather than an OrgContext — there is no
+// app.org_id to scope a request-bound `db` transaction by.
+import { dbSystem } from "@/lib/db";
 import {
   auditLog,
   organization,
@@ -63,7 +67,7 @@ export async function POST(request: Request) {
   // replay and never silently dropped — no manual delete-on-error needed.
   let outcome: { duplicate: boolean; audit: SubscriptionStateResult | null };
   try {
-    outcome = await db.transaction(async (tx) => {
+    outcome = await dbSystem.transaction(async (tx) => {
       const [inserted] = await tx
         .insert(stripeEvents)
         .values({ id: event.id, type: event.type })
@@ -265,7 +269,7 @@ async function writeAudit(result: SubscriptionStateResult): Promise<void> {
   if (noStatusChange && noPlanChange) return; // no-op renewal ping — skip noise
 
   try {
-    await db.insert(auditLog).values({
+    await dbSystem.insert(auditLog).values({
       orgId: result.orgId,
       actorUserId: null,
       // No human actor on a webhook-driven write; a stable constant marks

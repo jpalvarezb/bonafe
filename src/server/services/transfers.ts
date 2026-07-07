@@ -1,7 +1,7 @@
 import { alias } from "drizzle-orm/pg-core";
 import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import Decimal from "decimal.js";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import {
   inventoryMovements,
   inventoryTransferLines,
@@ -50,28 +50,28 @@ export async function createTransfer(ctx: OrgContext, input: TransferInput) {
   }
 
   const warehouseIds = [input.fromWarehouseId, input.toWarehouseId];
-  const ownedWarehouses = await db
-    .select({ id: warehouses.id })
-    .from(warehouses)
-    .where(
-      and(inArray(warehouses.id, warehouseIds), eq(warehouses.orgId, ctx.org.id)),
-    );
-  if (ownedWarehouses.length !== 2) {
-    throw new Error("warehouse not found");
-  }
-
   const productIds = [...new Set(input.lines.map((line) => line.productId))];
-  const ownedProducts = await db
-    .select({ id: products.id })
-    .from(products)
-    .where(and(inArray(products.id, productIds), eq(products.orgId, ctx.org.id)));
-  if (ownedProducts.length !== productIds.length) {
-    throw new Error("product not found");
-  }
-
   const transferId = newId();
 
-  return db.transaction(async (tx) => {
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const ownedWarehouses = await tx
+      .select({ id: warehouses.id })
+      .from(warehouses)
+      .where(
+        and(inArray(warehouses.id, warehouseIds), eq(warehouses.orgId, ctx.org.id)),
+      );
+    if (ownedWarehouses.length !== 2) {
+      throw new Error("warehouse not found");
+    }
+
+    const ownedProducts = await tx
+      .select({ id: products.id })
+      .from(products)
+      .where(and(inArray(products.id, productIds), eq(products.orgId, ctx.org.id)));
+    if (ownedProducts.length !== productIds.length) {
+      throw new Error("product not found");
+    }
+
     // Serialize transfers out of this warehouse: a concurrent transfer blocks
     // on this row lock until we commit, then re-reads a ledger that already
     // includes our outbound movements — closing the check-then-insert race
@@ -199,21 +199,23 @@ export async function listTransfers(ctx: OrgContext) {
   const fromWarehouses = alias(warehouses, "from_warehouse");
   const toWarehouses = alias(warehouses, "to_warehouse");
 
-  return db
-    .select({
-      transfer: inventoryTransfers,
-      fromWarehouseName: fromWarehouses.name,
-      toWarehouseName: toWarehouses.name,
-      lineCount: count(inventoryTransferLines.id),
-    })
-    .from(inventoryTransfers)
-    .innerJoin(fromWarehouses, eq(inventoryTransfers.fromWarehouseId, fromWarehouses.id))
-    .innerJoin(toWarehouses, eq(inventoryTransfers.toWarehouseId, toWarehouses.id))
-    .leftJoin(
-      inventoryTransferLines,
-      eq(inventoryTransferLines.transferId, inventoryTransfers.id),
-    )
-    .where(eq(inventoryTransfers.orgId, ctx.org.id))
-    .groupBy(inventoryTransfers.id, fromWarehouses.name, toWarehouses.name)
-    .orderBy(desc(inventoryTransfers.date), desc(inventoryTransfers.createdAt));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        transfer: inventoryTransfers,
+        fromWarehouseName: fromWarehouses.name,
+        toWarehouseName: toWarehouses.name,
+        lineCount: count(inventoryTransferLines.id),
+      })
+      .from(inventoryTransfers)
+      .innerJoin(fromWarehouses, eq(inventoryTransfers.fromWarehouseId, fromWarehouses.id))
+      .innerJoin(toWarehouses, eq(inventoryTransfers.toWarehouseId, toWarehouses.id))
+      .leftJoin(
+        inventoryTransferLines,
+        eq(inventoryTransferLines.transferId, inventoryTransfers.id),
+      )
+      .where(eq(inventoryTransfers.orgId, ctx.org.id))
+      .groupBy(inventoryTransfers.id, fromWarehouses.name, toWarehouses.name)
+      .orderBy(desc(inventoryTransfers.date), desc(inventoryTransfers.createdAt)),
+  );
 }

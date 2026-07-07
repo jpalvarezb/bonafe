@@ -15,7 +15,7 @@ import { cropCycles } from "./crops";
 import { activities } from "./activities";
 import { activityTypes } from "./catalog";
 import { user } from "./auth";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 const money = (name: string) => numeric(name, { precision: 14, scale: 4 });
 
@@ -52,8 +52,15 @@ export const plannedActivities = pgTable(
     createdBy: text("created_by").references(() => user.id),
     ...timestamps,
   },
-  (t) => [index("planned_activities_org_date_idx").on(t.orgId, t.plannedDate)],
-);
+  (t) => [
+    index("planned_activities_org_date_idx").on(t.orgId, t.plannedDate),
+    check(
+      "planned_activities_status_check",
+      sql`${t.status} IN ('planned', 'converted', 'cancelled')`,
+    ),
+    ...orgIsolationPolicy("planned_activities"),
+  ],
+).enableRLS();
 
 export const budgets = pgTable(
   "budgets",
@@ -78,8 +85,10 @@ export const budgets = pgTable(
   (t) => [
     index("budgets_org_idx").on(t.orgId, t.year),
     check("budgets_currency_code_check", sql`char_length(${t.currencyCode}) = 3`),
+    check("budgets_status_check", sql`${t.status} IN ('draft', 'active')`),
+    ...orgIsolationPolicy("budgets"),
   ],
-);
+).enableRLS();
 
 /** One amount per month × cost category; variance compares to activities. */
 export const budgetLines = pgTable(
@@ -103,5 +112,10 @@ export const budgetLines = pgTable(
       t.month,
       t.category,
     ),
+    check(
+      "budget_lines_category_check",
+      sql`${t.category} IN ('labor', 'input', 'machine', 'other')`,
+    ),
+    ...orgIsolationPolicy("budget_lines"),
   ],
-);
+).enableRLS();

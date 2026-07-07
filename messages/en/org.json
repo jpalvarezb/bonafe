@@ -18,7 +18,11 @@
     "pending": "Pending invitations",
     "copyLink": "Copy link",
     "invited": "Invitation created",
-    "error": "Could not send the invitation"
+    "error": "Could not send the invitation",
+    "errors": {
+      "duplicatePending": "There is already a pending invitation for that email.",
+      "unknown": "Could not send the invitation"
+    }
   },
   "roles": {
     "owner": "Owner",

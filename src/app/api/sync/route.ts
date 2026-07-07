@@ -156,6 +156,7 @@ export async function POST(request: Request) {
           incidencePct: payload.incidencePct ?? null,
           notes: payload.notes ?? null,
           actionsTaken: payload.actionsTaken ?? null,
+          location: payload.location ?? null,
         });
         results.push({ outboxId: item.outboxId, status: "applied" });
       }

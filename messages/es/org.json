@@ -18,7 +18,11 @@
     "pending": "Invitaciones pendientes",
     "copyLink": "Copiar enlace",
     "invited": "Invitación creada",
-    "error": "No se pudo enviar la invitación"
+    "error": "No se pudo enviar la invitación",
+    "errors": {
+      "duplicatePending": "Ya hay una invitación pendiente para ese correo.",
+      "unknown": "No se pudo enviar la invitación"
+    }
   },
   "roles": {
     "owner": "Propietario",

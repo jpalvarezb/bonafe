@@ -15,13 +15,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const KNOWN_ERROR_KEYS = ["duplicatePending"];
+
 export default async function MembersPage({
   params,
-}: Readonly<{ params: Promise<{ locale: string; orgSlug: string }> }>) {
+  searchParams,
+}: Readonly<{
+  params: Promise<{ locale: string; orgSlug: string }>;
+  searchParams: Promise<{ error?: string }>;
+}>) {
   const { locale, orgSlug } = await params;
   setRequestLocale(locale);
   const ctx = await requireOrgContext(locale, orgSlug);
   const t = await getTranslations("org");
+  const { error } = await searchParams;
+  const errorKey =
+    error && KNOWN_ERROR_KEYS.includes(error) ? error : error ? "unknown" : null;
 
   const members = await db
     .select({
@@ -50,6 +59,12 @@ export default async function MembersPage({
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">{t("members.title")}</h1>
+
+      {errorKey && (
+        <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {t(`members.errors.${errorKey}`)}
+        </p>
+      )}
 
       <Card>
         <CardContent className="divide-y">

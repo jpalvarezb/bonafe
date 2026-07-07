@@ -1,6 +1,6 @@
 import { and, asc, between, desc, eq } from "drizzle-orm";
 import Decimal from "decimal.js";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { pieceRates, pieceworkEntries, workers } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
@@ -29,32 +29,36 @@ export async function listPieceRates(
   ctx: OrgContext,
   filter?: { activeOnly?: boolean },
 ) {
-  return db
-    .select()
-    .from(pieceRates)
-    .where(
-      and(
-        eq(pieceRates.orgId, ctx.org.id),
-        filter?.activeOnly ? eq(pieceRates.active, true) : undefined,
-      ),
-    )
-    .orderBy(asc(pieceRates.name));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(pieceRates)
+      .where(
+        and(
+          eq(pieceRates.orgId, ctx.org.id),
+          filter?.activeOnly ? eq(pieceRates.active, true) : undefined,
+        ),
+      )
+      .orderBy(asc(pieceRates.name)),
+  );
 }
 
 export async function createPieceRate(ctx: OrgContext, input: PieceRateInput) {
   assertCan(ctx, "piecework", "manage");
   await assertOrgFeature(ctx.org.id, "payroll");
-  const [created] = await db
-    .insert(pieceRates)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      name: input.name,
-      unit: input.unit,
-      rate: input.rate,
-    })
-    .returning();
-  return created;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [created] = await tx
+      .insert(pieceRates)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        name: input.name,
+        unit: input.unit,
+        rate: input.rate,
+      })
+      .returning();
+    return created;
+  });
 }
 
 /** Soft toggle of active/inactive; rates are never hard-deleted (history). */
@@ -65,14 +69,16 @@ export async function setPieceRateActive(
 ) {
   assertCan(ctx, "piecework", "manage");
   await assertOrgFeature(ctx.org.id, "payroll");
-  const [updated] = await db
-    .update(pieceRates)
-    .set({ active })
-    .where(
-      and(eq(pieceRates.id, pieceRateId), eq(pieceRates.orgId, ctx.org.id)),
-    )
-    .returning();
-  return updated;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [updated] = await tx
+      .update(pieceRates)
+      .set({ active })
+      .where(
+        and(eq(pieceRates.id, pieceRateId), eq(pieceRates.orgId, ctx.org.id)),
+      )
+      .returning();
+    return updated;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -82,11 +88,13 @@ export async function setPieceRateActive(
 // ---------------------------------------------------------------------------
 
 export async function listActiveWorkersForPiecework(ctx: OrgContext) {
-  return db
-    .select({ id: workers.id, name: workers.name })
-    .from(workers)
-    .where(and(eq(workers.orgId, ctx.org.id), eq(workers.active, true)))
-    .orderBy(asc(workers.name));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({ id: workers.id, name: workers.name })
+      .from(workers)
+      .where(and(eq(workers.orgId, ctx.org.id), eq(workers.active, true)))
+      .orderBy(asc(workers.name)),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -105,43 +113,45 @@ export async function createPieceworkEntry(
   assertCan(ctx, "piecework", "create");
   await assertOrgFeature(ctx.org.id, "payroll");
 
-  const [worker] = await db
-    .select({ id: workers.id })
-    .from(workers)
-    .where(and(eq(workers.id, input.workerId), eq(workers.orgId, ctx.org.id)))
-    .limit(1);
-  if (!worker) throw new Error("worker not found");
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [worker] = await tx
+      .select({ id: workers.id })
+      .from(workers)
+      .where(and(eq(workers.id, input.workerId), eq(workers.orgId, ctx.org.id)))
+      .limit(1);
+    if (!worker) throw new Error("worker not found");
 
-  const [rate] = await db
-    .select({ id: pieceRates.id, rate: pieceRates.rate })
-    .from(pieceRates)
-    .where(
-      and(
-        eq(pieceRates.id, input.pieceRateId),
-        eq(pieceRates.orgId, ctx.org.id),
-      ),
-    )
-    .limit(1);
-  if (!rate) throw new Error("piece rate not found");
+    const [rate] = await tx
+      .select({ id: pieceRates.id, rate: pieceRates.rate })
+      .from(pieceRates)
+      .where(
+        and(
+          eq(pieceRates.id, input.pieceRateId),
+          eq(pieceRates.orgId, ctx.org.id),
+        ),
+      )
+      .limit(1);
+    if (!rate) throw new Error("piece rate not found");
 
-  const amount = new Decimal(input.quantity).mul(rate.rate).toFixed(4);
+    const amount = new Decimal(input.quantity).mul(rate.rate).toFixed(4);
 
-  const [created] = await db
-    .insert(pieceworkEntries)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      workerId: input.workerId,
-      pieceRateId: input.pieceRateId,
-      date: input.date,
-      quantity: input.quantity,
-      rateSnapshot: rate.rate,
-      amount,
-      notes: input.notes ?? null,
-      createdBy: ctx.user.id,
-    })
-    .returning();
-  return created;
+    const [created] = await tx
+      .insert(pieceworkEntries)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        workerId: input.workerId,
+        pieceRateId: input.pieceRateId,
+        date: input.date,
+        quantity: input.quantity,
+        rateSnapshot: rate.rate,
+        amount,
+        notes: input.notes ?? null,
+        createdBy: ctx.user.id,
+      })
+      .returning();
+    return created;
+  });
 }
 
 /** Entries in [from, to], newest first, with worker + rate display fields. */
@@ -149,34 +159,38 @@ export async function listPieceworkEntries(
   ctx: OrgContext,
   range: { from: string; to: string },
 ) {
-  return db
-    .select({
-      entry: pieceworkEntries,
-      workerName: workers.name,
-      rateName: pieceRates.name,
-      unit: pieceRates.unit,
-    })
-    .from(pieceworkEntries)
-    .innerJoin(workers, eq(pieceworkEntries.workerId, workers.id))
-    .innerJoin(pieceRates, eq(pieceworkEntries.pieceRateId, pieceRates.id))
-    .where(
-      and(
-        eq(pieceworkEntries.orgId, ctx.org.id),
-        between(pieceworkEntries.date, range.from, range.to),
-      ),
-    )
-    .orderBy(desc(pieceworkEntries.date));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        entry: pieceworkEntries,
+        workerName: workers.name,
+        rateName: pieceRates.name,
+        unit: pieceRates.unit,
+      })
+      .from(pieceworkEntries)
+      .innerJoin(workers, eq(pieceworkEntries.workerId, workers.id))
+      .innerJoin(pieceRates, eq(pieceworkEntries.pieceRateId, pieceRates.id))
+      .where(
+        and(
+          eq(pieceworkEntries.orgId, ctx.org.id),
+          between(pieceworkEntries.date, range.from, range.to),
+        ),
+      )
+      .orderBy(desc(pieceworkEntries.date)),
+  );
 }
 
 export async function deletePieceworkEntry(ctx: OrgContext, entryId: string) {
   assertCan(ctx, "piecework", "delete");
   await assertOrgFeature(ctx.org.id, "payroll");
-  await db
-    .delete(pieceworkEntries)
-    .where(
-      and(
-        eq(pieceworkEntries.id, entryId),
-        eq(pieceworkEntries.orgId, ctx.org.id),
+  await withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .delete(pieceworkEntries)
+      .where(
+        and(
+          eq(pieceworkEntries.id, entryId),
+          eq(pieceworkEntries.orgId, ctx.org.id),
+        ),
       ),
-    );
+  );
 }

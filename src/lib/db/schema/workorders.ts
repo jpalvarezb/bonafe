@@ -13,7 +13,7 @@ import {
 import { parcels } from "./farms";
 import { machines } from "./machinery";
 import { member } from "./tenancy";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 export const costCenters = pgTable(
   "cost_centers",
@@ -26,8 +26,11 @@ export const costCenters = pgTable(
     }),
     ...timestamps,
   },
-  (t) => [index("cost_centers_org_idx").on(t.orgId)],
-);
+  (t) => [
+    index("cost_centers_org_idx").on(t.orgId),
+    ...orgIsolationPolicy("cost_centers"),
+  ],
+).enableRLS();
 
 export const workOrders = pgTable(
   "work_orders",
@@ -69,5 +72,7 @@ export const workOrders = pgTable(
       "work_orders_status_check",
       sql`${t.status} IN ('draft', 'assigned', 'in_progress', 'done', 'cancelled')`,
     ),
+    check("work_orders_type_check", sql`${t.type} IN ('field', 'machine')`),
+    ...orgIsolationPolicy("work_orders"),
   ],
-);
+).enableRLS();

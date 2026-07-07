@@ -1,6 +1,6 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import Decimal from "decimal.js";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import {
   activities,
   machines,
@@ -29,16 +29,18 @@ export async function listMachines(
   ctx: OrgContext,
   filter?: { includeInactive?: boolean },
 ) {
-  return db
-    .select()
-    .from(machines)
-    .where(
-      and(
-        eq(machines.orgId, ctx.org.id),
-        filter?.includeInactive ? undefined : eq(machines.active, true),
-      ),
-    )
-    .orderBy(asc(machines.name));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(machines)
+      .where(
+        and(
+          eq(machines.orgId, ctx.org.id),
+          filter?.includeInactive ? undefined : eq(machines.active, true),
+        ),
+      )
+      .orderBy(asc(machines.name)),
+  );
 }
 
 /** Active-only roster, for work-order and usage-log machine selects. */
@@ -47,33 +49,37 @@ export async function listActiveMachines(ctx: OrgContext) {
 }
 
 export async function getMachine(ctx: OrgContext, machineId: string) {
-  const [machine] = await db
-    .select()
-    .from(machines)
-    .where(and(eq(machines.id, machineId), eq(machines.orgId, ctx.org.id)))
-    .limit(1);
-  return machine ?? null;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [machine] = await tx
+      .select()
+      .from(machines)
+      .where(and(eq(machines.id, machineId), eq(machines.orgId, ctx.org.id)))
+      .limit(1);
+    return machine ?? null;
+  });
 }
 
 export async function createMachine(ctx: OrgContext, input: MachineInput) {
   assertCan(ctx, "machine", "manage");
   await assertOrgFeature(ctx.org.id, "machinery");
-  const [created] = await db
-    .insert(machines)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      name: input.name,
-      code: input.code ?? null,
-      category: input.category ?? null,
-      brand: input.brand ?? null,
-      model: input.model ?? null,
-      year: input.year ?? null,
-      hourlyCost: input.hourlyCost ?? "0",
-      notes: input.notes ?? null,
-    })
-    .returning();
-  return created;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [created] = await tx
+      .insert(machines)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        name: input.name,
+        code: input.code ?? null,
+        category: input.category ?? null,
+        brand: input.brand ?? null,
+        model: input.model ?? null,
+        year: input.year ?? null,
+        hourlyCost: input.hourlyCost ?? "0",
+        notes: input.notes ?? null,
+      })
+      .returning();
+    return created;
+  });
 }
 
 export async function updateMachine(
@@ -83,12 +89,14 @@ export async function updateMachine(
 ) {
   assertCan(ctx, "machine", "manage");
   await assertOrgFeature(ctx.org.id, "machinery");
-  const [updated] = await db
-    .update(machines)
-    .set(input)
-    .where(and(eq(machines.id, machineId), eq(machines.orgId, ctx.org.id)))
-    .returning();
-  return updated;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [updated] = await tx
+      .update(machines)
+      .set(input)
+      .where(and(eq(machines.id, machineId), eq(machines.orgId, ctx.org.id)))
+      .returning();
+    return updated;
+  });
 }
 
 /** Soft toggle of active/inactive; machines are never hard-deleted. */
@@ -99,12 +107,14 @@ export async function setMachineActive(
 ) {
   assertCan(ctx, "machine", "manage");
   await assertOrgFeature(ctx.org.id, "machinery");
-  const [updated] = await db
-    .update(machines)
-    .set({ active })
-    .where(and(eq(machines.id, machineId), eq(machines.orgId, ctx.org.id)))
-    .returning();
-  return updated;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [updated] = await tx
+      .update(machines)
+      .set({ active })
+      .where(and(eq(machines.id, machineId), eq(machines.orgId, ctx.org.id)))
+      .returning();
+    return updated;
+  });
 }
 
 export type UsageLogInput = {
@@ -137,67 +147,67 @@ export async function createUsageLog(ctx: OrgContext, input: UsageLogInput) {
   assertCan(ctx, "machine", "log");
   await assertOrgFeature(ctx.org.id, "machinery");
 
-  const [machine] = await db
-    .select({ id: machines.id, hourlyCost: machines.hourlyCost })
-    .from(machines)
-    .where(
-      and(eq(machines.id, input.machineId), eq(machines.orgId, ctx.org.id)),
-    )
-    .limit(1);
-  if (!machine) throw new Error("machine not found");
-
-  if (input.activityId) {
-    const [row] = await db
-      .select({ id: activities.id })
-      .from(activities)
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [machine] = await tx
+      .select({ id: machines.id, hourlyCost: machines.hourlyCost })
+      .from(machines)
       .where(
-        and(
-          eq(activities.id, input.activityId),
-          eq(activities.orgId, ctx.org.id),
-        ),
+        and(eq(machines.id, input.machineId), eq(machines.orgId, ctx.org.id)),
       )
       .limit(1);
-    if (!row) throw new Error("activity not found");
-  }
+    if (!machine) throw new Error("machine not found");
 
-  if (input.workOrderId) {
-    const [row] = await db
-      .select({ id: workOrders.id })
-      .from(workOrders)
-      .where(
-        and(
-          eq(workOrders.id, input.workOrderId),
-          eq(workOrders.orgId, ctx.org.id),
-        ),
-      )
-      .limit(1);
-    if (!row) throw new Error("work order not found");
-  }
+    if (input.activityId) {
+      const [row] = await tx
+        .select({ id: activities.id })
+        .from(activities)
+        .where(
+          and(
+            eq(activities.id, input.activityId),
+            eq(activities.orgId, ctx.org.id),
+          ),
+        )
+        .limit(1);
+      if (!row) throw new Error("activity not found");
+    }
 
-  if (input.operatorWorkerId) {
-    const [row] = await db
-      .select({ id: workers.id })
-      .from(workers)
-      .where(
-        and(
-          eq(workers.id, input.operatorWorkerId),
-          eq(workers.orgId, ctx.org.id),
-        ),
-      )
-      .limit(1);
-    if (!row) throw new Error("operator worker not found");
-  }
+    if (input.workOrderId) {
+      const [row] = await tx
+        .select({ id: workOrders.id })
+        .from(workOrders)
+        .where(
+          and(
+            eq(workOrders.id, input.workOrderId),
+            eq(workOrders.orgId, ctx.org.id),
+          ),
+        )
+        .limit(1);
+      if (!row) throw new Error("work order not found");
+    }
 
-  // Snapshot the machine's current rate so later hourly-cost edits don't
-  // rewrite historical usage-log totals.
-  const hourlyCostSnapshot = machine.hourlyCost;
-  const fuelCost = input.fuelCost ?? "0";
-  const totalCost = new Decimal(input.hoursUsed)
-    .mul(hourlyCostSnapshot)
-    .add(fuelCost)
-    .toFixed(4);
+    if (input.operatorWorkerId) {
+      const [row] = await tx
+        .select({ id: workers.id })
+        .from(workers)
+        .where(
+          and(
+            eq(workers.id, input.operatorWorkerId),
+            eq(workers.orgId, ctx.org.id),
+          ),
+        )
+        .limit(1);
+      if (!row) throw new Error("operator worker not found");
+    }
 
-  return db.transaction(async (tx) => {
+    // Snapshot the machine's current rate so later hourly-cost edits don't
+    // rewrite historical usage-log totals.
+    const hourlyCostSnapshot = machine.hourlyCost;
+    const fuelCost = input.fuelCost ?? "0";
+    const totalCost = new Decimal(input.hoursUsed)
+      .mul(hourlyCostSnapshot)
+      .add(fuelCost)
+      .toFixed(4);
+
     const [created] = await tx
       .insert(machineUsageLogs)
       .values({
@@ -269,7 +279,7 @@ export async function deleteUsageLog(ctx: OrgContext, logId: string) {
   assertCan(ctx, "machine", "log");
   await assertOrgFeature(ctx.org.id, "machinery");
 
-  return db.transaction(async (tx) => {
+  return withOrgRls(ctx.org.id, async (tx) => {
     // Locked: a concurrent delete of the same log blocks here and then sees
     // the row gone, so the activity cost can't be subtracted twice.
     const [log] = await tx
@@ -346,28 +356,30 @@ export async function listUsageLogs(
   ctx: OrgContext,
   filter?: { machineId?: string },
 ) {
-  return db
-    .select({
-      log: machineUsageLogs,
-      machineName: machines.name,
-      operatorName: workers.name,
-      activityDate: activities.date,
-      activityDescription: activities.description,
-      workOrderCode: workOrders.code,
-    })
-    .from(machineUsageLogs)
-    .innerJoin(machines, eq(machineUsageLogs.machineId, machines.id))
-    .leftJoin(workers, eq(machineUsageLogs.operatorWorkerId, workers.id))
-    .leftJoin(activities, eq(machineUsageLogs.activityId, activities.id))
-    .leftJoin(workOrders, eq(machineUsageLogs.workOrderId, workOrders.id))
-    .where(
-      and(
-        eq(machineUsageLogs.orgId, ctx.org.id),
-        filter?.machineId
-          ? eq(machineUsageLogs.machineId, filter.machineId)
-          : undefined,
-      ),
-    )
-    .orderBy(desc(machineUsageLogs.date), desc(machineUsageLogs.createdAt))
-    .limit(200);
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        log: machineUsageLogs,
+        machineName: machines.name,
+        operatorName: workers.name,
+        activityDate: activities.date,
+        activityDescription: activities.description,
+        workOrderCode: workOrders.code,
+      })
+      .from(machineUsageLogs)
+      .innerJoin(machines, eq(machineUsageLogs.machineId, machines.id))
+      .leftJoin(workers, eq(machineUsageLogs.operatorWorkerId, workers.id))
+      .leftJoin(activities, eq(machineUsageLogs.activityId, activities.id))
+      .leftJoin(workOrders, eq(machineUsageLogs.workOrderId, workOrders.id))
+      .where(
+        and(
+          eq(machineUsageLogs.orgId, ctx.org.id),
+          filter?.machineId
+            ? eq(machineUsageLogs.machineId, filter.machineId)
+            : undefined,
+        ),
+      )
+      .orderBy(desc(machineUsageLogs.date), desc(machineUsageLogs.createdAt))
+      .limit(200),
+  );
 }

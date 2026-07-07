@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { farms, parcels } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { ParcelsOverviewMap } from "@/components/map/parcels-overview-map";
@@ -14,11 +14,13 @@ export default async function OrgMapPage({
   const ctx = await requireOrgContext(locale, orgSlug);
   const t = await getTranslations("farms");
 
-  const rows = await db
-    .select({ parcel: parcels, farmName: farms.name })
-    .from(parcels)
-    .innerJoin(farms, eq(parcels.farmId, farms.id))
-    .where(eq(parcels.orgId, ctx.org.id));
+  const rows = await withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({ parcel: parcels, farmName: farms.name })
+      .from(parcels)
+      .innerJoin(farms, eq(parcels.farmId, farms.id))
+      .where(eq(parcels.orgId, ctx.org.id)),
+  );
 
   return (
     <div className="flex flex-col gap-4">

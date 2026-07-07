@@ -1,5 +1,5 @@
 import { and, eq, inArray, sql, sum } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { activities, cropCycles, pieceworkEntries, processingRuns, sales } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import {
@@ -35,111 +35,113 @@ export async function cycleProfitabilityReport(
   ctx: OrgContext,
   cycleId?: string,
 ): Promise<CycleProfitabilityRow[]> {
-  const cycles = await db
-    .select({
-      id: cropCycles.id,
-      name: cropCycles.name,
-      areaHa: cropCycles.plantedAreaHa,
-    })
-    .from(cropCycles)
-    .where(
-      and(
-        eq(cropCycles.orgId, ctx.org.id),
-        cycleId ? eq(cropCycles.id, cycleId) : undefined,
-      ),
-    )
-    .orderBy(cropCycles.name);
-
-  if (cycles.length === 0) return [];
-  const cycleIds = cycles.map((c) => c.id);
-
-  const [salesRows, activityRows, processingRows] = await Promise.all([
-    db
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const cycles = await tx
       .select({
-        cropCycleId: sales.cropCycleId,
-        income: sum(saleIncomeInBase),
+        id: cropCycles.id,
+        name: cropCycles.name,
+        areaHa: cropCycles.plantedAreaHa,
       })
-      .from(sales)
-      .where(
-        and(eq(sales.orgId, ctx.org.id), inArray(sales.cropCycleId, cycleIds)),
-      )
-      .groupBy(sales.cropCycleId),
-    db
-      .select({
-        cropCycleId: activities.cropCycleId,
-        cost: sum(activityCostInBase),
-      })
-      .from(activities)
+      .from(cropCycles)
       .where(
         and(
-          eq(activities.orgId, ctx.org.id),
-          inArray(activities.cropCycleId, cycleIds),
+          eq(cropCycles.orgId, ctx.org.id),
+          cycleId ? eq(cropCycles.id, cycleId) : undefined,
         ),
       )
-      .groupBy(activities.cropCycleId),
-    db
-      .select({
-        cropCycleId: processingRuns.cropCycleId,
-        cost: sum(processingRuns.cost),
-        outputQuantity: sum(processingRuns.outputQuantity),
-        // Distinct-unit count per cycle: > 1 means mixed units, so the
-        // aggregated outputQuantity can't be labeled with a single unit.
-        unitCount: sql<number>`count(distinct ${processingRuns.outputUnit})`,
-        outputUnit: sql<string | null>`min(${processingRuns.outputUnit})`,
-      })
-      .from(processingRuns)
-      .where(
-        and(
-          eq(processingRuns.orgId, ctx.org.id),
-          inArray(processingRuns.cropCycleId, cycleIds),
-        ),
-      )
-      .groupBy(processingRuns.cropCycleId),
-  ]);
+      .orderBy(cropCycles.name);
 
-  const salesByCycle = new Map(
-    salesRows.map((r) => [r.cropCycleId, r.income ?? "0"]),
-  );
-  const activityByCycle = new Map(
-    activityRows.map((r) => [r.cropCycleId, r.cost ?? "0"]),
-  );
-  const processingByCycle = new Map(
-    processingRows.map((r) => [
-      r.cropCycleId,
-      {
-        cost: r.cost ?? "0",
-        outputQuantity: Number(r.unitCount) === 1 ? r.outputQuantity : null,
-        outputUnit: Number(r.unitCount) === 1 ? r.outputUnit : null,
-      },
-    ]),
-  );
+    if (cycles.length === 0) return [];
+    const cycleIds = cycles.map((c) => c.id);
 
-  return cycles.map((cycle) => {
-    const income = salesByCycle.get(cycle.id) ?? "0";
-    const activityCost = activityByCycle.get(cycle.id) ?? "0";
-    const processing = processingByCycle.get(cycle.id) ?? {
-      cost: "0",
-      outputQuantity: null as string | null,
-      outputUnit: null as string | null,
-    };
+    const [salesRows, activityRows, processingRows] = await Promise.all([
+      tx
+        .select({
+          cropCycleId: sales.cropCycleId,
+          income: sum(saleIncomeInBase),
+        })
+        .from(sales)
+        .where(
+          and(eq(sales.orgId, ctx.org.id), inArray(sales.cropCycleId, cycleIds)),
+        )
+        .groupBy(sales.cropCycleId),
+      tx
+        .select({
+          cropCycleId: activities.cropCycleId,
+          cost: sum(activityCostInBase),
+        })
+        .from(activities)
+        .where(
+          and(
+            eq(activities.orgId, ctx.org.id),
+            inArray(activities.cropCycleId, cycleIds),
+          ),
+        )
+        .groupBy(activities.cropCycleId),
+      tx
+        .select({
+          cropCycleId: processingRuns.cropCycleId,
+          cost: sum(processingRuns.cost),
+          outputQuantity: sum(processingRuns.outputQuantity),
+          // Distinct-unit count per cycle: > 1 means mixed units, so the
+          // aggregated outputQuantity can't be labeled with a single unit.
+          unitCount: sql<number>`count(distinct ${processingRuns.outputUnit})`,
+          outputUnit: sql<string | null>`min(${processingRuns.outputUnit})`,
+        })
+        .from(processingRuns)
+        .where(
+          and(
+            eq(processingRuns.orgId, ctx.org.id),
+            inArray(processingRuns.cropCycleId, cycleIds),
+          ),
+        )
+        .groupBy(processingRuns.cropCycleId),
+    ]);
 
-    const profitability = computeCycleProfitability({
-      salesIncome: [income],
-      activityCosts: [activityCost],
-      processingCosts: [processing.cost],
-      pieceworkCosts: [],
-      areaHa: cycle.areaHa,
-      outputQuantity: processing.outputQuantity,
+    const salesByCycle = new Map(
+      salesRows.map((r) => [r.cropCycleId, r.income ?? "0"]),
+    );
+    const activityByCycle = new Map(
+      activityRows.map((r) => [r.cropCycleId, r.cost ?? "0"]),
+    );
+    const processingByCycle = new Map(
+      processingRows.map((r) => [
+        r.cropCycleId,
+        {
+          cost: r.cost ?? "0",
+          outputQuantity: Number(r.unitCount) === 1 ? r.outputQuantity : null,
+          outputUnit: Number(r.unitCount) === 1 ? r.outputUnit : null,
+        },
+      ]),
+    );
+
+    return cycles.map((cycle) => {
+      const income = salesByCycle.get(cycle.id) ?? "0";
+      const activityCost = activityByCycle.get(cycle.id) ?? "0";
+      const processing = processingByCycle.get(cycle.id) ?? {
+        cost: "0",
+        outputQuantity: null as string | null,
+        outputUnit: null as string | null,
+      };
+
+      const profitability = computeCycleProfitability({
+        salesIncome: [income],
+        activityCosts: [activityCost],
+        processingCosts: [processing.cost],
+        pieceworkCosts: [],
+        areaHa: cycle.areaHa,
+        outputQuantity: processing.outputQuantity,
+      });
+
+      return {
+        ...profitability,
+        cycleId: cycle.id,
+        cycleName: cycle.name,
+        areaHa: cycle.areaHa,
+        outputQuantity: processing.outputQuantity,
+        outputUnit: processing.outputUnit,
+      };
     });
-
-    return {
-      ...profitability,
-      cycleId: cycle.id,
-      cycleName: cycle.name,
-      areaHa: cycle.areaHa,
-      outputQuantity: processing.outputQuantity,
-      outputUnit: processing.outputUnit,
-    };
   });
 }
 
@@ -151,9 +153,11 @@ export async function cycleProfitabilityReport(
 export async function orgUnattributedPieceworkCost(
   ctx: OrgContext,
 ): Promise<string> {
-  const [row] = await db
-    .select({ total: sum(pieceworkEntries.amount) })
-    .from(pieceworkEntries)
-    .where(eq(pieceworkEntries.orgId, ctx.org.id));
+  const [row] = await withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({ total: sum(pieceworkEntries.amount) })
+      .from(pieceworkEntries)
+      .where(eq(pieceworkEntries.orgId, ctx.org.id)),
+  );
   return row?.total ?? "0";
 }

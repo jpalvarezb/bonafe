@@ -1,6 +1,6 @@
 import { and, asc, eq, isNull, or } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import {
   activityTypes,
   crops,
@@ -16,24 +16,28 @@ const globalOrOrg = (orgIdColumn: PgColumn, orgId: string) =>
   or(isNull(orgIdColumn), eq(orgIdColumn, orgId));
 
 export async function listCrops(ctx: OrgContext) {
-  return db
-    .select()
-    .from(crops)
-    .where(globalOrOrg(crops.orgId, ctx.org.id))
-    .orderBy(asc(crops.name));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(crops)
+      .where(globalOrOrg(crops.orgId, ctx.org.id))
+      .orderBy(asc(crops.name)),
+  );
 }
 
 export async function listVarieties(ctx: OrgContext, cropId?: string) {
-  return db
-    .select()
-    .from(cropVarieties)
-    .where(
-      and(
-        globalOrOrg(cropVarieties.orgId, ctx.org.id),
-        cropId ? eq(cropVarieties.cropId, cropId) : undefined,
-      ),
-    )
-    .orderBy(asc(cropVarieties.name));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(cropVarieties)
+      .where(
+        and(
+          globalOrOrg(cropVarieties.orgId, ctx.org.id),
+          cropId ? eq(cropVarieties.cropId, cropId) : undefined,
+        ),
+      )
+      .orderBy(asc(cropVarieties.name)),
+  );
 }
 
 export async function createCrop(
@@ -41,17 +45,19 @@ export async function createCrop(
   input: { name: string; scientificName?: string; defaultCycleDays?: number },
 ) {
   assertCan(ctx, "catalog", "manage");
-  const [created] = await db
-    .insert(crops)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      name: input.name,
-      scientificName: input.scientificName ?? null,
-      defaultCycleDays: input.defaultCycleDays ?? null,
-    })
-    .returning();
-  return created;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [created] = await tx
+      .insert(crops)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        name: input.name,
+        scientificName: input.scientificName ?? null,
+        defaultCycleDays: input.defaultCycleDays ?? null,
+      })
+      .returning();
+    return created;
+  });
 }
 
 export async function createVariety(
@@ -59,25 +65,29 @@ export async function createVariety(
   input: { cropId: string; name: string; notes?: string },
 ) {
   assertCan(ctx, "catalog", "manage");
-  const [created] = await db
-    .insert(cropVarieties)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      cropId: input.cropId,
-      name: input.name,
-      notes: input.notes ?? null,
-    })
-    .returning();
-  return created;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [created] = await tx
+      .insert(cropVarieties)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        cropId: input.cropId,
+        name: input.name,
+        notes: input.notes ?? null,
+      })
+      .returning();
+    return created;
+  });
 }
 
 export async function listActivityTypes(ctx: OrgContext) {
-  return db
-    .select()
-    .from(activityTypes)
-    .where(globalOrOrg(activityTypes.orgId, ctx.org.id))
-    .orderBy(asc(activityTypes.name));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(activityTypes)
+      .where(globalOrOrg(activityTypes.orgId, ctx.org.id))
+      .orderBy(asc(activityTypes.name)),
+  );
 }
 
 export async function createActivityType(
@@ -85,16 +95,18 @@ export async function createActivityType(
   input: { name: string; category?: "field" | "general" | "machine" },
 ) {
   assertCan(ctx, "catalog", "manage");
-  const [created] = await db
-    .insert(activityTypes)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      name: input.name,
-      category: input.category ?? "field",
-    })
-    .returning();
-  return created;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [created] = await tx
+      .insert(activityTypes)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        name: input.name,
+        category: input.category ?? "field",
+      })
+      .returning();
+    return created;
+  });
 }
 
 export type ProductInput = {
@@ -105,25 +117,29 @@ export type ProductInput = {
 };
 
 export async function listProducts(ctx: OrgContext) {
-  return db
-    .select()
-    .from(products)
-    .where(eq(products.orgId, ctx.org.id))
-    .orderBy(asc(products.name));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(products)
+      .where(eq(products.orgId, ctx.org.id))
+      .orderBy(asc(products.name)),
+  );
 }
 
 export async function createProduct(ctx: OrgContext, input: ProductInput) {
   assertCan(ctx, "catalog", "manage");
-  const [created] = await db
-    .insert(products)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      name: input.name,
-      category: input.category ?? "other",
-      unit: input.unit ?? "unidad",
-      activeIngredient: input.activeIngredient ?? null,
-    })
-    .returning();
-  return created;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [created] = await tx
+      .insert(products)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        name: input.name,
+        category: input.category ?? "other",
+        unit: input.unit ?? "unidad",
+        activeIngredient: input.activeIngredient ?? null,
+      })
+      .returning();
+    return created;
+  });
 }

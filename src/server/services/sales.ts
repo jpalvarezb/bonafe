@@ -1,13 +1,13 @@
 import { and, asc, count, desc, eq } from "drizzle-orm";
 import Decimal from "decimal.js";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { cropCycles, saleLines, sales } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
 import { assertOrgFeature } from "@/lib/plan-limits";
 import { newId } from "@/lib/ids";
 import { inputLineTotal } from "@/lib/calc/costs";
-import { latestRateToBase } from "@/server/services/exchange-rates";
+import { latestRateToBaseInTx } from "@/server/services/exchange-rates";
 
 export type SaleLineInput = {
   description: string;
@@ -34,43 +34,43 @@ export async function createSale(ctx: OrgContext, input: SaleInput) {
     throw new Error("sale must have at least one line");
   }
 
-  if (input.cropCycleId) {
-    const [cycle] = await db
-      .select({ id: cropCycles.id })
-      .from(cropCycles)
-      .where(
-        and(
-          eq(cropCycles.id, input.cropCycleId),
-          eq(cropCycles.orgId, ctx.org.id),
-        ),
-      )
-      .limit(1);
-    if (!cycle) throw new Error("crop cycle not found");
-  }
+  return withOrgRls(ctx.org.id, async (tx) => {
+    if (input.cropCycleId) {
+      const [cycle] = await tx
+        .select({ id: cropCycles.id })
+        .from(cropCycles)
+        .where(
+          and(
+            eq(cropCycles.id, input.cropCycleId),
+            eq(cropCycles.orgId, ctx.org.id),
+          ),
+        )
+        .limit(1);
+      if (!cycle) throw new Error("crop cycle not found");
+    }
 
-  const currencyCode = input.currencyCode ?? ctx.org.baseCurrencyCode;
-  const exchangeRate =
-    currencyCode === ctx.org.baseCurrencyCode
-      ? "1"
-      : await latestRateToBase(ctx, currencyCode, input.date);
-  if (exchangeRate == null) {
-    throw new Error("missing exchange rate for " + currencyCode);
-  }
+    const currencyCode = input.currencyCode ?? ctx.org.baseCurrencyCode;
+    const exchangeRate =
+      currencyCode === ctx.org.baseCurrencyCode
+        ? "1"
+        : await latestRateToBaseInTx(tx, ctx, currencyCode, input.date);
+    if (exchangeRate == null) {
+      throw new Error("missing exchange rate for " + currencyCode);
+    }
 
-  // quantity × unitPrice is the same math as a purchase line's quantity ×
-  // unitCost, so we reuse inputLineTotal rather than re-deriving it.
-  const lineTotals = input.lines.map((line) =>
-    inputLineTotal({ quantity: line.quantity, unitCost: line.unitPrice }),
-  );
-  const subtotal = lineTotals
-    .reduce((sum, total) => sum.add(new Decimal(total)), new Decimal(0))
-    .toFixed(4);
-  // No tax in Phase 6 — total mirrors subtotal.
-  const total = subtotal;
+    // quantity × unitPrice is the same math as a purchase line's quantity ×
+    // unitCost, so we reuse inputLineTotal rather than re-deriving it.
+    const lineTotals = input.lines.map((line) =>
+      inputLineTotal({ quantity: line.quantity, unitCost: line.unitPrice }),
+    );
+    const subtotal = lineTotals
+      .reduce((sum, total) => sum.add(new Decimal(total)), new Decimal(0))
+      .toFixed(4);
+    // No tax in Phase 6 — total mirrors subtotal.
+    const total = subtotal;
 
-  const saleId = newId();
+    const saleId = newId();
 
-  return db.transaction(async (tx) => {
     const [created] = await tx
       .insert(sales)
       .values({
@@ -106,51 +106,57 @@ export async function createSale(ctx: OrgContext, input: SaleInput) {
 }
 
 export async function listSales(ctx: OrgContext) {
-  return db
-    .select({
-      sale: sales,
-      cycleName: cropCycles.name,
-      lineCount: count(saleLines.id),
-    })
-    .from(sales)
-    .leftJoin(cropCycles, eq(sales.cropCycleId, cropCycles.id))
-    .leftJoin(saleLines, eq(saleLines.saleId, sales.id))
-    .where(eq(sales.orgId, ctx.org.id))
-    .groupBy(sales.id, cropCycles.name)
-    .orderBy(desc(sales.date), desc(sales.createdAt));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        sale: sales,
+        cycleName: cropCycles.name,
+        lineCount: count(saleLines.id),
+      })
+      .from(sales)
+      .leftJoin(cropCycles, eq(sales.cropCycleId, cropCycles.id))
+      .leftJoin(saleLines, eq(saleLines.saleId, sales.id))
+      .where(eq(sales.orgId, ctx.org.id))
+      .groupBy(sales.id, cropCycles.name)
+      .orderBy(desc(sales.date), desc(sales.createdAt)),
+  );
 }
 
 export async function getSale(ctx: OrgContext, saleId: string) {
-  const [row] = await db
-    .select({ sale: sales, cycleName: cropCycles.name })
-    .from(sales)
-    .leftJoin(cropCycles, eq(sales.cropCycleId, cropCycles.id))
-    .where(and(eq(sales.id, saleId), eq(sales.orgId, ctx.org.id)))
-    .limit(1);
-  if (!row) return null;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [row] = await tx
+      .select({ sale: sales, cycleName: cropCycles.name })
+      .from(sales)
+      .leftJoin(cropCycles, eq(sales.cropCycleId, cropCycles.id))
+      .where(and(eq(sales.id, saleId), eq(sales.orgId, ctx.org.id)))
+      .limit(1);
+    if (!row) return null;
 
-  const lines = await db
-    .select()
-    .from(saleLines)
-    .where(eq(saleLines.saleId, saleId))
-    .orderBy(asc(saleLines.createdAt));
+    const lines = await tx
+      .select()
+      .from(saleLines)
+      .where(eq(saleLines.saleId, saleId))
+      .orderBy(asc(saleLines.createdAt));
 
-  return { ...row, lines };
+    return { ...row, lines };
+  });
 }
 
 export async function deleteSale(ctx: OrgContext, saleId: string) {
   assertCan(ctx, "sale", "delete");
   await assertOrgFeature(ctx.org.id, "sales");
 
-  const [sale] = await db
-    .select({ id: sales.id })
-    .from(sales)
-    .where(and(eq(sales.id, saleId), eq(sales.orgId, ctx.org.id)))
-    .limit(1);
-  if (!sale) throw new Error("sale not found");
+  await withOrgRls(ctx.org.id, async (tx) => {
+    const [sale] = await tx
+      .select({ id: sales.id })
+      .from(sales)
+      .where(and(eq(sales.id, saleId), eq(sales.orgId, ctx.org.id)))
+      .limit(1);
+    if (!sale) throw new Error("sale not found");
 
-  // sale_lines cascade on sales.id delete.
-  await db
-    .delete(sales)
-    .where(and(eq(sales.id, saleId), eq(sales.orgId, ctx.org.id)));
+    // sale_lines cascade on sales.id delete.
+    await tx
+      .delete(sales)
+      .where(and(eq(sales.id, saleId), eq(sales.orgId, ctx.org.id)));
+  });
 }

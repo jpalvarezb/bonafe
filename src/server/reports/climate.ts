@@ -1,6 +1,6 @@
 import { and, eq, gte, lte } from "drizzle-orm";
 import Decimal from "decimal.js";
-import { db } from "@/lib/db";
+import { withOrgRls, type Tx } from "@/lib/db/rls";
 import {
   activities,
   activityTypes,
@@ -56,14 +56,18 @@ function dedupeBySourcePriority(
 /**
  * Daily rainfall for a farm over [from, to] (inclusive), deduped by
  * source-priority when multiple readings exist for the same date.
+ *
+ * Exported as an `...InTx` variant too: cycleRainfallAccumulation (below)
+ * needs this inside its own transaction, not a second nested one.
  */
-export async function dailyRainfallForFarm(
+export async function dailyRainfallForFarmInTx(
+  tx: Tx,
   ctx: OrgContext,
   farmId: string,
   from: string,
   to: string,
 ): Promise<DailyRainfall[]> {
-  const rows = await db
+  const rows = await tx
     .select({
       date: climateReadings.date,
       source: climateReadings.source,
@@ -79,6 +83,17 @@ export async function dailyRainfallForFarm(
       ),
     );
   return dedupeBySourcePriority(rows);
+}
+
+export async function dailyRainfallForFarm(
+  ctx: OrgContext,
+  farmId: string,
+  from: string,
+  to: string,
+): Promise<DailyRainfall[]> {
+  return withOrgRls(ctx.org.id, (tx) =>
+    dailyRainfallForFarmInTx(tx, ctx, farmId, from, to),
+  );
 }
 
 export type CycleRainfallAccumulation = {
@@ -99,36 +114,38 @@ export async function cycleRainfallAccumulation(
   ctx: OrgContext,
   cycleId: string,
 ): Promise<CycleRainfallAccumulation> {
-  const [cycle] = await db
-    .select({
-      id: cropCycles.id,
-      farmId: cropCycles.farmId,
-      startDate: cropCycles.startDate,
-      endDate: cropCycles.endDate,
-    })
-    .from(cropCycles)
-    .where(and(eq(cropCycles.id, cycleId), eq(cropCycles.orgId, ctx.org.id)))
-    .limit(1);
-  if (!cycle) throw new Error("cycle not found");
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [cycle] = await tx
+      .select({
+        id: cropCycles.id,
+        farmId: cropCycles.farmId,
+        startDate: cropCycles.startDate,
+        endDate: cropCycles.endDate,
+      })
+      .from(cropCycles)
+      .where(and(eq(cropCycles.id, cycleId), eq(cropCycles.orgId, ctx.org.id)))
+      .limit(1);
+    if (!cycle) throw new Error("cycle not found");
 
-  const today = new Date().toISOString().slice(0, 10);
-  const to = cycle.endDate && cycle.endDate < today ? cycle.endDate : today;
-  const from = cycle.startDate;
+    const today = new Date().toISOString().slice(0, 10);
+    const to = cycle.endDate && cycle.endDate < today ? cycle.endDate : today;
+    const from = cycle.startDate;
 
-  const daily = await dailyRainfallForFarm(ctx, cycle.farmId, from, to);
-  const total = daily.reduce(
-    (acc, row) => acc.add(new Decimal(row.rainfallMm ?? 0)),
-    new Decimal(0),
-  );
+    const daily = await dailyRainfallForFarmInTx(tx, ctx, cycle.farmId, from, to);
+    const total = daily.reduce(
+      (acc, row) => acc.add(new Decimal(row.rainfallMm ?? 0)),
+      new Decimal(0),
+    );
 
-  return {
-    totalMm: total.toFixed(1),
-    days: daily.length,
-    from,
-    to,
-    farmId: cycle.farmId,
-    daily,
-  };
+    return {
+      totalMm: total.toFixed(1),
+      days: daily.length,
+      from,
+      to,
+      farmId: cycle.farmId,
+      daily,
+    };
+  });
 }
 
 export type TimelineActivity = { date: string; typeName: string };
@@ -138,22 +155,24 @@ export async function activitiesForTimeline(
   ctx: OrgContext,
   cycleId: string,
 ): Promise<TimelineActivity[]> {
-  const [cycle] = await db
-    .select({ id: cropCycles.id })
-    .from(cropCycles)
-    .where(and(eq(cropCycles.id, cycleId), eq(cropCycles.orgId, ctx.org.id)))
-    .limit(1);
-  if (!cycle) throw new Error("cycle not found");
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [cycle] = await tx
+      .select({ id: cropCycles.id })
+      .from(cropCycles)
+      .where(and(eq(cropCycles.id, cycleId), eq(cropCycles.orgId, ctx.org.id)))
+      .limit(1);
+    if (!cycle) throw new Error("cycle not found");
 
-  return db
-    .select({
-      date: activities.date,
-      typeName: activityTypes.name,
-    })
-    .from(activities)
-    .innerJoin(activityTypes, eq(activities.activityTypeId, activityTypes.id))
-    .where(
-      and(eq(activities.orgId, ctx.org.id), eq(activities.cropCycleId, cycleId)),
-    )
-    .orderBy(activities.date);
+    return tx
+      .select({
+        date: activities.date,
+        typeName: activityTypes.name,
+      })
+      .from(activities)
+      .innerJoin(activityTypes, eq(activities.activityTypeId, activityTypes.id))
+      .where(
+        and(eq(activities.orgId, ctx.org.id), eq(activities.cropCycleId, cycleId)),
+      )
+      .orderBy(activities.date);
+  });
 }

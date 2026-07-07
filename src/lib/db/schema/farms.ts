@@ -10,7 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { geoPoint, geoPolygon } from "../geometry";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 export const farms = pgTable(
   "farms",
@@ -25,8 +25,12 @@ export const farms = pgTable(
     notes: text("notes"),
     ...timestamps,
   },
-  (t) => [index("farms_org_idx").on(t.orgId)],
-);
+  (t) => [
+    index("farms_org_idx").on(t.orgId),
+    index("farms_location_gist_idx").using("gist", t.location),
+    ...orgIsolationPolicy("farms"),
+  ],
+).enableRLS();
 
 export const parcels = pgTable(
   "parcels",
@@ -51,5 +55,7 @@ export const parcels = pgTable(
     uniqueIndex("parcels_farm_code_uq")
       .on(t.farmId, t.code)
       .where(sql`${t.code} IS NOT NULL`),
+    index("parcels_boundary_gist_idx").using("gist", t.boundary),
+    ...orgIsolationPolicy("parcels"),
   ],
-);
+).enableRLS();

@@ -9,6 +9,7 @@ import { auth } from "@/lib/auth";
 import { ORG_ROLES } from "@/lib/auth/permissions";
 import { audit } from "@/lib/audit";
 import { db } from "@/lib/db";
+import { isUniqueViolation } from "@/lib/db/errors";
 import { invitation, member } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import {
@@ -78,20 +79,43 @@ export async function inviteMemberAction(formData: FormData) {
     }
   }
 
-  const created = await auth.api.createInvitation({
-    body: {
-      email: parsed.email,
-      role: parsed.role as "owner" | "admin" | "manager" | "field_supervisor",
-      organizationId: orgId,
-    },
-    headers: await headers(),
-  });
+  try {
+    const created = await auth.api.createInvitation({
+      body: {
+        email: parsed.email,
+        role: parsed.role as "owner" | "admin" | "manager" | "field_supervisor",
+        organizationId: orgId,
+      },
+      headers: await headers(),
+    });
 
-  await audit(ctx, "member.invite", {
-    entity: "invitation",
-    entityId: created.id,
-    meta: { role: parsed.role, email: maskEmail(parsed.email) },
-  });
+    await audit(ctx, "member.invite", {
+      entity: "invitation",
+      entityId: created.id,
+      meta: { role: parsed.role, email: maskEmail(parsed.email) },
+    });
+  } catch (err) {
+    // Two paths land here for the same user-visible situation: Better Auth's
+    // own pre-check (the common case — it looks up pending invites before
+    // inserting and throws an APIError) and the raw DB unique violation on
+    // invitation_org_email_pending_uq (the race-condition fallback the
+    // partial unique index exists for, when two invites for the same email
+    // are submitted concurrently and both pass that pre-check).
+    const isBetterAuthDuplicate =
+      err !== null &&
+      typeof err === "object" &&
+      "body" in err &&
+      (err as { body?: { code?: string } }).body?.code ===
+        "USER_IS_ALREADY_INVITED_TO_THIS_ORGANIZATION";
+    const isDbDuplicate = isUniqueViolation(
+      err,
+      "invitation_org_email_pending_uq",
+    );
+    if (isBetterAuthDuplicate || isDbDuplicate) {
+      redirect(`${parsed.path}?error=duplicatePending`);
+    }
+    throw err;
+  }
 
   revalidatePath(parsed.path);
 }

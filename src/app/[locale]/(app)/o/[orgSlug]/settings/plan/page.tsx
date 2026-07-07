@@ -1,6 +1,6 @@
 import { and, count, eq } from "drizzle-orm";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { farms, invitation, member, orgSubscriptions } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { getOrgPlan, PLAN_DEFINITIONS } from "@/lib/plan-limits";
@@ -33,29 +33,40 @@ export default async function PlanPage({
   const plan = await getOrgPlan(ctx.org.id);
   const stripeEnabled = isStripeConfigured();
 
-  const [{ value: memberCount }] = await db
-    .select({ value: count() })
-    .from(member)
-    .where(eq(member.organizationId, ctx.org.id));
-  const [{ value: pendingCount }] = await db
-    .select({ value: count() })
-    .from(invitation)
-    .where(
-      and(
-        eq(invitation.organizationId, ctx.org.id),
-        eq(invitation.status, "pending"),
-      ),
-    );
-  const [{ value: farmCount }] = await db
-    .select({ value: count() })
-    .from(farms)
-    .where(eq(farms.orgId, ctx.org.id));
-  const [subscriptionRow] = await db
-    .select({ stripeCustomerId: orgSubscriptions.stripeCustomerId })
-    .from(orgSubscriptions)
-    .where(eq(orgSubscriptions.orgId, ctx.org.id))
-    .limit(1);
-  const hasStripeCustomer = Boolean(subscriptionRow?.stripeCustomerId);
+  // member/invitation carry no RLS (see src/lib/db/schema/tenancy.ts); farms
+  // and org_subscriptions do — all four run under one withOrgRls so the GUC
+  // is set for the RLS'd ones, in a single round trip.
+  const { memberCount, pendingCount, farmCount, hasStripeCustomer } =
+    await withOrgRls(ctx.org.id, async (tx) => {
+      const [{ value: memberCount }] = await tx
+        .select({ value: count() })
+        .from(member)
+        .where(eq(member.organizationId, ctx.org.id));
+      const [{ value: pendingCount }] = await tx
+        .select({ value: count() })
+        .from(invitation)
+        .where(
+          and(
+            eq(invitation.organizationId, ctx.org.id),
+            eq(invitation.status, "pending"),
+          ),
+        );
+      const [{ value: farmCount }] = await tx
+        .select({ value: count() })
+        .from(farms)
+        .where(eq(farms.orgId, ctx.org.id));
+      const [subscriptionRow] = await tx
+        .select({ stripeCustomerId: orgSubscriptions.stripeCustomerId })
+        .from(orgSubscriptions)
+        .where(eq(orgSubscriptions.orgId, ctx.org.id))
+        .limit(1);
+      return {
+        memberCount,
+        pendingCount,
+        farmCount,
+        hasStripeCustomer: Boolean(subscriptionRow?.stripeCustomerId),
+      };
+    });
 
   const limitParam =
     sp.limit === "maxUsers" || sp.limit === "maxFarms" ? sp.limit : undefined;

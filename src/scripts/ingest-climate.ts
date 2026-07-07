@@ -18,7 +18,10 @@
  * Run with: pnpm climate:ingest
  */
 import { sql } from "drizzle-orm";
-import { db } from "../lib/db";
+// dbSystem: owner connection, bypasses RLS. Unattended, cross-org job with
+// no OrgContext/app.org_id — matches ingestRainfallCore/upsertRainfallDays
+// in climate-ingest.ts, which are also dbSystem-based for this script.
+import { dbSystem } from "../lib/db";
 import { ingestRainfallCore } from "../server/services/climate-ingest";
 
 const PAUSE_MS = 300;
@@ -33,7 +36,7 @@ type FarmRow = {
 
 /** Every farm, across every org, that has at least one parcel with a boundary. */
 async function farmsWithParcels(): Promise<FarmRow[]> {
-  const result = await db.execute(sql`
+  const result = await dbSystem.execute(sql`
     SELECT f.id AS farm_id, f.org_id AS org_id, ST_Y(c.pt) AS lat, ST_X(c.pt) AS lng
     FROM farms f
     JOIN LATERAL (

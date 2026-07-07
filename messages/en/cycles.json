@@ -39,5 +39,9 @@
   },
   "rainSection": "Cycle rainfall",
   "selectCycle": "Cycle",
-  "noCycleSelected": "Select a cycle to see its rainfall."
+  "noCycleSelected": "Select a cycle to see its rainfall.",
+  "errors": {
+    "cycleOverlap": "A cycle of this crop already exists on that parcel during that period.",
+    "unknown": "The cycle could not be saved. Please try again."
+  }
 }

@@ -22,6 +22,8 @@ export async function createMonitoringAction(formData: FormData) {
     orgSlug: formData.get("orgSlug"),
   });
   const ctx = await requireOrgContext(locale, orgSlug);
+  const locationLat = str(formData, "locationLat");
+  const locationLng = str(formData, "locationLng");
   await createMonitoringRecord(ctx, {
     parcelId: z.string().uuid().parse(formData.get("parcelId")),
     cropCycleId: str(formData, "cropCycleId") ?? null,
@@ -38,6 +40,15 @@ export async function createMonitoringAction(formData: FormData) {
       .parse(str(formData, "incidencePct") ?? null),
     notes: str(formData, "notes") ?? null,
     actionsTaken: str(formData, "actionsTaken") ?? null,
+    // Optional device GPS fix (hidden inputs set by the client form after a
+    // successful navigator.geolocation capture); absent when denied/unavailable.
+    location:
+      locationLat && locationLng
+        ? {
+            lat: z.coerce.number().min(-90).max(90).parse(locationLat),
+            lng: z.coerce.number().min(-180).max(180).parse(locationLng),
+          }
+        : null,
   });
   redirect(`/${locale}/o/${orgSlug}/monitoring`);
 }

@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import Decimal from "decimal.js";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { workers as workersTable } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
@@ -54,16 +54,18 @@ export default async function HarvestsPage({
   const [parcels, cycles, activeWorkers] = await Promise.all([
     listParcels(ctx),
     listCycles(ctx, { status: "active" }),
-    db
-      .select({ id: workersTable.id, name: workersTable.name })
-      .from(workersTable)
-      .where(
-        and(
-          eq(workersTable.orgId, ctx.org.id),
-          eq(workersTable.active, true),
-        ),
-      )
-      .orderBy(workersTable.name),
+    withOrgRls(ctx.org.id, (tx) =>
+      tx
+        .select({ id: workersTable.id, name: workersTable.name })
+        .from(workersTable)
+        .where(
+          and(
+            eq(workersTable.orgId, ctx.org.id),
+            eq(workersTable.active, true),
+          ),
+        )
+        .orderBy(workersTable.name),
+    ),
   ]);
 
   const rows = await listHarvests(ctx, {

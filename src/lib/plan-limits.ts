@@ -1,5 +1,6 @@
 import { count, eq } from "drizzle-orm";
 import { db } from "./db";
+import { withOrgRls } from "./db/rls";
 import { farms, member, orgSubscriptions, plans } from "./db/schema";
 
 export type PlanLimits = {
@@ -81,17 +82,19 @@ export type OrgPlan = {
 
 /** Orgs without a subscription row are treated as a Cosecha trial (dev/demo). */
 export async function getOrgPlan(orgId: string): Promise<OrgPlan> {
-  const rows = await db
-    .select({
-      planId: orgSubscriptions.planId,
-      status: orgSubscriptions.status,
-      planName: plans.name,
-      limits: plans.limits,
-    })
-    .from(orgSubscriptions)
-    .innerJoin(plans, eq(orgSubscriptions.planId, plans.id))
-    .where(eq(orgSubscriptions.orgId, orgId))
-    .limit(1);
+  const rows = await withOrgRls(orgId, (tx) =>
+    tx
+      .select({
+        planId: orgSubscriptions.planId,
+        status: orgSubscriptions.status,
+        planName: plans.name,
+        limits: plans.limits,
+      })
+      .from(orgSubscriptions)
+      .innerJoin(plans, eq(orgSubscriptions.planId, plans.id))
+      .where(eq(orgSubscriptions.orgId, orgId))
+      .limit(1),
+  );
 
   const row = rows[0];
   if (!row) {
@@ -153,6 +156,8 @@ export class PlanLimitError extends Error {
 export async function assertCanAddMember(orgId: string): Promise<void> {
   const plan = await getOrgPlan(orgId);
   if (plan.limits.maxUsers == null) return;
+  // `member` carries no RLS (see src/lib/db/schema/tenancy.ts) — plain `db`
+  // query is fine, membership is already scoped by organizationId here.
   const [row] = await db
     .select({ value: count() })
     .from(member)
@@ -169,10 +174,9 @@ export async function assertCanAddMember(orgId: string): Promise<void> {
 export async function assertCanAddFarm(orgId: string): Promise<void> {
   const plan = await getOrgPlan(orgId);
   if (plan.limits.maxFarms == null) return;
-  const [row] = await db
-    .select({ value: count() })
-    .from(farms)
-    .where(eq(farms.orgId, orgId));
+  const [row] = await withOrgRls(orgId, (tx) =>
+    tx.select({ value: count() }).from(farms).where(eq(farms.orgId, orgId)),
+  );
   if (row.value >= plan.limits.maxFarms) {
     throw new PlanLimitError(
       "maxFarms",

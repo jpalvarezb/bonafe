@@ -1,5 +1,5 @@
 import { and, asc, between, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { withOrgRls, type Tx } from "@/lib/db/rls";
 import { attendanceRecords, farms, workers } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
@@ -31,69 +31,76 @@ export async function upsertAttendance(
   assertCan(ctx, "attendance", "create");
   await assertOrgFeature(ctx.org.id, "labor");
 
-  const [worker] = await db
-    .select({
-      id: workers.id,
-      dailyRate: workers.dailyRate,
-      hourlyRate: workers.hourlyRate,
-    })
-    .from(workers)
-    .where(and(eq(workers.id, input.workerId), eq(workers.orgId, ctx.org.id)))
-    .limit(1);
-  if (!worker) throw new Error("worker not found");
-
-  if (input.farmId) {
-    const [farm] = await db
-      .select({ id: farms.id, active: farms.active })
-      .from(farms)
-      .where(and(eq(farms.id, input.farmId), eq(farms.orgId, ctx.org.id)))
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [worker] = await tx
+      .select({
+        id: workers.id,
+        dailyRate: workers.dailyRate,
+        hourlyRate: workers.hourlyRate,
+      })
+      .from(workers)
+      .where(and(eq(workers.id, input.workerId), eq(workers.orgId, ctx.org.id)))
       .limit(1);
-    if (!farm) throw new Error("farm not found");
-    if (!farm.active) throw new Error("farm is inactive");
-  }
+    if (!worker) throw new Error("worker not found");
 
-  const [row] = await db
-    .insert(attendanceRecords)
-    .values({
-      id: input.id ?? newId(),
-      orgId: ctx.org.id,
-      workerId: input.workerId,
-      date: input.date,
-      status: input.status,
-      hoursWorked: input.hoursWorked || null,
-      dailyRateSnapshot: worker.dailyRate,
-      hourlyRateSnapshot: worker.hourlyRate,
-      farmId: input.farmId ?? null,
-      notes: input.notes ?? null,
-      createdBy: ctx.user.id,
-      createdOffline: input.createdOffline ?? false,
-    })
-    .onConflictDoUpdate({
-      target: [
-        attendanceRecords.orgId,
-        attendanceRecords.workerId,
-        attendanceRecords.date,
-      ],
-      set: {
+    if (input.farmId) {
+      const [farm] = await tx
+        .select({ id: farms.id, active: farms.active })
+        .from(farms)
+        .where(and(eq(farms.id, input.farmId), eq(farms.orgId, ctx.org.id)))
+        .limit(1);
+      if (!farm) throw new Error("farm not found");
+      if (!farm.active) throw new Error("farm is inactive");
+    }
+
+    const [row] = await tx
+      .insert(attendanceRecords)
+      .values({
+        id: input.id ?? newId(),
+        orgId: ctx.org.id,
+        workerId: input.workerId,
+        date: input.date,
         status: input.status,
         hoursWorked: input.hoursWorked || null,
         dailyRateSnapshot: worker.dailyRate,
         hourlyRateSnapshot: worker.hourlyRate,
         farmId: input.farmId ?? null,
         notes: input.notes ?? null,
-        updatedAt: new Date(),
-      },
-    })
-    .returning();
-  return row;
+        createdBy: ctx.user.id,
+        createdOffline: input.createdOffline ?? false,
+      })
+      .onConflictDoUpdate({
+        target: [
+          attendanceRecords.orgId,
+          attendanceRecords.workerId,
+          attendanceRecords.date,
+        ],
+        set: {
+          status: input.status,
+          hoursWorked: input.hoursWorked || null,
+          dailyRateSnapshot: worker.dailyRate,
+          hourlyRateSnapshot: worker.hourlyRate,
+          farmId: input.farmId ?? null,
+          notes: input.notes ?? null,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return row;
+  });
 }
 
-/** Grid data for a date range, with worker names, oldest first. */
-export async function listAttendanceRange(
+/**
+ * Grid data for a date range, with worker names, oldest first.
+ * Exported as an `...InTx` variant too: payroll generation/reporting need
+ * this inside their own transaction, not a second nested one.
+ */
+export async function listAttendanceRangeInTx(
+  tx: Tx,
   ctx: OrgContext,
   range: { from: string; to: string },
 ) {
-  return db
+  return tx
     .select({
       record: attendanceRecords,
       workerName: workers.name,
@@ -109,15 +116,26 @@ export async function listAttendanceRange(
     .orderBy(asc(attendanceRecords.date));
 }
 
+export async function listAttendanceRange(
+  ctx: OrgContext,
+  range: { from: string; to: string },
+) {
+  return withOrgRls(ctx.org.id, (tx) =>
+    listAttendanceRangeInTx(tx, ctx, range),
+  );
+}
+
 export async function deleteAttendance(ctx: OrgContext, id: string) {
   assertCan(ctx, "attendance", "delete");
   await assertOrgFeature(ctx.org.id, "labor");
-  await db
-    .delete(attendanceRecords)
-    .where(
-      and(
-        eq(attendanceRecords.id, id),
-        eq(attendanceRecords.orgId, ctx.org.id),
+  await withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .delete(attendanceRecords)
+      .where(
+        and(
+          eq(attendanceRecords.id, id),
+          eq(attendanceRecords.orgId, ctx.org.id),
+        ),
       ),
-    );
+  );
 }

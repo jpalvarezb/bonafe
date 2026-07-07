@@ -22,18 +22,26 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const KNOWN_ERROR_KEYS = ["cycleOverlap"];
+
 export default async function CyclesPage({
   params,
   searchParams,
 }: Readonly<{
   params: Promise<{ locale: string; orgSlug: string }>;
-  searchParams: Promise<{ cycleId?: string }>;
+  searchParams: Promise<{ cycleId?: string; error?: string }>;
 }>) {
   const { locale, orgSlug } = await params;
   setRequestLocale(locale);
   const ctx = await requireOrgContext(locale, orgSlug);
   const t = await getTranslations("cycles");
   const sp = await searchParams;
+  const errorKey =
+    sp.error && KNOWN_ERROR_KEYS.includes(sp.error)
+      ? sp.error
+      : sp.error
+        ? "unknown"
+        : null;
 
   const [cycles, crops, varieties, parcels, stages] = await Promise.all([
     listCycles(ctx),
@@ -56,6 +64,12 @@ export default async function CyclesPage({
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
+
+      {errorKey && (
+        <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {t(`errors.${errorKey}`)}
+        </p>
+      )}
 
       {cycles.length === 0 ? (
         <p className="text-muted-foreground">{t("empty")}</p>

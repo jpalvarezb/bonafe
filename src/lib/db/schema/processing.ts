@@ -12,7 +12,7 @@ import {
 import { cropCycles } from "./crops";
 import { harvests } from "./harvests";
 import { user } from "./auth";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 const money = (name: string) => numeric(name, { precision: 14, scale: 4 });
 const qty = (name: string) => numeric(name, { precision: 14, scale: 4 });
@@ -36,8 +36,15 @@ export const harvestLots = pgTable(
     createdBy: text("created_by").references(() => user.id),
     ...timestamps,
   },
-  (t) => [index("harvest_lots_org_idx").on(t.orgId, t.cropCycleId)],
-);
+  (t) => [
+    index("harvest_lots_org_idx").on(t.orgId, t.cropCycleId),
+    check(
+      "harvest_lots_status_check",
+      sql`${t.status} IN ('open', 'closed')`,
+    ),
+    ...orgIsolationPolicy("harvest_lots"),
+  ],
+).enableRLS();
 
 export const harvestLotItems = pgTable(
   "harvest_lot_items",
@@ -56,8 +63,9 @@ export const harvestLotItems = pgTable(
     // A harvest belongs to at most one lot.
     uniqueIndex("harvest_lot_items_harvest_uq").on(t.harvestId),
     index("harvest_lot_items_lot_idx").on(t.lotId),
+    ...orgIsolationPolicy("harvest_lot_items"),
   ],
-);
+).enableRLS();
 
 /** Cherry → parchment etc.: input quantity in, output + loss out. */
 export const processingRuns = pgTable(
@@ -84,8 +92,11 @@ export const processingRuns = pgTable(
     createdBy: text("created_by").references(() => user.id),
     ...timestamps,
   },
-  (t) => [index("processing_runs_org_cycle_idx").on(t.orgId, t.cropCycleId)],
-);
+  (t) => [
+    index("processing_runs_org_cycle_idx").on(t.orgId, t.cropCycleId),
+    ...orgIsolationPolicy("processing_runs"),
+  ],
+).enableRLS();
 
 export const sales = pgTable(
   "sales",
@@ -113,8 +124,9 @@ export const sales = pgTable(
     index("sales_org_date_idx").on(t.orgId, t.date),
     index("sales_org_cycle_idx").on(t.orgId, t.cropCycleId),
     check("sales_currency_code_check", sql`char_length(${t.currencyCode}) = 3`),
+    ...orgIsolationPolicy("sales"),
   ],
-);
+).enableRLS();
 
 export const saleLines = pgTable(
   "sale_lines",
@@ -131,5 +143,8 @@ export const saleLines = pgTable(
     total: money("total").notNull().default("0"),
     ...timestamps,
   },
-  (t) => [index("sale_lines_sale_idx").on(t.saleId)],
-);
+  (t) => [
+    index("sale_lines_sale_idx").on(t.saleId),
+    ...orgIsolationPolicy("sale_lines"),
+  ],
+).enableRLS();

@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
 import Decimal from "decimal.js";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import {
   inventoryMovements,
   products,
@@ -13,8 +13,8 @@ import { assertCan } from "@/lib/authz";
 import { assertOrgFeature } from "@/lib/plan-limits";
 import { newId } from "@/lib/ids";
 import { inputLineTotal } from "@/lib/calc/costs";
-import { latestRateToBase } from "@/server/services/exchange-rates";
-import { ensureDefaultWarehouse } from "@/server/services/inventory";
+import { latestRateToBaseInTx } from "@/server/services/exchange-rates";
+import { ensureDefaultWarehouseInTx } from "@/server/services/inventory";
 
 export type PurchaseLineInput = {
   productId: string;
@@ -39,45 +39,45 @@ export async function createPurchase(ctx: OrgContext, input: PurchaseInput) {
     throw new Error("purchase must have at least one line");
   }
 
-  const [supplier] = await db
-    .select({ id: suppliers.id })
-    .from(suppliers)
-    .where(
-      and(eq(suppliers.id, input.supplierId), eq(suppliers.orgId, ctx.org.id)),
-    )
-    .limit(1);
-  if (!supplier) throw new Error("supplier not found");
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [supplier] = await tx
+      .select({ id: suppliers.id })
+      .from(suppliers)
+      .where(
+        and(eq(suppliers.id, input.supplierId), eq(suppliers.orgId, ctx.org.id)),
+      )
+      .limit(1);
+    if (!supplier) throw new Error("supplier not found");
 
-  const productIds = [...new Set(input.lines.map((line) => line.productId))];
-  const ownedProducts = await db
-    .select({ id: products.id })
-    .from(products)
-    .where(and(inArray(products.id, productIds), eq(products.orgId, ctx.org.id)));
-  if (ownedProducts.length !== productIds.length) {
-    throw new Error("product not found");
-  }
+    const productIds = [...new Set(input.lines.map((line) => line.productId))];
+    const ownedProducts = await tx
+      .select({ id: products.id })
+      .from(products)
+      .where(and(inArray(products.id, productIds), eq(products.orgId, ctx.org.id)));
+    if (ownedProducts.length !== productIds.length) {
+      throw new Error("product not found");
+    }
 
-  const warehouse = await ensureDefaultWarehouse(ctx);
+    const warehouse = await ensureDefaultWarehouseInTx(tx, ctx);
 
-  const currencyCode = input.currencyCode ?? ctx.org.baseCurrencyCode;
-  const exchangeRate =
-    currencyCode === ctx.org.baseCurrencyCode
-      ? "1"
-      : await latestRateToBase(ctx, currencyCode, input.date);
-  if (exchangeRate == null) {
-    throw new Error("missing exchange rate for " + currencyCode);
-  }
+    const currencyCode = input.currencyCode ?? ctx.org.baseCurrencyCode;
+    const exchangeRate =
+      currencyCode === ctx.org.baseCurrencyCode
+        ? "1"
+        : await latestRateToBaseInTx(tx, ctx, currencyCode, input.date);
+    if (exchangeRate == null) {
+      throw new Error("missing exchange rate for " + currencyCode);
+    }
 
-  const lineTotals = input.lines.map((line) => inputLineTotal(line));
-  const subtotal = lineTotals
-    .reduce((sum, total) => sum.add(new Decimal(total)), new Decimal(0))
-    .toFixed(4);
-  // No tax in Phase 4 — total mirrors subtotal.
-  const total = subtotal;
+    const lineTotals = input.lines.map((line) => inputLineTotal(line));
+    const subtotal = lineTotals
+      .reduce((sum, total) => sum.add(new Decimal(total)), new Decimal(0))
+      .toFixed(4);
+    // No tax in Phase 4 — total mirrors subtotal.
+    const total = subtotal;
 
-  const purchaseId = newId();
+    const purchaseId = newId();
 
-  return db.transaction(async (tx) => {
     const [created] = await tx
       .insert(purchases)
       .values({
@@ -128,61 +128,65 @@ export async function createPurchase(ctx: OrgContext, input: PurchaseInput) {
 }
 
 export async function listPurchases(ctx: OrgContext) {
-  return db
-    .select({
-      purchase: purchases,
-      supplierName: suppliers.name,
-      lineCount: count(purchaseLines.id),
-    })
-    .from(purchases)
-    .innerJoin(suppliers, eq(purchases.supplierId, suppliers.id))
-    .leftJoin(purchaseLines, eq(purchaseLines.purchaseId, purchases.id))
-    .where(eq(purchases.orgId, ctx.org.id))
-    .groupBy(purchases.id, suppliers.name)
-    .orderBy(desc(purchases.date), desc(purchases.createdAt));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        purchase: purchases,
+        supplierName: suppliers.name,
+        lineCount: count(purchaseLines.id),
+      })
+      .from(purchases)
+      .innerJoin(suppliers, eq(purchases.supplierId, suppliers.id))
+      .leftJoin(purchaseLines, eq(purchaseLines.purchaseId, purchases.id))
+      .where(eq(purchases.orgId, ctx.org.id))
+      .groupBy(purchases.id, suppliers.name)
+      .orderBy(desc(purchases.date), desc(purchases.createdAt)),
+  );
 }
 
 export async function getPurchase(ctx: OrgContext, purchaseId: string) {
-  const [row] = await db
-    .select({ purchase: purchases, supplierName: suppliers.name })
-    .from(purchases)
-    .innerJoin(suppliers, eq(purchases.supplierId, suppliers.id))
-    .where(and(eq(purchases.id, purchaseId), eq(purchases.orgId, ctx.org.id)))
-    .limit(1);
-  if (!row) return null;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [row] = await tx
+      .select({ purchase: purchases, supplierName: suppliers.name })
+      .from(purchases)
+      .innerJoin(suppliers, eq(purchases.supplierId, suppliers.id))
+      .where(and(eq(purchases.id, purchaseId), eq(purchases.orgId, ctx.org.id)))
+      .limit(1);
+    if (!row) return null;
 
-  const lines = await db
-    .select({
-      line: purchaseLines,
-      productName: products.name,
-      unit: products.unit,
-    })
-    .from(purchaseLines)
-    .innerJoin(products, eq(purchaseLines.productId, products.id))
-    .where(eq(purchaseLines.purchaseId, purchaseId))
-    .orderBy(asc(purchaseLines.createdAt));
+    const lines = await tx
+      .select({
+        line: purchaseLines,
+        productName: products.name,
+        unit: products.unit,
+      })
+      .from(purchaseLines)
+      .innerJoin(products, eq(purchaseLines.productId, products.id))
+      .where(eq(purchaseLines.purchaseId, purchaseId))
+      .orderBy(asc(purchaseLines.createdAt));
 
-  return { ...row, lines };
+    return { ...row, lines };
+  });
 }
 
 export async function deletePurchase(ctx: OrgContext, purchaseId: string) {
   assertCan(ctx, "purchase", "delete");
   await assertOrgFeature(ctx.org.id, "inventory");
 
-  const [purchase] = await db
-    .select({ id: purchases.id })
-    .from(purchases)
-    .where(and(eq(purchases.id, purchaseId), eq(purchases.orgId, ctx.org.id)))
-    .limit(1);
-  if (!purchase) throw new Error("purchase not found");
+  await withOrgRls(ctx.org.id, async (tx) => {
+    const [purchase] = await tx
+      .select({ id: purchases.id })
+      .from(purchases)
+      .where(and(eq(purchases.id, purchaseId), eq(purchases.orgId, ctx.org.id)))
+      .limit(1);
+    if (!purchase) throw new Error("purchase not found");
 
-  const lines = await db
-    .select({ id: purchaseLines.id })
-    .from(purchaseLines)
-    .where(eq(purchaseLines.purchaseId, purchaseId));
-  const lineIds = lines.map((line) => line.id);
+    const lines = await tx
+      .select({ id: purchaseLines.id })
+      .from(purchaseLines)
+      .where(eq(purchaseLines.purchaseId, purchaseId));
+    const lineIds = lines.map((line) => line.id);
 
-  await db.transaction(async (tx) => {
     if (lineIds.length > 0) {
       await tx
         .delete(inventoryMovements)

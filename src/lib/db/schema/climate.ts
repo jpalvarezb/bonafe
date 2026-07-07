@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   date,
   index,
   numeric,
@@ -8,7 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { farms } from "./farms";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 export const climateReadings = pgTable(
   "climate_readings",
@@ -36,5 +38,10 @@ export const climateReadings = pgTable(
   (t) => [
     uniqueIndex("climate_farm_date_source_uq").on(t.farmId, t.date, t.source),
     index("climate_org_date_idx").on(t.orgId, t.date),
+    check(
+      "climate_readings_source_check",
+      sql`${t.source} IN ('manual', 'chirps', 'open_meteo', 'station')`,
+    ),
+    ...orgIsolationPolicy("climate_readings"),
   ],
-);
+).enableRLS();

@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { costCenters } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
@@ -11,11 +11,13 @@ export type CostCenterInput = {
 };
 
 export async function listCostCenters(ctx: OrgContext) {
-  return db
-    .select()
-    .from(costCenters)
-    .where(eq(costCenters.orgId, ctx.org.id))
-    .orderBy(costCenters.name);
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(costCenters)
+      .where(eq(costCenters.orgId, ctx.org.id))
+      .orderBy(costCenters.name),
+  );
 }
 
 export async function createCostCenter(
@@ -23,34 +25,38 @@ export async function createCostCenter(
   input: CostCenterInput,
 ) {
   assertCan(ctx, "cost_center", "manage");
-  if (input.parentId) {
-    const [parent] = await db
-      .select({ id: costCenters.id })
-      .from(costCenters)
-      .where(
-        and(
-          eq(costCenters.id, input.parentId),
-          eq(costCenters.orgId, ctx.org.id),
-        ),
-      )
-      .limit(1);
-    if (!parent) throw new Error("parent cost center not found");
-  }
-  const [created] = await db
-    .insert(costCenters)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      name: input.name,
-      parentId: input.parentId ?? null,
-    })
-    .returning();
-  return created;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    if (input.parentId) {
+      const [parent] = await tx
+        .select({ id: costCenters.id })
+        .from(costCenters)
+        .where(
+          and(
+            eq(costCenters.id, input.parentId),
+            eq(costCenters.orgId, ctx.org.id),
+          ),
+        )
+        .limit(1);
+      if (!parent) throw new Error("parent cost center not found");
+    }
+    const [created] = await tx
+      .insert(costCenters)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        name: input.name,
+        parentId: input.parentId ?? null,
+      })
+      .returning();
+    return created;
+  });
 }
 
 export async function deleteCostCenter(ctx: OrgContext, id: string) {
   assertCan(ctx, "cost_center", "manage");
-  await db
-    .delete(costCenters)
-    .where(and(eq(costCenters.id, id), eq(costCenters.orgId, ctx.org.id)));
+  return withOrgRls(ctx.org.id, async (tx) => {
+    await tx
+      .delete(costCenters)
+      .where(and(eq(costCenters.id, id), eq(costCenters.orgId, ctx.org.id)));
+  });
 }

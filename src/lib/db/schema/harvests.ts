@@ -11,7 +11,7 @@ import { farms, parcels } from "./farms";
 import { cropCycles } from "./crops";
 import { workers } from "./labor";
 import { user } from "./auth";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 /** Field harvest weight capture (offline-capable). Lots/processing in Phase 6. */
 export const harvests = pgTable(
@@ -48,5 +48,6 @@ export const harvests = pgTable(
     index("harvests_org_cycle_idx").on(t.orgId, t.cropCycleId),
     index("harvests_parcel_idx").on(t.parcelId),
     index("harvests_worker_idx").on(t.workerId),
+    ...orgIsolationPolicy("harvests"),
   ],
-);
+).enableRLS();

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { parcels } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { ParcelForm } from "@/components/farms/parcel-form";
@@ -22,11 +22,13 @@ export default async function EditParcelPage({
   const ctx = await requireOrgContext(locale, orgSlug);
   const t = await getTranslations("farms");
 
-  const [parcel] = await db
-    .select()
-    .from(parcels)
-    .where(and(eq(parcels.id, parcelId), eq(parcels.orgId, ctx.org.id)))
-    .limit(1);
+  const [parcel] = await withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(parcels)
+      .where(and(eq(parcels.id, parcelId), eq(parcels.orgId, ctx.org.id)))
+      .limit(1),
+  );
   if (!parcel || parcel.farmId !== farmId) notFound();
 
   return (

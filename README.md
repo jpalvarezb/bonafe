@@ -24,6 +24,7 @@ docker compose up -d db      # PostGIS on localhost:5433
 cp .env.example .env         # fill BETTER_AUTH_SECRET (openssl rand -base64 32)
 pnpm install
 pnpm db:migrate
+pnpm db:set-app-password     # sets the agropeq_app role's password from APP_DB_PASSWORD
 pnpm db:seed                 # demo orgs + fixture data (idempotent, re-runnable)
 pnpm dev
 ```
@@ -45,6 +46,8 @@ dev.
 | `pnpm build` | production build (webpack — required by Serwist) |
 | `pnpm db:generate` | generate a Drizzle migration from the schema |
 | `pnpm db:migrate` | apply migrations |
+| `pnpm db:set-app-password` | (re)sets the `agropeq_app` role's password from `APP_DB_PASSWORD` |
+| `pnpm db:verify-rls` | coverage guard: every org-scoped table has RLS enabled + a policy |
 | `pnpm db:seed` | deterministic demo seed (grows monotonically per phase) |
 | `pnpm climate:ingest` | cron entry point: satellite rainfall for all farms |
 | `pnpm test` | Vitest unit tests (money/payroll/inventory/variance/profitability calc) |
@@ -123,8 +126,36 @@ All env vars are documented in `.env.example`. Notable:
   (shared-device safety).
 - The in-memory rate limiter and Better Auth rate limits are per-instance;
   put a shared limiter (or proxy limits) in front when scaling horizontally.
-- Row-level security is intentionally deferred: tenant isolation is enforced
-  at the service layer and re-audited each phase; enabling RLS is additive.
+- **Row-level security (RLS)**: every tenant table enforces `org_id` at the
+  DB layer (`drizzle/0017_app-role.sql`, `drizzle/0018_rls-policies.sql`),
+  in addition to (not instead of) service-layer scoping — RLS is
+  belt-and-suspenders, the app-layer `ctx.org.id` filtering on every query
+  remains the primary control and must not be removed.
+  - New env vars: `APP_DATABASE_URL` (the request-scoped, RLS-bound
+    connection the app uses — `src/lib/db/index.ts` `db`) and
+    `APP_DB_PASSWORD` (used only by `pnpm db:set-app-password`, which sets
+    the `agropeq_app` role's password; never committed to a migration).
+    `DATABASE_URL` remains the owner connection (`dbSystem`), which bypasses
+    RLS and is used only for migrations, seed/cron scripts, the Stripe
+    webhook, and org-identity bootstrap (see `src/lib/db/index.ts` for the
+    full list and rationale).
+  - After any migration that adds a table with an `org_id` column, run
+    `pnpm db:verify-rls` — it fails (non-zero exit) and lists any table
+    missing `ENABLE ROW LEVEL SECURITY` or a policy.
+  - Seed and cron scripts (`pnpm db:seed`, `pnpm climate:ingest`) must run on
+    the owner `DATABASE_URL` (they use `dbSystem` internally) — they
+    intentionally span every org and have no per-request `app.org_id` to
+    scope by.
+  - `ALTER DEFAULT PRIVILEGES` (in `0017_app-role.sql`) is granted **by
+    role**, not schema-wide: it only covers tables created by whichever
+    Postgres role runs the migrations. If that role ever changes (e.g. a
+    different CI/deploy user), re-run the two `ALTER DEFAULT PRIVILEGES`
+    statements as the new role, or `pnpm db:verify-rls` will catch the gap
+    on the next migration that adds an org-scoped table.
+  - All request-scoped queries against RLS'd tables MUST go through
+    `withOrgRls` (`src/lib/db/rls.ts`) — a query on the plain `db` client
+    outside `withOrgRls` fails closed (returns zero rows / rejects writes)
+    because `app.org_id` is never set.
 
 Phase plan: Phases 0–8 complete (full Aragro-tier clone + PWA/offline,
 billing & hardening, satellite climate). See `docs/verify/` for what each

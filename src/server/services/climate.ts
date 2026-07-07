@@ -1,5 +1,5 @@
 import { and, asc, eq, gte } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { climateReadings, farms } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
@@ -24,17 +24,19 @@ export async function listClimateReadings(
   since.setDate(since.getDate() - days);
   const sinceDate = since.toISOString().slice(0, 10);
 
-  return db
-    .select()
-    .from(climateReadings)
-    .where(
-      and(
-        eq(climateReadings.orgId, ctx.org.id),
-        eq(climateReadings.farmId, farmId),
-        gte(climateReadings.date, sinceDate),
-      ),
-    )
-    .orderBy(asc(climateReadings.date));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(climateReadings)
+      .where(
+        and(
+          eq(climateReadings.orgId, ctx.org.id),
+          eq(climateReadings.farmId, farmId),
+          gte(climateReadings.date, sinceDate),
+        ),
+      )
+      .orderBy(asc(climateReadings.date)),
+  );
 }
 
 /** Insert or update the manual reading for a farm/date (source stays "manual"). */
@@ -44,48 +46,52 @@ export async function upsertClimateReading(
 ) {
   assertCan(ctx, "climate", "create");
 
-  const [farm] = await db
-    .select({ id: farms.id })
-    .from(farms)
-    .where(and(eq(farms.id, input.farmId), eq(farms.orgId, ctx.org.id)))
-    .limit(1);
-  if (!farm) throw new Error("farm not found");
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [farm] = await tx
+      .select({ id: farms.id })
+      .from(farms)
+      .where(and(eq(farms.id, input.farmId), eq(farms.orgId, ctx.org.id)))
+      .limit(1);
+    if (!farm) throw new Error("farm not found");
 
-  const [reading] = await db
-    .insert(climateReadings)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      farmId: input.farmId,
-      date: input.date,
-      source: "manual",
-      rainfallMm: input.rainfallMm ?? null,
-      tempMinC: input.tempMinC ?? null,
-      tempMaxC: input.tempMaxC ?? null,
-      humidityPct: input.humidityPct ?? null,
-    })
-    .onConflictDoUpdate({
-      target: [
-        climateReadings.farmId,
-        climateReadings.date,
-        climateReadings.source,
-      ],
-      set: {
+    const [reading] = await tx
+      .insert(climateReadings)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        farmId: input.farmId,
+        date: input.date,
+        source: "manual",
         rainfallMm: input.rainfallMm ?? null,
         tempMinC: input.tempMinC ?? null,
         tempMaxC: input.tempMaxC ?? null,
         humidityPct: input.humidityPct ?? null,
-      },
-    })
-    .returning();
-  return reading;
+      })
+      .onConflictDoUpdate({
+        target: [
+          climateReadings.farmId,
+          climateReadings.date,
+          climateReadings.source,
+        ],
+        set: {
+          rainfallMm: input.rainfallMm ?? null,
+          tempMinC: input.tempMinC ?? null,
+          tempMaxC: input.tempMaxC ?? null,
+          humidityPct: input.humidityPct ?? null,
+        },
+      })
+      .returning();
+    return reading;
+  });
 }
 
 export async function deleteClimateReading(ctx: OrgContext, id: string) {
   assertCan(ctx, "climate", "delete");
-  await db
-    .delete(climateReadings)
-    .where(
-      and(eq(climateReadings.id, id), eq(climateReadings.orgId, ctx.org.id)),
-    );
+  return withOrgRls(ctx.org.id, async (tx) => {
+    await tx
+      .delete(climateReadings)
+      .where(
+        and(eq(climateReadings.id, id), eq(climateReadings.orgId, ctx.org.id)),
+      );
+  });
 }

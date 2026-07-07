@@ -1,6 +1,6 @@
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { withOrgRls, type Tx } from "@/lib/db/rls";
 import { machines, member, parcels, user, workOrders } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
@@ -60,32 +60,34 @@ export async function listWorkOrders(
   ctx: OrgContext,
   filter?: { status?: WorkOrderStatus; excludeCancelled?: boolean },
 ) {
-  return db
-    .select({
-      workOrder: workOrders,
-      parcelName: parcels.name,
-      assigneeName: user.name,
-      machineName: machines.name,
-    })
-    .from(workOrders)
-    .leftJoin(parcels, eq(workOrders.parcelId, parcels.id))
-    .leftJoin(member, eq(workOrders.assignedToMemberId, member.id))
-    .leftJoin(user, eq(member.userId, user.id))
-    .leftJoin(machines, eq(workOrders.machineId, machines.id))
-    .where(
-      and(
-        eq(workOrders.orgId, ctx.org.id),
-        filter?.status ? eq(workOrders.status, filter.status) : undefined,
-        filter?.excludeCancelled
-          ? ne(workOrders.status, "cancelled")
-          : undefined,
-      ),
-    )
-    .orderBy(desc(workOrders.createdAt));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        workOrder: workOrders,
+        parcelName: parcels.name,
+        assigneeName: user.name,
+        machineName: machines.name,
+      })
+      .from(workOrders)
+      .leftJoin(parcels, eq(workOrders.parcelId, parcels.id))
+      .leftJoin(member, eq(workOrders.assignedToMemberId, member.id))
+      .leftJoin(user, eq(member.userId, user.id))
+      .leftJoin(machines, eq(workOrders.machineId, machines.id))
+      .where(
+        and(
+          eq(workOrders.orgId, ctx.org.id),
+          filter?.status ? eq(workOrders.status, filter.status) : undefined,
+          filter?.excludeCancelled
+            ? ne(workOrders.status, "cancelled")
+            : undefined,
+        ),
+      )
+      .orderBy(desc(workOrders.createdAt)),
+  );
 }
 
-async function assertParcelInOrg(ctx: OrgContext, parcelId: string) {
-  const [row] = await db
+async function assertParcelInOrg(tx: Tx, ctx: OrgContext, parcelId: string) {
+  const [row] = await tx
     .select({ id: parcels.id })
     .from(parcels)
     .where(and(eq(parcels.id, parcelId), eq(parcels.orgId, ctx.org.id)))
@@ -93,8 +95,8 @@ async function assertParcelInOrg(ctx: OrgContext, parcelId: string) {
   if (!row) throw new Error("parcel not found");
 }
 
-async function assertMachineInOrg(ctx: OrgContext, machineId: string) {
-  const [row] = await db
+async function assertMachineInOrg(tx: Tx, ctx: OrgContext, machineId: string) {
+  const [row] = await tx
     .select({ id: machines.id })
     .from(machines)
     .where(and(eq(machines.id, machineId), eq(machines.orgId, ctx.org.id)))
@@ -102,8 +104,8 @@ async function assertMachineInOrg(ctx: OrgContext, machineId: string) {
   if (!row) throw new Error("machine not found");
 }
 
-async function assertMemberInOrg(ctx: OrgContext, memberId: string) {
-  const [row] = await db
+async function assertMemberInOrg(tx: Tx, ctx: OrgContext, memberId: string) {
+  const [row] = await tx
     .select({ id: member.id })
     .from(member)
     .where(
@@ -114,8 +116,8 @@ async function assertMemberInOrg(ctx: OrgContext, memberId: string) {
 }
 
 /** Next code from the current max, e.g. OT-0007 → OT-0008. */
-async function nextWorkOrderCode(ctx: OrgContext): Promise<string> {
-  const [row] = await db
+async function nextWorkOrderCode(tx: Tx, ctx: OrgContext): Promise<string> {
+  const [row] = await tx
     .select({
       maxNum: sql<number>`coalesce(max(nullif(substring(${workOrders.code} from 4), '')::int), 0)`,
     })
@@ -137,46 +139,48 @@ export async function createWorkOrder(ctx: OrgContext, input: WorkOrderInput) {
     input.machineId = null;
   }
 
-  if (input.parcelId) await assertParcelInOrg(ctx, input.parcelId);
-  if (input.machineId) await assertMachineInOrg(ctx, input.machineId);
-  if (input.assignedToMemberId) {
-    await assertMemberInOrg(ctx, input.assignedToMemberId);
-  }
-
   const checklist = checklistSchema.parse({
     checklist: input.checklist ?? [],
   });
 
-  // Retry on the (org_id, code) unique index in case of concurrent creates.
-  for (let attempt = 0; ; attempt++) {
-    const code = await nextWorkOrderCode(ctx);
-    try {
-      const [created] = await db
-        .insert(workOrders)
-        .values({
-          id: newId(),
-          orgId: ctx.org.id,
-          code,
-          title: input.title,
-          type: input.type,
-          status: input.assignedToMemberId ? "assigned" : "draft",
-          assignedToMemberId: input.assignedToMemberId ?? null,
-          scheduledDate: input.scheduledDate ?? null,
-          parcelId: input.parcelId ?? null,
-          machineId: input.machineId ?? null,
-          instructions: input.instructions ?? null,
-          config: checklist,
-        })
-        .returning();
-      return created;
-    } catch (error) {
-      const isUniqueViolation =
-        error instanceof Error &&
-        "code" in error &&
-        (error as { code?: string }).code === "23505";
-      if (!isUniqueViolation || attempt >= 3) throw error;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    if (input.parcelId) await assertParcelInOrg(tx, ctx, input.parcelId);
+    if (input.machineId) await assertMachineInOrg(tx, ctx, input.machineId);
+    if (input.assignedToMemberId) {
+      await assertMemberInOrg(tx, ctx, input.assignedToMemberId);
     }
-  }
+
+    // Retry on the (org_id, code) unique index in case of concurrent creates.
+    for (let attempt = 0; ; attempt++) {
+      const code = await nextWorkOrderCode(tx, ctx);
+      try {
+        const [created] = await tx
+          .insert(workOrders)
+          .values({
+            id: newId(),
+            orgId: ctx.org.id,
+            code,
+            title: input.title,
+            type: input.type,
+            status: input.assignedToMemberId ? "assigned" : "draft",
+            assignedToMemberId: input.assignedToMemberId ?? null,
+            scheduledDate: input.scheduledDate ?? null,
+            parcelId: input.parcelId ?? null,
+            machineId: input.machineId ?? null,
+            instructions: input.instructions ?? null,
+            config: checklist,
+          })
+          .returning();
+        return created;
+      } catch (error) {
+        const isUniqueViolation =
+          error instanceof Error &&
+          "code" in error &&
+          (error as { code?: string }).code === "23505";
+        if (!isUniqueViolation || attempt >= 3) throw error;
+      }
+    }
+  });
 }
 
 export async function updateWorkOrderStatus(
@@ -190,7 +194,7 @@ export async function updateWorkOrderStatus(
   // cancel racing completeWorkOrder (which locks this same row) could
   // validate against the pre-completion status and then overwrite "done"
   // with "cancelled" — a state the transition map forbids.
-  return db.transaction(async (tx) => {
+  return withOrgRls(ctx.org.id, async (tx) => {
     const [current] = await tx
       .select({
         status: workOrders.status,
@@ -244,7 +248,7 @@ export async function toggleChecklistItem(
   // Locked read-modify-write: the config jsonb is rewritten whole, so two
   // supervisors toggling different items concurrently must serialize here or
   // the second write would silently drop the first toggle.
-  return db.transaction(async (tx) => {
+  return withOrgRls(ctx.org.id, async (tx) => {
     const [current] = await tx
       .select({ status: workOrders.status, config: workOrders.config })
       .from(workOrders)
@@ -299,7 +303,7 @@ export async function completeWorkOrder(
 }> {
   assertCan(ctx, "work_order", "complete");
 
-  return db.transaction(async (tx) => {
+  return withOrgRls(ctx.org.id, async (tx) => {
     // Row lock: config jsonb is rewritten whole below, so this must
     // serialize against toggleChecklistItem and concurrent completions the
     // same way toggleChecklistItem locks against itself (previously,
@@ -348,20 +352,24 @@ export async function completeWorkOrder(
 
 export async function deleteWorkOrder(ctx: OrgContext, id: string) {
   assertCan(ctx, "work_order", "delete");
-  await db
-    .delete(workOrders)
-    .where(and(eq(workOrders.id, id), eq(workOrders.orgId, ctx.org.id)));
+  await withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .delete(workOrders)
+      .where(and(eq(workOrders.id, id), eq(workOrders.orgId, ctx.org.id))),
+  );
 }
 
 /** Org members joined with their user record, for assignee selection. */
 export async function listMembers(ctx: OrgContext) {
-  return db
-    .select({
-      id: member.id,
-      name: user.name,
-    })
-    .from(member)
-    .innerJoin(user, eq(member.userId, user.id))
-    .where(eq(member.organizationId, ctx.org.id))
-    .orderBy(user.name);
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        id: member.id,
+        name: user.name,
+      })
+      .from(member)
+      .innerJoin(user, eq(member.userId, user.id))
+      .where(eq(member.organizationId, ctx.org.id))
+      .orderBy(user.name),
+  );
 }

@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { workers } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
@@ -22,16 +22,18 @@ export async function listWorkers(
   ctx: OrgContext,
   filter?: { includeInactive?: boolean },
 ) {
-  return db
-    .select()
-    .from(workers)
-    .where(
-      and(
-        eq(workers.orgId, ctx.org.id),
-        filter?.includeInactive ? undefined : eq(workers.active, true),
-      ),
-    )
-    .orderBy(asc(workers.name));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(workers)
+      .where(
+        and(
+          eq(workers.orgId, ctx.org.id),
+          filter?.includeInactive ? undefined : eq(workers.active, true),
+        ),
+      )
+      .orderBy(asc(workers.name)),
+  );
 }
 
 /** Active-only roster for the attendance grid. */
@@ -40,33 +42,37 @@ export async function listActiveWorkers(ctx: OrgContext) {
 }
 
 export async function getWorker(ctx: OrgContext, workerId: string) {
-  const [worker] = await db
-    .select()
-    .from(workers)
-    .where(and(eq(workers.id, workerId), eq(workers.orgId, ctx.org.id)))
-    .limit(1);
-  return worker ?? null;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [worker] = await tx
+      .select()
+      .from(workers)
+      .where(and(eq(workers.id, workerId), eq(workers.orgId, ctx.org.id)))
+      .limit(1);
+    return worker ?? null;
+  });
 }
 
 export async function createWorker(ctx: OrgContext, input: WorkerInput) {
   assertCan(ctx, "worker", "manage");
   await assertOrgFeature(ctx.org.id, "labor");
-  const [created] = await db
-    .insert(workers)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      name: input.name,
-      code: input.code ?? null,
-      documentId: input.documentId ?? null,
-      phone: input.phone ?? null,
-      type: input.type,
-      dailyRate: input.dailyRate ?? "0",
-      hourlyRate: input.hourlyRate ?? "0",
-      notes: input.notes ?? null,
-    })
-    .returning();
-  return created;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [created] = await tx
+      .insert(workers)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        name: input.name,
+        code: input.code ?? null,
+        documentId: input.documentId ?? null,
+        phone: input.phone ?? null,
+        type: input.type,
+        dailyRate: input.dailyRate ?? "0",
+        hourlyRate: input.hourlyRate ?? "0",
+        notes: input.notes ?? null,
+      })
+      .returning();
+    return created;
+  });
 }
 
 export async function updateWorker(
@@ -76,12 +82,14 @@ export async function updateWorker(
 ) {
   assertCan(ctx, "worker", "manage");
   await assertOrgFeature(ctx.org.id, "labor");
-  const [updated] = await db
-    .update(workers)
-    .set(input)
-    .where(and(eq(workers.id, workerId), eq(workers.orgId, ctx.org.id)))
-    .returning();
-  return updated;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [updated] = await tx
+      .update(workers)
+      .set(input)
+      .where(and(eq(workers.id, workerId), eq(workers.orgId, ctx.org.id)))
+      .returning();
+    return updated;
+  });
 }
 
 /** Soft toggle of active/inactive; workers are never hard-deleted. */
@@ -92,10 +100,12 @@ export async function setWorkerActive(
 ) {
   assertCan(ctx, "worker", "manage");
   await assertOrgFeature(ctx.org.id, "labor");
-  const [updated] = await db
-    .update(workers)
-    .set({ active })
-    .where(and(eq(workers.id, workerId), eq(workers.orgId, ctx.org.id)))
-    .returning();
-  return updated;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [updated] = await tx
+      .update(workers)
+      .set({ active })
+      .where(and(eq(workers.id, workerId), eq(workers.orgId, ctx.org.id)))
+      .returning();
+    return updated;
+  });
 }

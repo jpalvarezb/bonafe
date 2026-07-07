@@ -15,7 +15,7 @@ import {
 import { farms } from "./farms";
 import { products } from "./catalog";
 import { user } from "./auth";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 const money = (name: string) => numeric(name, { precision: 14, scale: 4 });
 const qty = (name: string) => numeric(name, { precision: 14, scale: 4 });
@@ -38,8 +38,9 @@ export const suppliers = pgTable(
     // Lets children add a composite (org_id, supplier_id) FK so a
     // cross-tenant reference is impossible at the DB level.
     unique("suppliers_org_id_uq").on(t.orgId, t.id),
+    ...orgIsolationPolicy("suppliers"),
   ],
-);
+).enableRLS();
 
 /** Phase 4 ships a single default warehouse per org; transfers arrive Phase 5. */
 export const warehouses = pgTable(
@@ -63,8 +64,9 @@ export const warehouses = pgTable(
     // Lets children add a composite (org_id, warehouse_id) FK so a
     // cross-tenant reference is impossible at the DB level.
     unique("warehouses_org_id_uq").on(t.orgId, t.id),
+    ...orgIsolationPolicy("warehouses"),
   ],
-);
+).enableRLS();
 
 export const purchases = pgTable(
   "purchases",
@@ -105,8 +107,9 @@ export const purchases = pgTable(
       columns: [t.orgId, t.warehouseId],
       foreignColumns: [warehouses.orgId, warehouses.id],
     }).onDelete("no action"),
+    ...orgIsolationPolicy("purchases"),
   ],
-);
+).enableRLS();
 
 export const purchaseLines = pgTable(
   "purchase_lines",
@@ -132,8 +135,9 @@ export const purchaseLines = pgTable(
       columns: [t.orgId, t.productId],
       foreignColumns: [products.orgId, products.id],
     }).onDelete("no action"),
+    ...orgIsolationPolicy("purchase_lines"),
   ],
-);
+).enableRLS();
 
 /** Atomic stock moves between warehouses; lines value at the source average. */
 export const inventoryTransfers = pgTable(
@@ -168,8 +172,9 @@ export const inventoryTransfers = pgTable(
       columns: [t.orgId, t.toWarehouseId],
       foreignColumns: [warehouses.orgId, warehouses.id],
     }).onDelete("no action"),
+    ...orgIsolationPolicy("inventory_transfers"),
   ],
-);
+).enableRLS();
 
 export const inventoryTransferLines = pgTable(
   "inventory_transfer_lines",
@@ -196,8 +201,9 @@ export const inventoryTransferLines = pgTable(
       columns: [t.orgId, t.productId],
       foreignColumns: [products.orgId, products.id],
     }).onDelete("no action"),
+    ...orgIsolationPolicy("inventory_transfer_lines"),
   ],
-);
+).enableRLS();
 
 /**
  * Signed stock ledger: quantity > 0 flows in (purchase, adjustment_in),
@@ -266,5 +272,6 @@ export const inventoryMovements = pgTable(
       columns: [t.orgId, t.warehouseId],
       foreignColumns: [warehouses.orgId, warehouses.id],
     }).onDelete("no action"),
+    ...orgIsolationPolicy("inventory_movements"),
   ],
-);
+).enableRLS();

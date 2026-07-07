@@ -1,7 +1,7 @@
 import { and, desc, eq, like } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { auditLog } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
@@ -68,27 +68,29 @@ export default async function AuditLogPage({
 
   const actionPrefix = sp.action?.trim().slice(0, 60) || undefined;
 
-  const rows = await db
-    .select({
-      id: auditLog.id,
-      action: auditLog.action,
-      entity: auditLog.entity,
-      entityId: auditLog.entityId,
-      meta: auditLog.meta,
-      createdAt: auditLog.createdAt,
-      // Snapshot taken at write time (see lib/audit.ts) — stays readable
-      // even after the user is renamed or removed; no join needed.
-      actorName: auditLog.actorName,
-    })
-    .from(auditLog)
-    .where(
-      and(
-        eq(auditLog.orgId, ctx.org.id),
-        actionPrefix ? like(auditLog.action, `${actionPrefix}%`) : undefined,
-      ),
-    )
-    .orderBy(desc(auditLog.createdAt))
-    .limit(200);
+  const rows = await withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        id: auditLog.id,
+        action: auditLog.action,
+        entity: auditLog.entity,
+        entityId: auditLog.entityId,
+        meta: auditLog.meta,
+        createdAt: auditLog.createdAt,
+        // Snapshot taken at write time (see lib/audit.ts) — stays readable
+        // even after the user is renamed or removed; no join needed.
+        actorName: auditLog.actorName,
+      })
+      .from(auditLog)
+      .where(
+        and(
+          eq(auditLog.orgId, ctx.org.id),
+          actionPrefix ? like(auditLog.action, `${actionPrefix}%`) : undefined,
+        ),
+      )
+      .orderBy(desc(auditLog.createdAt))
+      .limit(200),
+  );
 
   const dateFormatter = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",

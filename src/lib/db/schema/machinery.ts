@@ -16,7 +16,7 @@ import { activities } from "./activities";
 import { workers } from "./labor";
 import { workOrders } from "./workorders";
 import { user } from "./auth";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 const money = (name: string) => numeric(name, { precision: 14, scale: 4 });
 
@@ -42,8 +42,9 @@ export const machines = pgTable(
     uniqueIndex("machines_org_code_uq")
       .on(t.orgId, t.code)
       .where(sql`${t.code} IS NOT NULL`),
+    ...orgIsolationPolicy("machines"),
   ],
-);
+).enableRLS();
 
 export const machineUsageLogs = pgTable(
   "machine_usage_logs",
@@ -98,5 +99,6 @@ export const machineUsageLogs = pgTable(
       sql`${t.hourlyCostSnapshot} >= 0`,
     ),
     check("machine_usage_logs_total_cost_nonneg_check", sql`${t.totalCost} >= 0`),
+    ...orgIsolationPolicy("machine_usage_logs"),
   ],
-);
+).enableRLS();

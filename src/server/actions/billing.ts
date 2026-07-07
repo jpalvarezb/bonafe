@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { orgSubscriptions } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
@@ -101,11 +101,13 @@ export async function createPortalSessionAction(formData: FormData) {
     throw new BillingActionError("notConfigured");
   }
 
-  const [row] = await db
-    .select({ stripeCustomerId: orgSubscriptions.stripeCustomerId })
-    .from(orgSubscriptions)
-    .where(eq(orgSubscriptions.orgId, ctx.org.id))
-    .limit(1);
+  const [row] = await withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({ stripeCustomerId: orgSubscriptions.stripeCustomerId })
+      .from(orgSubscriptions)
+      .where(eq(orgSubscriptions.orgId, ctx.org.id))
+      .limit(1),
+  );
 
   if (!row?.stripeCustomerId) {
     throw new BillingActionError("noCustomer");

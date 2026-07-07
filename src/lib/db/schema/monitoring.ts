@@ -14,7 +14,7 @@ import { geoPoint } from "../geometry";
 import { parcels } from "./farms";
 import { cropCycles } from "./crops";
 import { user } from "./auth";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 export const monitoringRecords = pgTable(
   "monitoring_records",
@@ -47,5 +47,10 @@ export const monitoringRecords = pgTable(
       "monitoring_records_incidence_pct_check",
       sql`${t.incidencePct} IS NULL OR (${t.incidencePct} BETWEEN 0 AND 100)`,
     ),
+    check(
+      "monitoring_records_type_check",
+      sql`${t.type} IN ('pest', 'disease', 'weed')`,
+    ),
+    ...orgIsolationPolicy("monitoring_records"),
   ],
-);
+).enableRLS();

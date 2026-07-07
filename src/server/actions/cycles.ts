@@ -7,6 +7,7 @@ import { requireOrgContext } from "@/lib/tenancy";
 import {
   closeCycle,
   createCycle,
+  CycleOverlapError,
   setCycleStage,
 } from "@/server/services/cycles";
 
@@ -23,18 +24,25 @@ export async function createCycleAction(formData: FormData) {
     orgSlug: formData.get("orgSlug"),
   });
   const ctx = await requireOrgContext(locale, orgSlug);
-  await createCycle(ctx, {
-    parcelId: z.string().uuid().parse(formData.get("parcelId")),
-    cropId: z.string().uuid().parse(formData.get("cropId")),
-    varietyId: str(formData, "varietyId") ?? null,
-    name: z.string().min(1).parse(formData.get("name")),
-    startDate: z.string().min(10).parse(formData.get("startDate")),
-    expectedEndDate: str(formData, "expectedEndDate") ?? null,
-    plantedAreaHa: str(formData, "plantedAreaHa") ?? null,
-    plantCount: str(formData, "plantCount")
-      ? Number(formData.get("plantCount"))
-      : null,
-  });
+  try {
+    await createCycle(ctx, {
+      parcelId: z.string().uuid().parse(formData.get("parcelId")),
+      cropId: z.string().uuid().parse(formData.get("cropId")),
+      varietyId: str(formData, "varietyId") ?? null,
+      name: z.string().min(1).parse(formData.get("name")),
+      startDate: z.string().min(10).parse(formData.get("startDate")),
+      expectedEndDate: str(formData, "expectedEndDate") ?? null,
+      plantedAreaHa: str(formData, "plantedAreaHa") ?? null,
+      plantCount: str(formData, "plantCount")
+        ? Number(formData.get("plantCount"))
+        : null,
+    });
+  } catch (err) {
+    if (err instanceof CycleOverlapError) {
+      redirect(`/${locale}/o/${orgSlug}/cycles?error=cycleOverlap`);
+    }
+    throw err;
+  }
   redirect(`/${locale}/o/${orgSlug}/cycles`);
 }
 
@@ -46,7 +54,14 @@ export async function closeCycleAction(formData: FormData) {
   const ctx = await requireOrgContext(locale, orgSlug);
   const cycleId = z.string().uuid().parse(formData.get("cycleId"));
   const endDate = z.string().min(10).parse(formData.get("endDate"));
-  await closeCycle(ctx, cycleId, endDate);
+  try {
+    await closeCycle(ctx, cycleId, endDate);
+  } catch (err) {
+    if (err instanceof CycleOverlapError) {
+      redirect(`/${locale}/o/${orgSlug}/cycles?error=cycleOverlap`);
+    }
+    throw err;
+  }
   revalidatePath(`/${locale}/o/${orgSlug}/cycles`);
 }
 

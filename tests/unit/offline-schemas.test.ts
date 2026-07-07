@@ -85,6 +85,74 @@ describe("monitoringCreatePayload incidencePct", () => {
   });
 });
 
+describe("monitoringCreatePayload location", () => {
+  const base = {
+    id: "018f0000-0000-7000-8000-000000000004",
+    parcelId: "018f0000-0000-7000-8000-000000000005",
+    date: "2026-07-06",
+    type: "pest" as const,
+    agentName: "aphid",
+    severity: 3,
+  };
+
+  it("accepts a valid device GPS fix", () => {
+    const result = monitoringCreatePayload.safeParse({
+      ...base,
+      location: { lat: 9.9281, lng: -84.0907 },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts omission (location is optional — capture may be denied/offline)", () => {
+    expect(monitoringCreatePayload.safeParse(base).success).toBe(true);
+  });
+
+  it("rejects latitude out of range", () => {
+    expect(
+      monitoringCreatePayload.safeParse({
+        ...base,
+        location: { lat: 90.1, lng: 0 },
+      }).success,
+    ).toBe(false);
+    expect(
+      monitoringCreatePayload.safeParse({
+        ...base,
+        location: { lat: -90.1, lng: 0 },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects longitude out of range", () => {
+    expect(
+      monitoringCreatePayload.safeParse({
+        ...base,
+        location: { lat: 0, lng: 180.1 },
+      }).success,
+    ).toBe(false);
+    expect(
+      monitoringCreatePayload.safeParse({
+        ...base,
+        location: { lat: 0, lng: -180.1 },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts the boundary values (±90 lat, ±180 lng)", () => {
+    expect(
+      monitoringCreatePayload.safeParse({
+        ...base,
+        location: { lat: 90, lng: 180 },
+      }).success,
+    ).toBe(true);
+    expect(
+      monitoringCreatePayload.safeParse({
+        ...base,
+        location: { lat: -90, lng: -180 },
+      }).success,
+    ).toBe(true);
+  });
+});
+
 describe("workOrderCompletePayload", () => {
   const base = {
     workOrderId: "018f0000-0000-7000-8000-000000000006",

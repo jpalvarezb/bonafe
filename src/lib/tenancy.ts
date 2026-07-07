@@ -2,7 +2,11 @@ import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "./auth";
-import { db } from "./db";
+// dbSystem: owner connection, bypasses RLS. Org identity/membership is
+// resolved here BEFORE any OrgContext (and its org.id) exists, so there is
+// no app.org_id to scope a request-bound `db` query by yet — every query
+// below is already scoped by slug/userId, same as before RLS existed.
+import { dbSystem } from "./db";
 import { member, organization, orgSubscriptions } from "./db/schema";
 import type { OrgRole } from "./auth/permissions";
 
@@ -35,7 +39,7 @@ export async function requireOrgContext(
     redirect(`/${locale}/login`);
   }
 
-  const rows = await db
+  const rows = await dbSystem
     .select({
       org: organization,
       membership: member,
@@ -83,7 +87,7 @@ export async function resolveOrgContext(
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return null;
 
-  const rows = await db
+  const rows = await dbSystem
     .select({
       org: organization,
       membership: member,
@@ -121,7 +125,7 @@ export async function resolveOrgContext(
 
 /** All orgs the user belongs to (for the org switcher / post-login redirect). */
 export async function listUserOrgs(userId: string) {
-  return db
+  return dbSystem
     .select({ org: organization, role: member.role })
     .from(member)
     .innerJoin(organization, eq(member.organizationId, organization.id))

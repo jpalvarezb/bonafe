@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { orgSubscriptions } from "@/lib/db/schema";
 import type { OrgContext, SubscriptionStatus } from "@/lib/tenancy";
 import { newId } from "@/lib/ids";
@@ -23,34 +24,41 @@ import { getStripeClient } from "@/lib/stripe";
  * single owner/admin clicking a button, not a high-concurrency path.
  */
 export async function ensureStripeCustomer(ctx: OrgContext): Promise<string> {
-  const [existing] = await db
-    .select({ stripeCustomerId: orgSubscriptions.stripeCustomerId })
-    .from(orgSubscriptions)
-    .where(eq(orgSubscriptions.orgId, ctx.org.id))
-    .limit(1);
+  const existing = await withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({ stripeCustomerId: orgSubscriptions.stripeCustomerId })
+      .from(orgSubscriptions)
+      .where(eq(orgSubscriptions.orgId, ctx.org.id))
+      .limit(1)
+      .then((rows) => rows[0]),
+  );
 
   if (existing?.stripeCustomerId) return existing.stripeCustomerId;
 
+  // Stripe API call intentionally sits OUTSIDE any DB transaction — network
+  // I/O should never hold a Postgres transaction (and its connection) open.
   const stripe = getStripeClient();
   const customer = await stripe.customers.create({
     email: ctx.user.email,
     metadata: { orgId: ctx.org.id },
   });
 
-  if (existing) {
-    await db
-      .update(orgSubscriptions)
-      .set({ stripeCustomerId: customer.id })
-      .where(eq(orgSubscriptions.orgId, ctx.org.id));
-  } else {
-    await db.insert(orgSubscriptions).values({
-      id: newId(),
-      orgId: ctx.org.id,
-      planId: "cosecha",
-      status: "trialing",
-      stripeCustomerId: customer.id,
-    });
-  }
+  await withOrgRls(ctx.org.id, async (tx) => {
+    if (existing) {
+      await tx
+        .update(orgSubscriptions)
+        .set({ stripeCustomerId: customer.id })
+        .where(eq(orgSubscriptions.orgId, ctx.org.id));
+    } else {
+      await tx.insert(orgSubscriptions).values({
+        id: newId(),
+        orgId: ctx.org.id,
+        planId: "cosecha",
+        status: "trialing",
+        stripeCustomerId: customer.id,
+      });
+    }
+  });
 
   return customer.id;
 }
@@ -81,7 +89,13 @@ export type SubscriptionStateResult = {
   planId: string;
 };
 
-/** db-or-transaction executor, so the webhook can run this inside its tx. */
+/**
+ * db-or-transaction executor, so the webhook can run this inside its own
+ * transaction. `typeof db` and `typeof dbSystem` share the same drizzle
+ * instantiation (same schema), so this structurally accepts either — the
+ * Stripe webhook route passes a `dbSystem.transaction` tx (owner
+ * connection, org resolved from Stripe ids, no OrgContext exists yet).
+ */
 type DbTx = Parameters<Parameters<(typeof db)["transaction"]>[0]>[0];
 export type DbExecutor = typeof db | DbTx;
 

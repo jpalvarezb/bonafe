@@ -1,6 +1,6 @@
 import { and, desc, eq, sql, sum } from "drizzle-orm";
 import Decimal from "decimal.js";
-import { db } from "@/lib/db";
+import { withOrgRls, type Tx } from "@/lib/db/rls";
 import {
   activities,
   budgetLines,
@@ -27,37 +27,41 @@ export type BudgetInput = {
 // ---------------------------------------------------------------------------
 
 export async function listBudgets(ctx: OrgContext) {
-  return db
-    .select({
-      budget: budgets,
-      farmName: farms.name,
-      cycleName: cropCycles.name,
-    })
-    .from(budgets)
-    .leftJoin(farms, eq(budgets.farmId, farms.id))
-    .leftJoin(cropCycles, eq(budgets.cropCycleId, cropCycles.id))
-    .where(eq(budgets.orgId, ctx.org.id))
-    .orderBy(desc(budgets.year), desc(budgets.createdAt));
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select({
+        budget: budgets,
+        farmName: farms.name,
+        cycleName: cropCycles.name,
+      })
+      .from(budgets)
+      .leftJoin(farms, eq(budgets.farmId, farms.id))
+      .leftJoin(cropCycles, eq(budgets.cropCycleId, cropCycles.id))
+      .where(eq(budgets.orgId, ctx.org.id))
+      .orderBy(desc(budgets.year), desc(budgets.createdAt)),
+  );
 }
 
 /** Org-scoped lookup; returns null (not a throw) so pages can 404. */
 export async function getBudget(ctx: OrgContext, budgetId: string) {
-  const [row] = await db
-    .select({
-      budget: budgets,
-      farmName: farms.name,
-      cycleName: cropCycles.name,
-    })
-    .from(budgets)
-    .leftJoin(farms, eq(budgets.farmId, farms.id))
-    .leftJoin(cropCycles, eq(budgets.cropCycleId, cropCycles.id))
-    .where(and(eq(budgets.id, budgetId), eq(budgets.orgId, ctx.org.id)))
-    .limit(1);
-  return row ?? null;
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const [row] = await tx
+      .select({
+        budget: budgets,
+        farmName: farms.name,
+        cycleName: cropCycles.name,
+      })
+      .from(budgets)
+      .leftJoin(farms, eq(budgets.farmId, farms.id))
+      .leftJoin(cropCycles, eq(budgets.cropCycleId, cropCycles.id))
+      .where(and(eq(budgets.id, budgetId), eq(budgets.orgId, ctx.org.id)))
+      .limit(1);
+    return row ?? null;
+  });
 }
 
-async function requireBudgetInOrg(ctx: OrgContext, budgetId: string) {
-  const [budget] = await db
+async function requireBudgetInOrg(tx: Tx, ctx: OrgContext, budgetId: string) {
+  const [budget] = await tx
     .select()
     .from(budgets)
     .where(and(eq(budgets.id, budgetId), eq(budgets.orgId, ctx.org.id)))
@@ -70,54 +74,58 @@ export async function createBudget(ctx: OrgContext, input: BudgetInput) {
   assertCan(ctx, "budget", "manage");
   await assertOrgFeature(ctx.org.id, "budgets");
 
-  if (input.farmId) {
-    const [farm] = await db
-      .select({ id: farms.id })
-      .from(farms)
-      .where(and(eq(farms.id, input.farmId), eq(farms.orgId, ctx.org.id)))
-      .limit(1);
-    if (!farm) throw new Error("farm not found");
-  }
+  return withOrgRls(ctx.org.id, async (tx) => {
+    if (input.farmId) {
+      const [farm] = await tx
+        .select({ id: farms.id })
+        .from(farms)
+        .where(and(eq(farms.id, input.farmId), eq(farms.orgId, ctx.org.id)))
+        .limit(1);
+      if (!farm) throw new Error("farm not found");
+    }
 
-  if (input.cropCycleId) {
-    const [cycle] = await db
-      .select({ id: cropCycles.id })
-      .from(cropCycles)
-      .where(
-        and(
-          eq(cropCycles.id, input.cropCycleId),
-          eq(cropCycles.orgId, ctx.org.id),
-        ),
-      )
-      .limit(1);
-    if (!cycle) throw new Error("crop cycle not found");
-  }
+    if (input.cropCycleId) {
+      const [cycle] = await tx
+        .select({ id: cropCycles.id })
+        .from(cropCycles)
+        .where(
+          and(
+            eq(cropCycles.id, input.cropCycleId),
+            eq(cropCycles.orgId, ctx.org.id),
+          ),
+        )
+        .limit(1);
+      if (!cycle) throw new Error("crop cycle not found");
+    }
 
-  const [created] = await db
-    .insert(budgets)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      name: input.name,
-      year: input.year,
-      farmId: input.farmId ?? null,
-      cropCycleId: input.cropCycleId ?? null,
-      currencyCode: ctx.org.baseCurrencyCode,
-      notes: input.notes ?? null,
-      createdBy: ctx.user.id,
-    })
-    .returning();
-  return created;
+    const [created] = await tx
+      .insert(budgets)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        name: input.name,
+        year: input.year,
+        farmId: input.farmId ?? null,
+        cropCycleId: input.cropCycleId ?? null,
+        currencyCode: ctx.org.baseCurrencyCode,
+        notes: input.notes ?? null,
+        createdBy: ctx.user.id,
+      })
+      .returning();
+    return created;
+  });
 }
 
 export async function deleteBudget(ctx: OrgContext, budgetId: string) {
   assertCan(ctx, "budget", "manage");
   await assertOrgFeature(ctx.org.id, "budgets");
-  await requireBudgetInOrg(ctx, budgetId);
-  // budget_lines cascade on delete (FK onDelete: "cascade").
-  await db
-    .delete(budgets)
-    .where(and(eq(budgets.id, budgetId), eq(budgets.orgId, ctx.org.id)));
+  return withOrgRls(ctx.org.id, async (tx) => {
+    await requireBudgetInOrg(tx, ctx, budgetId);
+    // budget_lines cascade on delete (FK onDelete: "cascade").
+    await tx
+      .delete(budgets)
+      .where(and(eq(budgets.id, budgetId), eq(budgets.orgId, ctx.org.id)));
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -125,12 +133,14 @@ export async function deleteBudget(ctx: OrgContext, budgetId: string) {
 // ---------------------------------------------------------------------------
 
 export async function listBudgetLines(ctx: OrgContext, budgetId: string) {
-  return db
-    .select()
-    .from(budgetLines)
-    .where(
-      and(eq(budgetLines.budgetId, budgetId), eq(budgetLines.orgId, ctx.org.id)),
-    );
+  return withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(budgetLines)
+      .where(
+        and(eq(budgetLines.budgetId, budgetId), eq(budgetLines.orgId, ctx.org.id)),
+      ),
+  );
 }
 
 /**
@@ -146,27 +156,29 @@ export async function upsertBudgetLine(
 ) {
   assertCan(ctx, "budget", "manage");
   await assertOrgFeature(ctx.org.id, "budgets");
-  await requireBudgetInOrg(ctx, budgetId);
+  return withOrgRls(ctx.org.id, async (tx) => {
+    await requireBudgetInOrg(tx, ctx, budgetId);
 
-  const [row] = await db
-    .insert(budgetLines)
-    .values({
-      id: newId(),
-      orgId: ctx.org.id,
-      budgetId,
-      month,
-      category,
-      amount,
-    })
-    .onConflictDoUpdate({
-      target: [budgetLines.budgetId, budgetLines.month, budgetLines.category],
-      set: {
+    const [row] = await tx
+      .insert(budgetLines)
+      .values({
+        id: newId(),
+        orgId: ctx.org.id,
+        budgetId,
+        month,
+        category,
         amount,
-        updatedAt: new Date(),
-      },
-    })
-    .returning();
-  return row;
+      })
+      .onConflictDoUpdate({
+        target: [budgetLines.budgetId, budgetLines.month, budgetLines.category],
+        set: {
+          amount,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return row;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -193,40 +205,42 @@ export async function budgetActuals(
 ): Promise<MonthCategoryAmount[]> {
   const monthExpr = sql<number>`extract(month from ${activities.date}::date)::int`;
 
-  const rows = await db
-    .select({
-      month: monthExpr,
-      labor: sum(laborInBase),
-      input: sum(inputInBase),
-      machine: sum(machineInBase),
-      other: sum(otherInBase),
-    })
-    .from(activities)
-    .where(
-      and(
-        eq(activities.orgId, ctx.org.id),
-        sql`extract(year from ${activities.date}::date) = ${budget.year}`,
-        budget.farmId ? eq(activities.farmId, budget.farmId) : undefined,
-        budget.cropCycleId
-          ? eq(activities.cropCycleId, budget.cropCycleId)
-          : undefined,
-      ),
-    )
-    .groupBy(monthExpr)
-    .orderBy(monthExpr);
+  return withOrgRls(ctx.org.id, async (tx) => {
+    const rows = await tx
+      .select({
+        month: monthExpr,
+        labor: sum(laborInBase),
+        input: sum(inputInBase),
+        machine: sum(machineInBase),
+        other: sum(otherInBase),
+      })
+      .from(activities)
+      .where(
+        and(
+          eq(activities.orgId, ctx.org.id),
+          sql`extract(year from ${activities.date}::date) = ${budget.year}`,
+          budget.farmId ? eq(activities.farmId, budget.farmId) : undefined,
+          budget.cropCycleId
+            ? eq(activities.cropCycleId, budget.cropCycleId)
+            : undefined,
+        ),
+      )
+      .groupBy(monthExpr)
+      .orderBy(monthExpr);
 
-  const actuals: MonthCategoryAmount[] = [];
-  for (const row of rows) {
-    actuals.push({ month: row.month, category: "labor", amount: row.labor ?? "0" });
-    actuals.push({ month: row.month, category: "input", amount: row.input ?? "0" });
-    actuals.push({
-      month: row.month,
-      category: "machine",
-      amount: row.machine ?? "0",
-    });
-    actuals.push({ month: row.month, category: "other", amount: row.other ?? "0" });
-  }
-  return actuals;
+    const actuals: MonthCategoryAmount[] = [];
+    for (const row of rows) {
+      actuals.push({ month: row.month, category: "labor", amount: row.labor ?? "0" });
+      actuals.push({ month: row.month, category: "input", amount: row.input ?? "0" });
+      actuals.push({
+        month: row.month,
+        category: "machine",
+        amount: row.machine ?? "0",
+      });
+      actuals.push({ month: row.month, category: "other", amount: row.other ?? "0" });
+    }
+    return actuals;
+  });
 }
 
 // ---------------------------------------------------------------------------

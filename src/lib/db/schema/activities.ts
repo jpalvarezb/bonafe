@@ -17,7 +17,7 @@ import { activityTypes, products } from "./catalog";
 import { costCenters } from "./workorders";
 import { workers } from "./labor";
 import { user } from "./auth";
-import { id, orgId, timestamps } from "./helpers";
+import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
 const money = (name: string) => numeric(name, { precision: 14, scale: 4 });
 
@@ -75,8 +75,13 @@ export const activities = pgTable(
       "activities_currency_code_check",
       sql`char_length(${t.currencyCode}) = 3`,
     ),
+    check(
+      "activities_status_check",
+      sql`${t.status} IN ('done', 'in_progress')`,
+    ),
+    ...orgIsolationPolicy("activities"),
   ],
-);
+).enableRLS();
 
 export const activityInputs = pgTable(
   "activity_inputs",
@@ -102,8 +107,9 @@ export const activityInputs = pgTable(
       columns: [t.orgId, t.productId],
       foreignColumns: [products.orgId, products.id],
     }).onDelete("no action"),
+    ...orgIsolationPolicy("activity_inputs"),
   ],
-);
+).enableRLS();
 
 export const activityLabor = pgTable(
   "activity_labor",
@@ -138,5 +144,6 @@ export const activityLabor = pgTable(
     check("activity_labor_hours_nonneg_check", sql`${t.hours} IS NULL OR ${t.hours} >= 0`),
     check("activity_labor_rate_nonneg_check", sql`${t.rate} >= 0`),
     check("activity_labor_amount_nonneg_check", sql`${t.amount} >= 0`),
+    ...orgIsolationPolicy("activity_labor"),
   ],
-);
+).enableRLS();

@@ -11,7 +11,12 @@ import {
 } from "drizzle-orm/pg-core";
 import { organization } from "./tenancy";
 import { farms, parcels } from "./farms";
-import { id, timestamps } from "./helpers";
+import {
+  id,
+  nullableOrgCatalogPolicies,
+  orgIsolationPolicy,
+  timestamps,
+} from "./helpers";
 
 /** org_id NULL = global seeded catalog row visible to every org. */
 export const crops = pgTable(
@@ -26,8 +31,11 @@ export const crops = pgTable(
     defaultCycleDays: integer("default_cycle_days"),
     ...timestamps,
   },
-  (t) => [index("crops_org_idx").on(t.orgId)],
-);
+  (t) => [
+    index("crops_org_idx").on(t.orgId),
+    ...nullableOrgCatalogPolicies("crops"),
+  ],
+).enableRLS();
 
 export const cropVarieties = pgTable(
   "crop_varieties",
@@ -43,8 +51,11 @@ export const cropVarieties = pgTable(
     notes: text("notes"),
     ...timestamps,
   },
-  (t) => [index("crop_varieties_org_idx").on(t.orgId)],
-);
+  (t) => [
+    index("crop_varieties_org_idx").on(t.orgId),
+    ...nullableOrgCatalogPolicies("crop_varieties"),
+  ],
+).enableRLS();
 
 /** Phenological stages per crop (org_id NULL = global defaults). */
 export const cropStages = pgTable(
@@ -62,9 +73,20 @@ export const cropStages = pgTable(
     typicalDurationDays: integer("typical_duration_days"),
     ...timestamps,
   },
-  (t) => [index("crop_stages_crop_idx").on(t.cropId)],
-);
+  (t) => [
+    index("crop_stages_crop_idx").on(t.cropId),
+    ...nullableOrgCatalogPolicies("crop_stages"),
+  ],
+).enableRLS();
 
+/**
+ * Same-crop overlap guard: DB-level only, not expressible in drizzle.
+ * A `btree_gist`-backed EXCLUDE constraint on (parcel_id, crop_id, daterange)
+ * lives in drizzle/0016_crop-cycle-overlap-guard.sql — it blocks two cycles of
+ * the SAME crop on the SAME parcel with overlapping [start_date, end_date]
+ * ranges (open-ended cycles treated as ending at infinity), while leaving
+ * intercropping (different crops, same parcel, overlapping dates) legal.
+ */
 export const cropCycles = pgTable(
   "crop_cycles",
   {
@@ -113,5 +135,6 @@ export const cropCycles = pgTable(
       "crop_cycles_date_range_check",
       sql`${t.endDate} IS NULL OR ${t.endDate} >= ${t.startDate}`,
     ),
+    ...orgIsolationPolicy("crop_cycles"),
   ],
-);
+).enableRLS();

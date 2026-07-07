@@ -1,11 +1,17 @@
 import { z } from "zod";
-import { db } from "@/lib/db";
+// dbSystem: used ONLY by upsertRainfallDays/ingestRainfallCore below, the
+// cron-script entry point (src/scripts/ingest-climate.ts) — unattended,
+// sweeps every org, no OrgContext/app.org_id exists to scope a `db` query
+// by. ingestRainfall (the UI-facing, ctx-scoped path) uses withOrgRls
+// instead — see its own doc comment.
+import { dbSystem } from "@/lib/db";
 import { climateReadings } from "@/lib/db/schema";
+import { withOrgRls } from "@/lib/db/rls";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
 import { newId } from "@/lib/ids";
-import { getFarm } from "@/server/services/farms";
-import { farmCentroid, type LatLng } from "@/server/services/geo";
+import { getFarmInTx } from "@/server/services/farms";
+import { farmCentroidInTx, type LatLng } from "@/server/services/geo";
 
 export type IngestProvider = "open_meteo" | "chirps";
 
@@ -231,13 +237,15 @@ export async function fetchChirps(
  * src/lib/db/schema/climate.ts). Days with no rainfall value are skipped
  * entirely rather than writing an all-null row.
  *
- * Exported (not just used by ingestRainfall below) so the cron script can
- * call it directly: a script has no OrgContext (no session, no
- * requireOrgContext), so it cannot go through assertCan-gated
- * ingestRainfall. It resolves org/farm ids straight from the DB instead and
- * calls this core with plain values. That's an acceptable bypass because the
- * script is a trusted, unattended job with no untrusted user input, unlike
- * the org-scoped action which handles form submissions from members.
+ * SCRIPT-ONLY (dbSystem, owner connection): exported so the cron script can
+ * call it directly with plain org/farm ids — a script has no OrgContext (no
+ * session, no requireOrgContext), so it cannot go through assertCan-gated
+ * ingestRainfall, and there is no app.org_id to scope a request-bound `db`
+ * transaction by. That's an acceptable bypass because the script is a
+ * trusted, unattended job with no untrusted user input, unlike the
+ * org-scoped action which handles form submissions from members. The
+ * org-scoped path (ingestRainfall, below) does its own write under
+ * withOrgRls instead of reusing this.
  */
 export async function upsertRainfallDays(
   orgId: string,
@@ -248,7 +256,7 @@ export async function upsertRainfallDays(
   // One transaction so a mid-range DB failure never persists a partial
   // window whose count/banner would then misreport what landed.
   let count = 0;
-  await db.transaction(async (tx) => {
+  await dbSystem.transaction(async (tx) => {
     for (const day of days) {
       // "still write the row if precipitation exists" — a day with no
       // rainfall value (provider returned null) carries no signal worth
@@ -285,7 +293,11 @@ export async function upsertRainfallDays(
   return count;
 }
 
-/** Cron-script entry point — see upsertRainfallDays doc comment for why. */
+/**
+ * SCRIPT-ONLY cron entry point (dbSystem) — see upsertRainfallDays doc
+ * comment for why. The UI-facing path is ingestRainfall, below, which is
+ * org-scoped and RLS'd instead of using this function.
+ */
 export async function ingestRainfallCore(
   orgId: string,
   farmId: string,
@@ -312,28 +324,66 @@ export type IngestRainfallInput = {
   provider: IngestProvider;
 };
 
+/**
+ * UI-facing, org-scoped entry point. Fetches from the provider OUTSIDE any
+ * DB transaction (network I/O should never hold a Postgres transaction/
+ * connection open), then writes rows under withOrgRls so agropeq_app's RLS
+ * policies apply — unlike upsertRainfallDays/ingestRainfallCore above,
+ * which are the cron script's dbSystem-based path.
+ */
 export async function ingestRainfall(
   ctx: OrgContext,
   input: IngestRainfallInput,
 ): Promise<IngestResult> {
   assertCan(ctx, "climate", "create");
 
-  const farm = await getFarm(ctx, input.farmId);
-  if (!farm) throw new Error("farm not found");
+  const point = await withOrgRls(ctx.org.id, async (tx) => {
+    const farm = await getFarmInTx(tx, ctx, input.farmId);
+    if (!farm) throw new Error("farm not found");
+    const centroid = await farmCentroidInTx(tx, ctx, input.farmId);
+    if (!centroid) throw new Error("no parcels");
+    return centroid;
+  });
 
   const { from, to } = clampRange(input.from, input.to);
 
-  const point = await farmCentroid(ctx, input.farmId);
-  if (!point) throw new Error("no parcels");
+  const days =
+    input.provider === "chirps"
+      ? await fetchChirps(point, from, to)
+      : await fetchOpenMeteo(point, from, to);
 
-  const count = await ingestRainfallCore(
-    ctx.org.id,
-    input.farmId,
-    point,
-    from,
-    to,
-    input.provider,
-  );
+  const count = await withOrgRls(ctx.org.id, async (tx) => {
+    let written = 0;
+    for (const day of days) {
+      if (day.rainfallMm === null) continue;
+      await tx
+        .insert(climateReadings)
+        .values({
+          id: newId(),
+          orgId: ctx.org.id,
+          farmId: input.farmId,
+          date: day.date,
+          source: input.provider,
+          rainfallMm: day.rainfallMm,
+          tempMinC: day.tempMinC ?? null,
+          tempMaxC: day.tempMaxC ?? null,
+        })
+        .onConflictDoUpdate({
+          target: [
+            climateReadings.farmId,
+            climateReadings.date,
+            climateReadings.source,
+          ],
+          set: {
+            rainfallMm: day.rainfallMm,
+            tempMinC: day.tempMinC ?? null,
+            tempMaxC: day.tempMaxC ?? null,
+          },
+        });
+      written++;
+    }
+    return written;
+  });
 
   return { count, provider: input.provider, from, to };
 }

@@ -64,6 +64,16 @@ export const activityCreatePayload = z.object({
   ),
 });
 
+/** Device GPS fix, captured client-side (works fully offline — no network
+ * round trip needed to read navigator.geolocation). Bounds mirror valid
+ * WGS84 lat/lng ranges; the DB column is geometry(Point,4326). */
+const geoLocation = z
+  .object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+  })
+  .optional();
+
 export const monitoringCreatePayload = z.object({
   id: uuid,
   parcelId: uuid,
@@ -75,6 +85,7 @@ export const monitoringCreatePayload = z.object({
   incidencePct: percentDecimal,
   notes: z.string().optional(),
   actionsTaken: z.string().optional(),
+  location: geoLocation,
 });
 
 export const attendanceUpsertPayload = z.object({

@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { db } from "@/lib/db";
+import { withOrgRls } from "@/lib/db/rls";
 import { importJobs } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
@@ -27,12 +27,14 @@ export default async function ImportPage({
     return null;
   }
 
-  const jobs = await db
-    .select()
-    .from(importJobs)
-    .where(eq(importJobs.orgId, ctx.org.id))
-    .orderBy(desc(importJobs.createdAt))
-    .limit(10);
+  const jobs = await withOrgRls(ctx.org.id, (tx) =>
+    tx
+      .select()
+      .from(importJobs)
+      .where(eq(importJobs.orgId, ctx.org.id))
+      .orderBy(desc(importJobs.createdAt))
+      .limit(10),
+  );
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">

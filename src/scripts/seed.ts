@@ -1,11 +1,13 @@
 /**
  * Deterministic demo seed. Idempotent: fixed UUIDs + onConflictDoNothing.
  * Grows with each phase — earlier click-throughs must keep working.
- * Run with: pnpm db:seed
+ * Run with: pnpm dbSystem:seed
  */
 import { eq } from "drizzle-orm";
 import { auth } from "../lib/auth";
-import { db } from "../lib/db";
+// dbSystem: owner connection, bypasses RLS. Unattended seed script,
+// no OrgContext/app.org_id — writes span every seeded org directly.
+import { dbSystem } from "../lib/db";
 import {
   activities,
   activityInputs,
@@ -151,7 +153,7 @@ function fixedActivityId(index: number): string {
 async function ensureUsers() {
   const users: Record<string, string> = {};
   for (const demoUser of DEMO_USERS) {
-    const existing = await db
+    const existing = await dbSystem
       .select({ id: user.id })
       .from(user)
       .where(eq(user.email, demoUser.email))
@@ -176,7 +178,7 @@ async function ensureUsers() {
 }
 
 async function ensureOrg(users: Record<string, string>) {
-  await db
+  await dbSystem
     .insert(organization)
     .values({
       id: ID.org,
@@ -188,13 +190,13 @@ async function ensureOrg(users: Record<string, string>) {
     })
     .onConflictDoNothing({ target: organization.slug });
 
-  const [org] = await db
+  const [org] = await dbSystem
     .select()
     .from(organization)
     .where(eq(organization.slug, "finca-demo"))
     .limit(1);
 
-  const existingMembers = await db
+  const existingMembers = await dbSystem
     .select({ userId: member.userId })
     .from(member)
     .where(eq(member.organizationId, org.id));
@@ -203,7 +205,7 @@ async function ensureOrg(users: Record<string, string>) {
   for (const demoUser of DEMO_USERS) {
     const userId = users[demoUser.email];
     if (memberUserIds.has(userId)) continue;
-    await db.insert(member).values({
+    await dbSystem.insert(member).values({
       id: `mem_${demoUser.role}_demo`,
       organizationId: org.id,
       userId,
@@ -214,7 +216,7 @@ async function ensureOrg(users: Record<string, string>) {
 }
 
 async function seedCatalog() {
-  await db
+  await dbSystem
     .insert(crops)
     .values(
       GLOBAL_CROPS.map((crop) => ({
@@ -227,7 +229,7 @@ async function seedCatalog() {
     )
     .onConflictDoNothing({ target: crops.id });
 
-  await db
+  await dbSystem
     .insert(cropVarieties)
     .values(
       COFFEE_VARIETIES.map((variety) => ({
@@ -239,7 +241,7 @@ async function seedCatalog() {
     )
     .onConflictDoNothing({ target: cropVarieties.id });
 
-  await db
+  await dbSystem
     .insert(activityTypes)
     .values(
       GLOBAL_ACTIVITY_TYPES.map((type) => ({
@@ -253,7 +255,7 @@ async function seedCatalog() {
 }
 
 async function seedFarmData(orgId: string, ownerId: string) {
-  await db
+  await dbSystem
     .insert(farms)
     .values([
       {
@@ -310,7 +312,7 @@ async function seedFarmData(orgId: string, ownerId: string) {
   ];
 
   for (const parcel of parcelRows) {
-    await db
+    await dbSystem
       .insert(parcels)
       .values({
         ...parcel,
@@ -321,13 +323,13 @@ async function seedFarmData(orgId: string, ownerId: string) {
   }
 
   // Compute areas for any parcel with a boundary and no area yet.
-  await db.execute(
+  await dbSystem.execute(
     `UPDATE parcels
      SET area_ha = (ST_Area(boundary::geography) / 10000.0)::numeric(12,4)
      WHERE boundary IS NOT NULL AND area_ha IS NULL`,
   );
 
-  await db
+  await dbSystem
     .insert(cropCycles)
     .values([
       {
@@ -372,7 +374,7 @@ async function seedFarmData(orgId: string, ownerId: string) {
     ])
     .onConflictDoNothing({ target: cropCycles.id });
 
-  await db
+  await dbSystem
     .insert(products)
     .values(
       DEMO_PRODUCTS.map((product) => ({
@@ -399,7 +401,7 @@ async function seedActivities(orgId: string, ownerId: string) {
   const ACTIVITY_COUNT = 36;
   for (let i = 0; i < ACTIVITY_COUNT; i++) {
     const activityId = fixedActivityId(i);
-    const existing = await db
+    const existing = await dbSystem
       .select({ id: activities.id })
       .from(activities)
       .where(eq(activities.id, activityId))
@@ -439,7 +441,7 @@ async function seedActivities(orgId: string, ownerId: string) {
 
     const totals = computeActivityTotals({ inputs, labor });
 
-    await db.transaction(async (tx) => {
+    await dbSystem.transaction(async (tx) => {
       await tx.insert(activities).values({
         id: activityId,
         orgId,
@@ -494,7 +496,7 @@ async function seedPlans() {
   for (const plan of PLAN_DEFINITIONS) {
     // Upsert: PLAN_DEFINITIONS is the source of truth, and feature lists grow
     // with each phase — a do-nothing insert would leave stale limits behind.
-    await db
+    await dbSystem
       .insert(plans)
       .values({
         id: plan.id,
@@ -516,7 +518,7 @@ async function seedPlans() {
 
 /** Demo org runs a Cosecha trial so no module is gated during development. */
 async function seedDemoSubscription(orgId: string) {
-  await db
+  await dbSystem
     .insert(orgSubscriptions)
     .values({
       id: "01900000-0000-7000-8000-00000000d001",
@@ -534,7 +536,7 @@ async function seedDemoSubscription(orgId: string) {
 async function seedNeighborOrg() {
   const email = "vecino@demo.agropeq.io";
   let userId: string;
-  const existing = await db
+  const existing = await dbSystem
     .select({ id: user.id })
     .from(user)
     .where(eq(user.email, email))
@@ -554,7 +556,7 @@ async function seedNeighborOrg() {
     console.log(`created ${email} (password: ${DEMO_PASSWORD})`);
   }
 
-  await db
+  await dbSystem
     .insert(organization)
     .values({
       id: "org_vecino_sa",
@@ -566,18 +568,18 @@ async function seedNeighborOrg() {
     })
     .onConflictDoNothing({ target: organization.slug });
 
-  const [org] = await db
+  const [org] = await dbSystem
     .select()
     .from(organization)
     .where(eq(organization.slug, "vecino-sa"))
     .limit(1);
 
-  const members = await db
+  const members = await dbSystem
     .select({ userId: member.userId })
     .from(member)
     .where(eq(member.organizationId, org.id));
   if (!members.some((m) => m.userId === userId)) {
-    await db.insert(member).values({
+    await dbSystem.insert(member).values({
       id: "mem_owner_vecino",
       organizationId: org.id,
       userId,
@@ -585,7 +587,7 @@ async function seedNeighborOrg() {
     });
   }
 
-  await db
+  await dbSystem
     .insert(orgSubscriptions)
     .values({
       id: "01900000-0000-7000-8000-00000000d002",
@@ -595,7 +597,7 @@ async function seedNeighborOrg() {
     })
     .onConflictDoNothing({ target: orgSubscriptions.orgId });
 
-  await db
+  await dbSystem
     .insert(farms)
     .values({
       id: "01900000-0000-7000-8000-000000000103",
@@ -646,7 +648,7 @@ async function seedMonitoring(orgId: string, createdBy: string) {
     },
   ];
   for (const row of rows) {
-    await db
+    await dbSystem
       .insert(monitoringRecords)
       .values({ ...row, orgId, createdBy })
       .onConflictDoNothing({ target: monitoringRecords.id });
@@ -678,7 +680,7 @@ async function seedClimate(orgId: string) {
     });
   }
   for (const value of values) {
-    await db
+    await dbSystem
       .insert(climateReadings)
       .values(value)
       .onConflictDoNothing({ target: climateReadings.id });
@@ -731,7 +733,7 @@ function fortnightDate(index: number): string {
 
 async function seedWorkers(orgId: string) {
   for (const w of DEMO_WORKERS) {
-    await db
+    await dbSystem
       .insert(workers)
       .values({
         id: w.id,
@@ -757,7 +759,7 @@ async function seedAttendance(orgId: string, createdBy: string) {
         worker.code === "T-01"
           ? PEDRO_FORTNIGHT[day]
           : { status: "present" as const, hours: undefined };
-      await db
+      await dbSystem
         .insert(attendanceRecords)
         .values({
           id: `01900000-0000-7000-8000-0000ad${String(w + 1).padStart(2, "0")}${String(day).padStart(2, "0")}00`,
@@ -795,7 +797,7 @@ const INV_ID = {
  * → 30 qq, avg 33.00, value 990.00. Glifosato 10 L @ 7.50.
  */
 async function seedInventory(orgId: string, createdBy: string) {
-  await db
+  await dbSystem
     .insert(warehouses)
     .values({
       id: INV_ID.warehouse,
@@ -805,7 +807,7 @@ async function seedInventory(orgId: string, createdBy: string) {
     })
     .onConflictDoNothing({ target: warehouses.id });
 
-  await db
+  await dbSystem
     .insert(suppliers)
     .values([
       {
@@ -866,12 +868,12 @@ async function seedInventory(orgId: string, createdBy: string) {
   ];
 
   for (const { purchase, lines } of purchaseRows) {
-    await db
+    await dbSystem
       .insert(purchases)
       .values(purchase)
       .onConflictDoNothing({ target: purchases.id });
     for (const line of lines) {
-      await db
+      await dbSystem
         .insert(purchaseLines)
         .values({
           id: line.id,
@@ -883,7 +885,7 @@ async function seedInventory(orgId: string, createdBy: string) {
           total: line.total,
         })
         .onConflictDoNothing({ target: purchaseLines.id });
-      await db
+      await dbSystem
         .insert(inventoryMovements)
         .values({
           id: line.movId,
@@ -908,7 +910,7 @@ async function seedInventory(orgId: string, createdBy: string) {
 async function seedHarvests(orgId: string, createdBy: string) {
   const pickers = DEMO_WORKERS.filter((w) => w.active);
   for (let i = 0; i < 12; i++) {
-    await db
+    await dbSystem
       .insert(harvests)
       .values({
         id: `01900000-0000-7000-8000-00000000fa${(i + 1).toString(16).padStart(2, "0")}`,
@@ -943,7 +945,7 @@ const P5_ID = {
 } as const;
 
 async function seedMachinery(orgId: string, createdBy: string) {
-  await db
+  await dbSystem
     .insert(machines)
     .values([
       {
@@ -969,7 +971,7 @@ async function seedMachinery(orgId: string, createdBy: string) {
     .onConflictDoNothing({ target: machines.id });
 
   // 4h × 25.00 + 23.00 fuel = 123.00 · 3h × 3.50 = 10.50 (standalone logs)
-  await db
+  await dbSystem
     .insert(machineUsageLogs)
     .values([
       {
@@ -1002,7 +1004,7 @@ async function seedMachinery(orgId: string, createdBy: string) {
 
 /** Urea: 4 qq move Central → Norte at the 33.00 running average. */
 async function seedTransfer(orgId: string, createdBy: string) {
-  await db
+  await dbSystem
     .insert(warehouses)
     .values({
       id: P5_ID.warehouseNorte,
@@ -1014,7 +1016,7 @@ async function seedTransfer(orgId: string, createdBy: string) {
     .onConflictDoNothing({ target: warehouses.id });
 
   const urea = DEMO_PRODUCTS[0];
-  await db
+  await dbSystem
     .insert(inventoryTransfers)
     .values({
       id: P5_ID.transfer,
@@ -1026,7 +1028,7 @@ async function seedTransfer(orgId: string, createdBy: string) {
       createdBy,
     })
     .onConflictDoNothing({ target: inventoryTransfers.id });
-  await db
+  await dbSystem
     .insert(inventoryTransferLines)
     .values({
       id: P5_ID.transferLine,
@@ -1037,7 +1039,7 @@ async function seedTransfer(orgId: string, createdBy: string) {
       unitCostSnapshot: "33.0000",
     })
     .onConflictDoNothing({ target: inventoryTransferLines.id });
-  await db
+  await dbSystem
     .insert(inventoryMovements)
     .values([
       {
@@ -1073,7 +1075,7 @@ async function seedTransfer(orgId: string, createdBy: string) {
 
 /** Café 2026 budget: labor 120 + input 80 per month, Jan–Jun. */
 async function seedBudget(orgId: string, createdBy: string) {
-  await db
+  await dbSystem
     .insert(budgets)
     .values({
       id: P5_ID.budget,
@@ -1107,7 +1109,7 @@ async function seedBudget(orgId: string, createdBy: string) {
     });
   }
   for (const line of lines) {
-    await db
+    await dbSystem
       .insert(budgetLines)
       .values(line)
       .onConflictDoNothing({ target: budgetLines.id });
@@ -1148,7 +1150,7 @@ async function seedPlanning(orgId: string, createdBy: string) {
     },
   ];
   for (const row of rows) {
-    await db
+    await dbSystem
       .insert(plannedActivities)
       .values({ ...row, orgId, status: "planned", createdBy })
       .onConflictDoNothing({ target: plannedActivities.id });
@@ -1180,7 +1182,7 @@ async function seedStages() {
     { crop: 1, idx: 4, name: "Cosecha", days: 25 },
   ];
   for (const [i, stage] of stages.entries()) {
-    await db
+    await dbSystem
       .insert(cropStages)
       .values({
         id: `01900000-0000-7000-8000-00000000cf${(i + 1).toString(16).padStart(2, "0")}`,
@@ -1202,7 +1204,7 @@ async function seedStages() {
  * reconciles income − (activity costs + 250) for the cycle.
  */
 async function seedProcessingAndSale(orgId: string, createdBy: string) {
-  await db
+  await dbSystem
     .insert(harvestLots)
     .values({
       id: P6_ID.lot,
@@ -1215,7 +1217,7 @@ async function seedProcessingAndSale(orgId: string, createdBy: string) {
     .onConflictDoNothing({ target: harvestLots.id });
 
   for (let i = 0; i < 12; i++) {
-    await db
+    await dbSystem
       .insert(harvestLotItems)
       .values({
         id: `01900000-0000-7000-8000-00000000fd${(17 + i).toString(16)}`,
@@ -1226,7 +1228,7 @@ async function seedProcessingAndSale(orgId: string, createdBy: string) {
       .onConflictDoNothing();
   }
 
-  await db
+  await dbSystem
     .insert(processingRuns)
     .values({
       id: P6_ID.run,
@@ -1244,7 +1246,7 @@ async function seedProcessingAndSale(orgId: string, createdBy: string) {
     })
     .onConflictDoNothing({ target: processingRuns.id });
 
-  await db
+  await dbSystem
     .insert(sales)
     .values({
       id: P6_ID.sale,
@@ -1260,7 +1262,7 @@ async function seedProcessingAndSale(orgId: string, createdBy: string) {
       createdBy,
     })
     .onConflictDoNothing({ target: sales.id });
-  await db
+  await dbSystem
     .insert(saleLines)
     .values({
       id: P6_ID.saleLine,
@@ -1278,7 +1280,7 @@ async function seedProcessingAndSale(orgId: string, createdBy: string) {
 
 /** Piecework: José 40 lata, Rosa 35 lata @1.10; Ana 50 surcos @0.80. */
 async function seedPiecework(orgId: string, createdBy: string) {
-  await db
+  await dbSystem
     .insert(pieceRates)
     .values([
       { id: P6_ID.rateCorte, orgId, name: "Corte de café", unit: "lata", rate: "1.1000" },
@@ -1292,7 +1294,7 @@ async function seedPiecework(orgId: string, createdBy: string) {
     { id: "01900000-0000-7000-8000-00000000fb13", workerId: DEMO_WORKERS[5].id, rateId: P6_ID.rateChapoda, date: "2026-06-22", qty: "50.0000", rate: "0.8000", amount: "40.0000" },
   ];
   for (const entry of entries) {
-    await db
+    await dbSystem
       .insert(pieceworkEntries)
       .values({
         id: entry.id,

@@ -39,5 +39,9 @@
   },
   "rainSection": "Lluvia del ciclo",
   "selectCycle": "Ciclo",
-  "noCycleSelected": "Selecciona un ciclo para ver su lluvia."
+  "noCycleSelected": "Selecciona un ciclo para ver su lluvia.",
+  "errors": {
+    "cycleOverlap": "Ya existe un ciclo de este cultivo en esa parcela durante ese período.",
+    "unknown": "No se pudo guardar el ciclo. Inténtalo de nuevo."
+  }
 }

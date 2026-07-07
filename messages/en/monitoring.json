@@ -13,6 +13,13 @@
   "incidencePct": "Incidence (%)",
   "notes": "Notes",
   "actionsTaken": "Actions taken",
+  "location": "Location",
+  "locationUse": "Use my location",
+  "locationCapturing": "Getting location…",
+  "locationCaptured": "📍 ±{accuracy}m",
+  "locationDenied": "Couldn't get location",
+  "locationUnavailable": "Location not available on this device",
+  "locationTitle": "Location: {lat}, {lng}",
   "create": "Save record",
   "delete": "Delete",
   "types": {
