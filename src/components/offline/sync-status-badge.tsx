@@ -5,9 +5,7 @@ import { useTranslations } from "next-intl";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "@/i18n/navigation";
 import { flushOutbox, outboxCounts } from "@/lib/offline/outbox";
-
-const pillBase =
-  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium";
+import { StatusChip } from "@/components/ui/status-chip";
 
 function useOnlineStatus(): boolean {
   const [online, setOnline] = useState(() =>
@@ -46,11 +44,9 @@ export function SyncStatusBadge({ orgSlug }: { orgSlug: string }) {
   if (!online) {
     if (pending === 0 && rejected === 0) return null;
     return (
-      <span
-        className={`${pillBase} bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100`}
-      >
+      <StatusChip family="sync" state="offline">
         {t("badge.offline", { count: pending })}
-      </span>
+      </StatusChip>
     );
   }
 
@@ -61,9 +57,11 @@ export function SyncStatusBadge({ orgSlug }: { orgSlug: string }) {
         onClick={() => {
           void flushOutbox(orgSlug);
         }}
-        className={`${pillBase} bg-blue-100 text-blue-900 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-100 dark:hover:bg-blue-800`}
+        className="cursor-pointer appearance-none rounded-[3px] border-0 bg-transparent p-0 transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
-        {t("badge.pending", { count: pending })}
+        <StatusChip family="sync" state="pending">
+          {t("badge.pending", { count: pending })}
+        </StatusChip>
       </button>
     );
   }
@@ -72,9 +70,11 @@ export function SyncStatusBadge({ orgSlug }: { orgSlug: string }) {
     return (
       <Link
         href={`/o/${orgSlug}/sync-issues`}
-        className={`${pillBase} bg-red-100 text-red-900 hover:bg-red-200 dark:bg-red-900 dark:text-red-100 dark:hover:bg-red-800`}
+        className="rounded-[3px] transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
-        {t("badge.rejected", { count: rejected })}
+        <StatusChip family="sync" state="error">
+          {t("badge.rejected", { count: rejected })}
+        </StatusChip>
       </Link>
     );
   }

@@ -11,6 +11,7 @@ import {
 import { listProducts } from "@/server/services/catalog";
 import { AdjustmentForm } from "@/components/inventory/adjustment-form";
 import { Card, CardContent } from "@/components/ui/card";
+import { StatusChip } from "@/components/ui/status-chip";
 
 export default async function InventoryPage({
   params,
@@ -89,9 +90,13 @@ export default async function InventoryPage({
                           <td className="py-2 pr-4">
                             {row.productName}
                             {low && (
-                              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                              <StatusChip
+                                family="sev"
+                                state="medium"
+                                className="ml-2"
+                              >
                                 {t("table.lowStock")}
-                              </span>
+                              </StatusChip>
                             )}
                           </td>
                           <td className="py-2 pr-4">{row.warehouseName}</td>

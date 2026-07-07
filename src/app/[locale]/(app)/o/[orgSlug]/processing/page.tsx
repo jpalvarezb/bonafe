@@ -129,7 +129,7 @@ export default async function ProcessingPage({
                       <td className="px-4 py-2">
                         {run.outputQuantity} {unitLabel(run.outputUnit)}
                         {overOutput && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                          <p className="text-xs text-notice-warning-fg">
                             {t("runs.overOutputWarning")}
                           </p>
                         )}

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { enqueue, flushOutbox } from "@/lib/offline/outbox";
 import { newId } from "@/lib/ids";
+import { StatusChip } from "@/components/ui/status-chip";
 
 type AttendanceStatus = "present" | "half_day" | "absent" | "sick" | "leave";
 
@@ -49,15 +50,16 @@ function shiftDate(iso: string, deltaDays: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-const statusChipClass: Record<AttendanceStatus, string> = {
-  present:
-    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-  half_day:
-    "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  absent: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100",
-  sick: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100",
-  leave:
-    "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100",
+// DB status -> StatusChip `att` state (half_day has no direct token name).
+const ATT_CHIP_STATE: Record<
+  AttendanceStatus,
+  "present" | "half" | "absent" | "sick" | "leave"
+> = {
+  present: "present",
+  half_day: "half",
+  absent: "absent",
+  sick: "sick",
+  leave: "leave",
 };
 
 export function AttendanceGrid({ orgSlug, date, rows }: Props) {
@@ -175,12 +177,9 @@ export function AttendanceGrid({ orgSlug, date, rows }: Props) {
 
       <div className="flex flex-wrap gap-2 text-xs">
         {STATUSES.map((status) => (
-          <span
-            key={status}
-            className={`rounded-full px-2 py-0.5 font-medium ${statusChipClass[status]}`}
-          >
+          <StatusChip key={status} family="att" state={ATT_CHIP_STATE[status]}>
             {t(`statuses.${status}`)}: {summary.counts[status]}
-          </span>
+          </StatusChip>
         ))}
         {summary.unmarked > 0 && (
           <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground">
@@ -269,7 +268,7 @@ export function AttendanceGrid({ orgSlug, date, rows }: Props) {
                 </div>
 
                 {entry.localPending && (
-                  <p className="rounded-md bg-amber-100 px-3 py-1.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+                  <p className="rounded-md bg-sync-pending-bg px-3 py-1.5 text-xs text-sync-pending-fg">
                     {tOffline("pendingNote")}
                   </p>
                 )}

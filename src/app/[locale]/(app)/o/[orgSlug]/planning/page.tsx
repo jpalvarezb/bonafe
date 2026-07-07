@@ -25,12 +25,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatusChip } from "@/components/ui/status-chip";
 
-const STATUS_CHIP_CLASS: Record<PlannedActivityStatus, string> = {
-  planned: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  converted:
-    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-  cancelled: "bg-muted text-muted-foreground line-through",
+// Calendar-cell mini badge is too small/dense for the standard StatusChip
+// shape (font-mono, larger padding) — this keeps the compact custom layout
+// while pulling colors from the same life-* tokens StatusChip uses.
+const CALENDAR_CHIP_CLASS: Record<PlannedActivityStatus, string> = {
+  planned: "bg-life-planned-bg text-life-planned-fg",
+  converted: "bg-life-converted-bg text-life-converted-fg",
+  cancelled: "bg-life-cancelled-bg text-life-cancelled-fg line-through",
 };
 
 // Monday-first week, labelled explicitly in messages/planning.json.
@@ -244,7 +247,7 @@ export default async function PlanningPage({
                             row.parcelName ? " · " + row.parcelName : ""
                           }`}
                           className={`truncate rounded px-1 py-0.5 text-[10px] font-medium ${
-                            STATUS_CHIP_CLASS[
+                            CALENDAR_CHIP_CLASS[
                               row.plan.status as PlannedActivityStatus
                             ]
                           }`}
@@ -300,15 +303,17 @@ export default async function PlanningPage({
                       {formatCost(item.estimatedCost)}
                     </td>
                     <td className="px-4 py-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          STATUS_CHIP_CLASS[
-                            item.status as PlannedActivityStatus
-                          ]
-                        }`}
+                      <StatusChip
+                        family="life"
+                        state={item.status as PlannedActivityStatus}
+                        className={
+                          item.status === "cancelled"
+                            ? "line-through"
+                            : undefined
+                        }
                       >
                         {t(`status.${item.status}`)}
-                      </span>
+                      </StatusChip>
                     </td>
                     <td className="px-4 py-2 text-right">
                       <div className="flex justify-end gap-2">

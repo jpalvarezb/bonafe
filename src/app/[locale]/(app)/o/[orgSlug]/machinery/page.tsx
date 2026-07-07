@@ -8,6 +8,7 @@ import { listMachines } from "@/server/services/machinery";
 import { setMachineActiveAction } from "@/server/actions/machinery";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { StatusChip } from "@/components/ui/status-chip";
 
 export default async function MachineryPage({
   params,
@@ -84,15 +85,12 @@ export default async function MachineryPage({
                       {machine.hourlyCost} {currency}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={
-                          machine.active
-                            ? "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100"
-                            : "rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                        }
+                      <StatusChip
+                        family="life"
+                        state={machine.active ? "active" : "inactive"}
                       >
                         {t(machine.active ? "status.active" : "status.inactive")}
-                      </span>
+                      </StatusChip>
                     </td>
                     {canManage && (
                       <td className="px-4 py-3">

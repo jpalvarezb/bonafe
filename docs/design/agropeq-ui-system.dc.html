@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ecebe8;font-family:'Geist',system-ui,sans-serif;color:#1a1a1a}
+a{color:oklch(0.50 0.11 245);text-decoration:none}
+a:hover{text-decoration:underline}
+.dv-turn{padding:40px 44px 32px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+.dv-tid{font:600 10px 'Geist Mono',monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:3px;text-decoration:none}
+.dv-tname{font:600 14px/1.2 'Geist',sans-serif;color:#1a1a1a}
+.dv-note{max-width:880px;font:12px/1.55 'Geist',sans-serif;color:rgba(0,0,0,.6);margin:0 0 26px}
+.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px 'Geist Mono',monospace;padding:3px 7px;background:rgba(0,0,0,.09);color:#1a1a1a;border-radius:3px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'Geist',sans-serif;color:rgba(0,0,0,.55)}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.12);overflow:hidden}
+.dv-opt:target .dv-oid{background:oklch(0.50 0.11 245);color:#fff}
+@keyframes agp-scan{0%{transform:translateY(-8%);opacity:0}12%{opacity:0.9}88%{opacity:0.9}100%{transform:translateY(108%);opacity:0}}
+@keyframes agp-ping{0%{transform:scale(1);opacity:0.8}70%{transform:scale(3.4);opacity:0}100%{opacity:0}}
+@keyframes agp-blink{0%,55%{opacity:1}56%,100%{opacity:0.25}}
+</style>
+</helmet>
+
+
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Panel de oficina — cockpit de mapa (Foundry/Gotham)</span></div>
+<p class="dv-note">Rediseño del panel de oficina: el satélite de Finca Bonafé es la superficie principal y las 5 parcelas son polígonos interactivos. <strong>Conmutador de capas</strong> (costo/ha · margen · cultivo · etapa) que recolorea las parcelas y actualiza la leyenda; <strong>pines de monitoreo</strong> por severidad (Roya del café — alta, en El Naranjal); <strong>marcadores de OT</strong> abiertas (OT-0042 en progreso); tira de KPIs y riel derecho con el detalle de la parcela seleccionada + cola de sincronización. <strong>Haz clic en una parcela</strong> para enfocarla — la selección atenúa el resto y llena el riel. Mismos tokens y densidad que <a class="dv-oid" href="#1a">1a</a>; el panel denso <a class="dv-oid" href="#1b">1b</a> queda como modo campo en escritorio, accesible con el conmutador Mapa / Panel. El basemap no cambia entre temas — solo el chrome flotante.</p>
+<div class="dv-opts">
+  <div class="dv-opt" id="2a">
+    <div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Cockpit de mapa — oficina · claro</div>
+    <div class="dv-card" style="width:1400px" data-screen-label="Cockpit mapa oficina claro">
+      
+    <dc-import name="MapCockpit" theme="light" hint-size="1400px,760px"></dc-import></div>
+  </div>
+  <div class="dv-opt" id="2b">
+    <div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Cockpit de mapa — oficina · oscuro</div>
+    <div class="dv-card" style="width:1400px" data-screen-label="Cockpit mapa oficina oscuro">
+      <dc-import name="MapCockpit" theme="dark" hint-size="1400px,760px"></dc-import>
+    </div>
+  </div>
+</div>
+<p class="dv-next">Prueba: "que <a class="dv-oid" href="#2a">2a</a> abra la ficha completa de la parcela al doble clic" · "agrega capa de humedad de suelo con isolíneas" · "mini-serie de lluvia del ciclo en el riel" · "versión para TV de sala de control de <a class="dv-oid" href="#2a">2a</a>"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">AgroPeq — Sistema UI y pantallas clave</span></div>
+<p class="dv-note"><strong>Contexto leído del repo bonafe:</strong> Tailwind v4 + shadcn (radix-nova, neutral), Geist Sans / Geist Mono, tokens oklch neutros puros, copy real de messages/es. <strong>Dirección:</strong> densidad tipo Foundry — bordes de 1px, rellenos mínimos, sin sombras, radios ≤3px, numerales tabulares en mono para toda cantidad y dinero, entidades (parcela, ciclo, trabajador, OT) siempre como enlace azul. Dos ejes ortogonales: <em>Modo</em> (Oficina densa / Campo con blancos de 48px+) × <em>Tema</em> (claro / oscuro). Moneda de ejemplo: HNL (L). Los colores semánticos son el único color del sistema.</p>
+<div class="dv-opts">
+
+<!-- ============ 1a FOUNDATIONS ============ -->
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Fundaciones — tokens semánticos (pares claro/oscuro), tipografía, densidad</div>
+<div class="dv-card" style="width:1088px;padding:28px 32px 32px;display:flex;flex-direction:column;gap:26px">
+
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:#8c8c8c">Color semántico — cada token es un par claro/oscuro, mismo significado en ambos temas</div>
+    <div style="display:grid;grid-template-columns:150px 1fr 1fr 1fr;border:1px solid #e4e4e4;font-size:11px">
+      <div style="display:contents">
+        <div style="padding:5px 10px;background:#fafafa;border-bottom:1px solid #e4e4e4;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c">familia</div>
+        <div style="padding:5px 10px;background:#fafafa;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c">tokens</div>
+        <div style="padding:5px 10px;background:#fafafa;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c">tema claro</div>
+        <div style="padding:5px 10px;background:#171717;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#a3a3a3">tema oscuro</div>
+      </div>
+
+      <div style="display:contents">
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;font-weight:600">Severidad<div style="font-weight:400;color:#8c8c8c;margin-top:2px">monitoreo plagas / enfermedades</div></div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;font-family:'Geist Mono',monospace;font-size:10.5px;color:#525252;line-height:1.8">--sev-low<br>--sev-medium<br>--sev-high</div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.88 0.05 150);background:oklch(0.965 0.025 150);color:oklch(0.42 0.11 150)">Baja</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);color:oklch(0.48 0.11 70)">Media</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.87 0.05 25);background:oklch(0.965 0.02 25);color:oklch(0.46 0.17 25)">Alta</span>
+        </div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;background:#171717;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.38 0.06 152);background:oklch(0.27 0.04 152);color:oklch(0.80 0.11 152)">Baja</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.40 0.07 80);background:oklch(0.28 0.05 80);color:oklch(0.84 0.12 80)">Media</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.40 0.08 25);background:oklch(0.27 0.06 25);color:oklch(0.76 0.15 25)">Alta</span>
+        </div>
+      </div>
+
+      <div style="display:contents">
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;font-weight:600">Sincronización<div style="font-weight:400;color:#8c8c8c;margin-top:2px">app offline-first con outbox</div></div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;font-family:'Geist Mono',monospace;font-size:10.5px;color:#525252;line-height:1.8">--sync-pending<br>--sync-ok<br>--sync-error<br>--sync-offline</div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);color:oklch(0.48 0.11 70)">3 por sincronizar</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.88 0.05 150);background:oklch(0.965 0.025 150);color:oklch(0.42 0.11 150)">Sincronizado</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.87 0.05 25);background:oklch(0.965 0.02 25);color:oklch(0.46 0.17 25)">1 con error</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid #d4d4d4;background:#f5f5f5;color:#525252">Sin conexión</span>
+        </div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;background:#171717;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.40 0.07 80);background:oklch(0.28 0.05 80);color:oklch(0.84 0.12 80)">3 por sincronizar</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.38 0.06 152);background:oklch(0.27 0.04 152);color:oklch(0.80 0.11 152)">Sincronizado</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.40 0.08 25);background:oklch(0.27 0.06 25);color:oklch(0.76 0.15 25)">1 con error</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid #3d3d3d;background:#262626;color:#a3a3a3">Sin conexión</span>
+        </div>
+      </div>
+
+      <div style="display:contents">
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;font-weight:600">Financiero<div style="font-weight:400;color:#8c8c8c;margin-top:2px">solo el signo lleva color; el resto neutro</div></div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;font-family:'Geist Mono',monospace;font-size:10.5px;color:#525252;line-height:1.8">--fin-positive<br>--fin-negative<br>--fin-neutral</div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;font-family:'Geist Mono',monospace;font-size:11px;font-variant-numeric:tabular-nums;line-height:1.9">
+          <span style="color:oklch(0.42 0.11 150)">+2,502.50&nbsp;&nbsp;50.13%</span><br>
+          <span style="color:oklch(0.46 0.17 25)">−487.25&nbsp;&nbsp;−12.4%</span><br>
+          <span style="color:#171717">4,992.00</span>
+        </div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;background:#171717;font-family:'Geist Mono',monospace;font-size:11px;font-variant-numeric:tabular-nums;line-height:1.9">
+          <span style="color:oklch(0.80 0.11 152)">+2,502.50&nbsp;&nbsp;50.13%</span><br>
+          <span style="color:oklch(0.76 0.15 25)">−487.25&nbsp;&nbsp;−12.4%</span><br>
+          <span style="color:#ededed">4,992.00</span>
+        </div>
+      </div>
+
+      <div style="display:contents">
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;font-weight:600">Orden de trabajo<div style="font-weight:400;color:#8c8c8c;margin-top:2px">ciclo de vida</div></div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;font-family:'Geist Mono',monospace;font-size:10.5px;color:#525252;line-height:1.8">--wo-draft<br>--wo-assigned<br>--wo-progress<br>--wo-done<br>--wo-cancelled</div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid #d4d4d4;background:#f5f5f5;color:#525252">Borrador</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.87 0.05 245);background:oklch(0.965 0.02 245);color:oklch(0.46 0.11 245)">Asignada</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);color:oklch(0.48 0.11 70)">En progreso</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.88 0.05 150);background:oklch(0.965 0.025 150);color:oklch(0.42 0.11 150)">Completada</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid #e4e4e4;background:#fff;color:#a3a3a3;text-decoration:line-through">Cancelada</span>
+        </div>
+        <div style="padding:8px 10px;border-bottom:1px solid #e4e4e4;border-left:1px solid #e4e4e4;background:#171717;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid #3d3d3d;background:#262626;color:#a3a3a3">Borrador</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.40 0.07 245);background:oklch(0.28 0.05 245);color:oklch(0.78 0.09 245)">Asignada</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.40 0.07 80);background:oklch(0.28 0.05 80);color:oklch(0.84 0.12 80)">En progreso</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.38 0.06 152);background:oklch(0.27 0.04 152);color:oklch(0.80 0.11 152)">Completada</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid #333;background:#171717;color:#6b6b6b;text-decoration:line-through">Cancelada</span>
+        </div>
+      </div>
+
+      <div style="display:contents">
+        <div style="padding:8px 10px;font-weight:600">Asistencia<div style="font-weight:400;color:#8c8c8c;margin-top:2px">planilla / jornales</div></div>
+        <div style="padding:8px 10px;border-left:1px solid #e4e4e4;font-family:'Geist Mono',monospace;font-size:10.5px;color:#525252;line-height:1.8">--att-present<br>--att-half<br>--att-absent<br>--att-sick<br>--att-leave</div>
+        <div style="padding:8px 10px;border-left:1px solid #e4e4e4;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.88 0.05 150);background:oklch(0.965 0.025 150);color:oklch(0.42 0.11 150)">Presente</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);color:oklch(0.48 0.11 70)">Medio día</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.87 0.05 25);background:oklch(0.965 0.02 25);color:oklch(0.46 0.17 25)">Ausente</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.87 0.05 300);background:oklch(0.965 0.02 300);color:oklch(0.46 0.11 300)">Enfermo</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.87 0.05 245);background:oklch(0.965 0.02 245);color:oklch(0.46 0.11 245)">Permiso</span>
+        </div>
+        <div style="padding:8px 10px;border-left:1px solid #e4e4e4;background:#171717;display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap">
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.38 0.06 152);background:oklch(0.27 0.04 152);color:oklch(0.80 0.11 152)">Presente</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.40 0.07 80);background:oklch(0.28 0.05 80);color:oklch(0.84 0.12 80)">Medio día</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.40 0.08 25);background:oklch(0.27 0.06 25);color:oklch(0.76 0.15 25)">Ausente</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.40 0.07 300);background:oklch(0.28 0.05 300);color:oklch(0.78 0.09 300)">Enfermo</span>
+          <span style="font:500 10.5px 'Geist Mono',monospace;padding:2px 7px;border:1px solid oklch(0.40 0.07 245);background:oklch(0.28 0.05 245);color:oklch(0.78 0.09 245)">Permiso</span>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10.5px;color:#8c8c8c;line-height:1.5">Todos los pares cumplen AA sobre su fondo de chip (≥4.5:1 el texto, ≥3:1 el borde). Neutros base = escala del repo (oklch acromático). Acento interactivo único: <span style="font-family:'Geist Mono',monospace;color:oklch(0.50 0.11 245)">--accent oklch(0.50 0.11 245) / oklch(0.75 0.09 245)</span> — reservado para enlaces de entidad y foco.</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:#8c8c8c">Tipografía — Geist Sans + Geist Mono</div>
+      <div style="border:1px solid #e4e4e4">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #f0f0f0"><span style="font:600 16px 'Geist',sans-serif">Título de página — 16/600</span><span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">page-title</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #f0f0f0"><span style="font:600 13px 'Geist',sans-serif">Encabezado de sección — 13/600</span><span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">section</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #f0f0f0"><span style="font:12px 'Geist',sans-serif">Cuerpo y celdas — 12/400</span><span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">body</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #f0f0f0"><span style="font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#525252">CABECERA DE TABLA — MONO 10/600</span><span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">th</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #f0f0f0"><span style="font:500 12px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">4,992.00 · 9.30 ha · OT-0042 — mono tabular</span><span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">num</span></div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;padding:7px 12px"><span style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">2,502.50</span><span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">kpi 22/600</span></div>
+      </div>
+      <div style="font-size:10.5px;color:#8c8c8c;line-height:1.5">Regla: <strong>toda cantidad, dinero, código, fecha y coordenada</strong> se compone en Geist Mono con <span style="font-family:'Geist Mono',monospace">font-variant-numeric: tabular-nums</span>, alineada a la derecha en tablas. El texto corre en Geist Sans.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="font:600 11px 'Geist Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;color:#8c8c8c">Densidad — Modo Oficina vs Modo Campo</div>
+      <div style="border:1px solid #e4e4e4;font-size:11px">
+        <div style="display:grid;grid-template-columns:110px 1fr 1fr;border-bottom:1px solid #e4e4e4;background:#fafafa">
+          <div style="padding:5px 10px;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c"></div>
+          <div style="padding:5px 10px;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c;border-left:1px solid #e4e4e4">oficina</div>
+          <div style="padding:5px 10px;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c;border-left:1px solid #e4e4e4">campo</div>
+        </div>
+        <div style="display:grid;grid-template-columns:110px 1fr 1fr;border-bottom:1px solid #f0f0f0"><div style="padding:6px 10px;color:#8c8c8c">Fila de tabla</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">28 px</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">56 px</div></div>
+        <div style="display:grid;grid-template-columns:110px 1fr 1fr;border-bottom:1px solid #f0f0f0"><div style="padding:6px 10px;color:#8c8c8c">Objetivo táctil mín.</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">24 px (teclado 1º)</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">48 px (guantes)</div></div>
+        <div style="display:grid;grid-template-columns:110px 1fr 1fr;border-bottom:1px solid #f0f0f0"><div style="padding:6px 10px;color:#8c8c8c">Cuerpo / etiqueta</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">12 / 10 px</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">16 / 12 px</div></div>
+        <div style="display:grid;grid-template-columns:110px 1fr 1fr;border-bottom:1px solid #f0f0f0"><div style="padding:6px 10px;color:#8c8c8c">Relleno de celda</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">6 × 10 px</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">14 × 16 px</div></div>
+        <div style="display:grid;grid-template-columns:110px 1fr 1fr;border-bottom:1px solid #f0f0f0"><div style="padding:6px 10px;color:#8c8c8c">Columnas</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">multi (grid 12)</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">1 columna</div></div>
+        <div style="display:grid;grid-template-columns:110px 1fr 1fr"><div style="padding:6px 10px;color:#8c8c8c">Tema por defecto</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">según sistema</div><div style="padding:6px 10px;border-left:1px solid #f0f0f0;font-family:'Geist Mono',monospace">claro (sol directo)</div></div>
+      </div>
+      <div style="font-size:10.5px;color:#8c8c8c;line-height:1.5">Modo y tema son independientes: Campo arranca en claro de alto contraste para sol directo; el operario puede pasar a oscuro para labores de madrugada. Radios: 0 en tablas, 3px máx. en chips y botones. Sin sombras — la jerarquía la dan los bordes y el fondo <span style="font-family:'Geist Mono',monospace">#fafafa</span>.</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ============ 1b DASHBOARD OFFICE LIGHT ============ -->
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Panel (oficina · claro) — costos por parcela, actividades, sync, lluvia</div>
+<div class="dv-card" style="width:1360px" data-screen-label="Panel oficina claro">
+<!--dash-light-->
+<div style="background:#ffffff;color:#171717;font-family:'Geist',sans-serif;font-size:12px;display:flex;flex-direction:column">
+
+  <div style="display:flex;align-items:center;height:40px;border-bottom:1px solid #e4e4e4;padding:0 12px;gap:14px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:16px;height:16px;background:#171717;color:#ffffff;display:flex;align-items:center;justify-content:center;font:700 9px 'Geist Mono',monospace">A</div>
+      <span style="font:600 12px 'Geist Mono',monospace;letter-spacing:0.04em">AgroPeq</span>
+    </div>
+    <div style="width:1px;height:16px;background:#e4e4e4"></div>
+    <a href="#1b" style="font-size:12px;color:#171717;display:flex;align-items:center;gap:5px">Finca Bonafé <span style="color:#8c8c8c;font-size:9px">▾</span></a>
+    <div style="flex:1;max-width:340px;display:flex;align-items:center;gap:7px;height:26px;border:1px solid #e4e4e4;background:#fafafa;padding:0 9px;color:#8c8c8c">
+      <span style="font-size:11px">Buscar parcela, OT, trabajador…</span>
+      <span style="margin-left:auto;font:10px 'Geist Mono',monospace;border:1px solid #e4e4e4;background:#fff;padding:1px 4px">⌘K</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font:500 10.5px 'Geist Mono',monospace;padding:3px 8px;border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);color:oklch(0.48 0.11 70)">● 3 por sincronizar</span>
+    <span style="font:11px 'Geist Mono',monospace;color:#8c8c8c;font-variant-numeric:tabular-nums">lun 07 jul 2026</span>
+    <span style="font:10.5px 'Geist Mono',monospace;color:#525252;border:1px solid #e4e4e4;padding:3px 6px">ES</span>
+    <div style="width:24px;height:24px;border:1px solid #d4d4d4;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font:600 9.5px 'Geist Mono',monospace;color:#525252">MC</div>
+  </div>
+
+  <div style="display:flex;min-height:770px">
+    <div style="width:190px;border-right:1px solid #e4e4e4;background:#fafafa;padding:10px 0;display:flex;flex-direction:column;gap:14px;flex:none">
+      <div style="display:flex;flex-direction:column">
+        <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;color:#a3a3a3;padding:4px 14px">Operación</div>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#171717;background:#eeeeee;border-right:2px solid #171717;font-weight:600;font-size:12px">Panel</a>
+        <a href="#1d" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Mapa</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Ciclos de cultivo</a>
+        <a href="#1f" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Actividades</a>
+        <a href="#1h" style="display:flex;align-items:center;justify-content:space-between;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Órdenes de trabajo <span style="font:500 10px 'Geist Mono',monospace;color:oklch(0.48 0.11 70)">4</span></a>
+        <a href="#1b" style="display:flex;align-items:center;justify-content:space-between;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Monitoreo <span style="font:500 10px 'Geist Mono',monospace;color:oklch(0.46 0.17 25)">1</span></a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Clima</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Cosechas</a>
+      </div>
+      <div style="display:flex;flex-direction:column">
+        <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;color:#a3a3a3;padding:4px 14px">Gente</div>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Trabajadores</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Asistencia</a>
+        <a href="#1i" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Planilla</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Destajo</a>
+      </div>
+      <div style="display:flex;flex-direction:column">
+        <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;color:#a3a3a3;padding:4px 14px">Comercial</div>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Ventas</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Compras</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Inventario</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px" style-hover="background:#f0f0f0;text-decoration:none;color:#171717">Maquinaria</a>
+      </div>
+      <div style="margin-top:auto;display:flex;flex-direction:column">
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px">Presupuestos</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px">Rentabilidad</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#525252;font-size:12px">Configuración</a>
+      </div>
+    </div>
+
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+        <span style="font:600 16px 'Geist',sans-serif">Panel</span>
+        <span style="color:#d4d4d4">/</span>
+        <span style="font:11px 'Geist Mono',monospace;color:#525252">jul 2026 · quincena 1</span>
+        <div style="display:flex;margin-left:auto;border:1px solid #e4e4e4">
+          <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;background:#171717;color:#fff">Q1 jul</span>
+          <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;color:#525252;border-left:1px solid #e4e4e4">jun</span>
+          <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;color:#525252;border-left:1px solid #e4e4e4">2026</span>
+          <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;color:#525252;border-left:1px solid #e4e4e4">Ciclo 2026-A</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid #e4e4e4;border-bottom:1px solid #e4e4e4">
+        <div style="padding:10px 16px;border-right:1px solid #e4e4e4">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:#8c8c8c">Ingresos (L)</div>
+          <div style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;margin-top:3px">4,992.00</div>
+          <div style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c;margin-top:2px">venta café pergamino</div>
+        </div>
+        <div style="padding:10px 16px;border-right:1px solid #e4e4e4">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:#8c8c8c">Costos (L)</div>
+          <div style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;margin-top:3px">2,489.50</div>
+          <div style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c;margin-top:2px">insumos 41% · m.o. 52%</div>
+        </div>
+        <div style="padding:10px 16px;border-right:1px solid #e4e4e4">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:#8c8c8c">Margen (L)</div>
+          <div style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;margin-top:3px;color:oklch(0.42 0.11 150)">+2,502.50</div>
+          <div style="font:10.5px 'Geist Mono',monospace;color:oklch(0.42 0.11 150);margin-top:2px">50.13%</div>
+        </div>
+        <div style="padding:10px 16px;border-right:1px solid #e4e4e4">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:#8c8c8c">Costo / ha (L)</div>
+          <div style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;margin-top:3px">267.69</div>
+          <div style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c;margin-top:2px">9.30 ha en ciclo</div>
+        </div>
+        <div style="padding:10px 16px">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:#8c8c8c">Jornales quincena</div>
+          <div style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;margin-top:3px">93</div>
+          <div style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c;margin-top:2px">12 trabajadores activos</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:0;flex:1">
+        <div style="border-right:1px solid #e4e4e4;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:baseline;gap:8px;padding:12px 16px 8px">
+            <span style="font:600 13px 'Geist',sans-serif">Costo por parcela</span>
+            <span style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c">ciclo 2026-A · HNL</span>
+            <a href="#1d" style="margin-left:auto;font-size:11px">Ver en mapa →</a>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;color:#8c8c8c;border-top:1px solid #e4e4e4;border-bottom:1px solid #e4e4e4;background:#fafafa">
+            <div style="padding:5px 16px">Parcela</div><div style="padding:5px 10px">Cultivo</div><div style="padding:5px 10px;text-align:right">ha</div><div style="padding:5px 10px;text-align:right">Insumos</div><div style="padding:5px 10px;text-align:right">M. obra</div><div style="padding:5px 10px;text-align:right">Otros</div><div style="padding:5px 10px;text-align:right">Total</div><div style="padding:5px 16px 5px 10px;text-align:right">L/ha</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+            <div style="padding:0 16px"><a href="#1d">El Naranjal</a> <span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">NAR-01</span></div><div style="padding:0 10px;color:#525252">Café</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">3.20</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">412.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">486.50</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">36.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500">934.50</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">292.03</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+            <div style="padding:0 16px"><a href="#1d">La Loma</a> <span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">LOM-02</span></div><div style="padding:0 10px;color:#525252">Café</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">2.10</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">238.25</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">301.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">0.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500">539.25</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">256.79</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+            <div style="padding:0 16px"><a href="#1d">Bajo Grande</a> <span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">BAJ-03</span></div><div style="padding:0 10px;color:#525252">Maíz</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1.80</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">190.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">214.50</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">12.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500">416.50</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">231.39</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+            <div style="padding:0 16px"><a href="#1d">El Guayabo</a> <span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">GUA-04</span></div><div style="padding:0 10px;color:#525252">Café</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1.45</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">148.75</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">176.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">8.50</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500">333.25</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">229.83</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+            <div style="padding:0 16px"><a href="#1d">Los Cerros</a> <span style="font:10px 'Geist Mono',monospace;color:#a3a3a3">CER-05</span></div><div style="padding:0 10px;color:#525252">Frijol</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">0.75</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">102.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">129.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">35.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500">266.00</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">354.67</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #e4e4e4;font-size:12px;background:#fafafa">
+            <div style="padding:0 16px;font-weight:600">Total</div><div></div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">9.30</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">1,091.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">1,307.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">91.50</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">2,489.50</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">267.69</div>
+          </div>
+
+          <div style="display:flex;align-items:baseline;gap:8px;padding:14px 16px 8px">
+            <span style="font:600 13px 'Geist',sans-serif">Actividades recientes</span>
+            <a href="#1f" style="margin-left:auto;font-size:11px">Registrar actividad →</a>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;color:#8c8c8c;border-top:1px solid #e4e4e4;border-bottom:1px solid #e4e4e4;background:#fafafa">
+            <div style="padding:5px 16px">Fecha</div><div style="padding:5px 10px">Actividad</div><div style="padding:5px 10px">Parcela</div><div style="padding:5px 10px">Registró</div><div style="padding:5px 16px 5px 10px;text-align:right">Costo (L)</div>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+            <div style="padding:0 16px;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">07 jul</div><div style="padding:0 10px">Fumigación <span style="font:10px 'Geist Mono',monospace;color:oklch(0.48 0.11 70);border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);padding:1px 5px;margin-left:4px">por sincronizar</span></div><div style="padding:0 10px"><a href="#1d">El Naranjal</a></div><div style="padding:0 10px"><a href="#1b">C. Ordóñez</a></div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">184.00</div>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+            <div style="padding:0 16px;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">06 jul</div><div style="padding:0 10px">Deshierba</div><div style="padding:0 10px"><a href="#1d">La Loma</a></div><div style="padding:0 10px"><a href="#1b">M. E. Cruz</a></div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">96.00</div>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+            <div style="padding:0 16px;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">05 jul</div><div style="padding:0 10px">Fertilización — urea 46%</div><div style="padding:0 10px"><a href="#1d">Bajo Grande</a></div><div style="padding:0 10px"><a href="#1b">J. A. Mejía</a></div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">228.50</div>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+            <div style="padding:0 16px;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">04 jul</div><div style="padding:0 10px">Monitoreo — Roya del café <span style="font:10px 'Geist Mono',monospace;color:oklch(0.46 0.17 25);border:1px solid oklch(0.87 0.05 25);background:oklch(0.965 0.02 25);padding:1px 5px;margin-left:4px">Alta · 18%</span></div><div style="padding:0 10px"><a href="#1d">El Naranjal</a></div><div style="padding:0 10px"><a href="#1b">C. Ordóñez</a></div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">—</div>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;align-items:center;height:28px;font-size:12px" style-hover="background:#fafafa">
+            <div style="padding:0 16px;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">03 jul</div><div style="padding:0 10px">Poda sanitaria</div><div style="padding:0 10px"><a href="#1d">El Guayabo</a></div><div style="padding:0 10px"><a href="#1b">D. A. Fúnez</a></div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">64.00</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column">
+          <div style="display:flex;align-items:baseline;gap:8px;padding:12px 14px 8px">
+            <span style="font:600 13px 'Geist',sans-serif">Pendiente de sincronizar</span>
+            <span style="font:500 10px 'Geist Mono',monospace;color:oklch(0.48 0.11 70);border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);padding:1px 5px">3</span>
+          </div>
+          <div style="border-top:1px solid #e4e4e4">
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #f0f0f0">
+              <span style="width:6px;height:6px;background:oklch(0.70 0.13 80);flex:none"></span>
+              <div style="min-width:0"><div style="font-size:12px">Actividad — Fumigación · <a href="#1d">El Naranjal</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">hoy 06:42 · dispositivo de C. Ordóñez</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #f0f0f0">
+              <span style="width:6px;height:6px;background:oklch(0.70 0.13 80);flex:none"></span>
+              <div style="min-width:0"><div style="font-size:12px">Asistencia — 07 jul · 11 marcas</div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">hoy 06:15 · dispositivo de M. E. Cruz</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #e4e4e4">
+              <span style="width:6px;height:6px;background:oklch(0.55 0.19 25);flex:none"></span>
+              <div style="min-width:0"><div style="font-size:12px">Monitoreo — Roya del café <span style="font:10px 'Geist Mono',monospace;color:oklch(0.46 0.17 25)">con error</span></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">ayer 17:03 · <a href="#1b" style="font-size:10px">reintentar</a> · <a href="#1b" style="font-size:10px">descartar</a></div></div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:baseline;gap:8px;padding:14px 14px 8px">
+            <span style="font:600 13px 'Geist',sans-serif">Lluvia — últimos 30 días</span>
+            <span style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c">mm/día</span>
+          </div>
+          <div style="border-top:1px solid #e4e4e4;padding:12px 14px 10px">
+            <div style="display:flex;align-items:flex-end;gap:2px;height:64px">
+              <div style="flex:1;background:oklch(0.75 0.06 245);height:12%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:4%"></div><div style="flex:1;background:#ececec;height:2px"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:30%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:55%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:18%"></div><div style="flex:1;background:#ececec;height:2px"></div><div style="flex:1;background:#ececec;height:2px"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:8%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:42%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:88%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:64%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:22%"></div><div style="flex:1;background:#ececec;height:2px"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:10%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:6%"></div><div style="flex:1;background:#ececec;height:2px"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:36%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:72%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:48%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:14%"></div><div style="flex:1;background:#ececec;height:2px"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:26%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:58%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:100%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:80%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:34%"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:16%"></div><div style="flex:1;background:#ececec;height:2px"></div><div style="flex:1;background:oklch(0.75 0.06 245);height:20%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font:9.5px 'Geist Mono',monospace;color:#a3a3a3;margin-top:4px"><span>08 jun</span><span>máx 38.4</span><span>07 jul</span></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid #f0f0f0;margin-top:10px;padding-top:8px;font-size:11px">
+              <span style="color:#525252">Lluvia acumulada del ciclo</span>
+              <span style="font:500 12px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">412.6 mm</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px">
+              <span style="color:#525252">Fuente</span>
+              <span style="font:11px 'Geist Mono',monospace;color:#525252">Open-Meteo · 26 días</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:baseline;gap:8px;padding:14px 14px 8px">
+            <span style="font:600 13px 'Geist',sans-serif">Órdenes abiertas</span>
+            <a href="#1h" style="margin-left:auto;font-size:11px">Todas →</a>
+          </div>
+          <div style="border-top:1px solid #e4e4e4">
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #f0f0f0">
+              <a href="#1h" style="font:500 11px 'Geist Mono',monospace">OT-0042</a>
+              <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Fumigación lote norte</span>
+              <span style="margin-left:auto;font:500 10px 'Geist Mono',monospace;padding:1px 6px;border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);color:oklch(0.48 0.11 70);flex:none">En progreso</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #f0f0f0">
+              <a href="#1h" style="font:500 11px 'Geist Mono',monospace">OT-0043</a>
+              <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Resiembra frijol</span>
+              <span style="margin-left:auto;font:500 10px 'Geist Mono',monospace;padding:1px 6px;border:1px solid oklch(0.87 0.05 245);background:oklch(0.965 0.02 245);color:oklch(0.46 0.11 245);flex:none">Asignada</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #f0f0f0">
+              <a href="#1h" style="font:500 11px 'Geist Mono',monospace">OT-0044</a>
+              <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Mantenimiento despulpadora</span>
+              <span style="margin-left:auto;font:500 10px 'Geist Mono',monospace;padding:1px 6px;border:1px solid #d4d4d4;background:#f5f5f5;color:#525252;flex:none">Borrador</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!--/dash-light-->
+</div>
+</div>
+
+<!-- ============ 1c DASHBOARD OFFICE DARK ============ -->
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Panel (oficina · oscuro) — mismos tokens, par oscuro</div>
+<div class="dv-card" style="width:1360px" data-screen-label="Panel oficina oscuro">
+<!--dash-dark-->
+
+<div style="background:#141414;color:#ededed;font-family:'Geist',sans-serif;font-size:12px;display:flex;flex-direction:column">
+
+  <div style="display:flex;align-items:center;height:40px;border-bottom:1px solid #2e2e2e;padding:0 12px;gap:14px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="width:16px;height:16px;background:#ededed;color:#141414;display:flex;align-items:center;justify-content:center;font:700 9px 'Geist Mono',monospace">A</div>
+      <span style="font:600 12px 'Geist Mono',monospace;letter-spacing:0.04em">AgroPeq</span>
+    </div>
+    <div style="width:1px;height:16px;background:#2e2e2e"></div>
+    <a href="#1b" style="font-size:12px;color:#ededed;display:flex;align-items:center;gap:5px">Finca Bonafé <span style="color:#8c8c8c;font-size:9px">▾</span></a>
+    <div style="flex:1;max-width:340px;display:flex;align-items:center;gap:7px;height:26px;border:1px solid #2e2e2e;background:#1c1c1c;padding:0 9px;color:#8c8c8c">
+      <span style="font-size:11px">Buscar parcela, OT, trabajador…</span>
+      <span style="margin-left:auto;font:10px 'Geist Mono',monospace;border:1px solid #2e2e2e;background:#fff;padding:1px 4px">⌘K</span>
+    </div>
+    <div style="flex:1"></div>
+    <span style="font:500 10.5px 'Geist Mono',monospace;padding:3px 8px;border:1px solid oklch(0.40 0.07 80);background:oklch(0.28 0.05 80);color:oklch(0.84 0.12 80)">● 3 por sincronizar</span>
+    <span style="font:11px 'Geist Mono',monospace;color:#8c8c8c;font-variant-numeric:tabular-nums">lun 07 jul 2026</span>
+    <span style="font:10.5px 'Geist Mono',monospace;color:#a3a3a3;border:1px solid #2e2e2e;padding:3px 6px">ES</span>
+    <div style="width:24px;height:24px;border:1px solid #3d3d3d;background:#262626;display:flex;align-items:center;justify-content:center;font:600 9.5px 'Geist Mono',monospace;color:#a3a3a3">MC</div>
+  </div>
+
+  <div style="display:flex;min-height:770px">
+    <div style="width:190px;border-right:1px solid #2e2e2e;background:#1c1c1c;padding:10px 0;display:flex;flex-direction:column;gap:14px;flex:none">
+      <div style="display:flex;flex-direction:column">
+        <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;color:#6b6b6b;padding:4px 14px">Operación</div>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#ededed;background:#262626;border-right:2px solid #ededed;font-weight:600;font-size:12px">Panel</a>
+        <a href="#1d" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Mapa</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Ciclos de cultivo</a>
+        <a href="#1f" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Actividades</a>
+        <a href="#1h" style="display:flex;align-items:center;justify-content:space-between;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Órdenes de trabajo <span style="font:500 10px 'Geist Mono',monospace;color:oklch(0.48 0.11 70)">4</span></a>
+        <a href="#1b" style="display:flex;align-items:center;justify-content:space-between;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Monitoreo <span style="font:500 10px 'Geist Mono',monospace;color:oklch(0.76 0.15 25)">1</span></a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Clima</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Cosechas</a>
+      </div>
+      <div style="display:flex;flex-direction:column">
+        <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;color:#6b6b6b;padding:4px 14px">Gente</div>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Trabajadores</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Asistencia</a>
+        <a href="#1i" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Planilla</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Destajo</a>
+      </div>
+      <div style="display:flex;flex-direction:column">
+        <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.08em;color:#6b6b6b;padding:4px 14px">Comercial</div>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Ventas</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Compras</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Inventario</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px" style-hover="background:#242424;text-decoration:none;color:#ededed">Maquinaria</a>
+      </div>
+      <div style="margin-top:auto;display:flex;flex-direction:column">
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px">Presupuestos</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px">Rentabilidad</a>
+        <a href="#1b" style="display:flex;align-items:center;height:26px;padding:0 14px;color:#a3a3a3;font-size:12px">Configuración</a>
+      </div>
+    </div>
+
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px">
+        <span style="font:600 16px 'Geist',sans-serif">Panel</span>
+        <span style="color:#3d3d3d">/</span>
+        <span style="font:11px 'Geist Mono',monospace;color:#a3a3a3">jul 2026 · quincena 1</span>
+        <div style="display:flex;margin-left:auto;border:1px solid #2e2e2e">
+          <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;background:#ededed;color:#141414">Q1 jul</span>
+          <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;color:#a3a3a3;border-left:1px solid #2e2e2e">jun</span>
+          <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;color:#a3a3a3;border-left:1px solid #2e2e2e">2026</span>
+          <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;color:#a3a3a3;border-left:1px solid #2e2e2e">Ciclo 2026-A</span>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid #2e2e2e;border-bottom:1px solid #2e2e2e">
+        <div style="padding:10px 16px;border-right:1px solid #2e2e2e">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:#8c8c8c">Ingresos (L)</div>
+          <div style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;margin-top:3px">4,992.00</div>
+          <div style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c;margin-top:2px">venta café pergamino</div>
+        </div>
+        <div style="padding:10px 16px;border-right:1px solid #2e2e2e">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:#8c8c8c">Costos (L)</div>
+          <div style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;margin-top:3px">2,489.50</div>
+          <div style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c;margin-top:2px">insumos 41% · m.o. 52%</div>
+        </div>
+        <div style="padding:10px 16px;border-right:1px solid #2e2e2e">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:#8c8c8c">Margen (L)</div>
+          <div style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;margin-top:3px;color:oklch(0.80 0.11 152)">+2,502.50</div>
+          <div style="font:10.5px 'Geist Mono',monospace;color:oklch(0.80 0.11 152);margin-top:2px">50.13%</div>
+        </div>
+        <div style="padding:10px 16px;border-right:1px solid #2e2e2e">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:#8c8c8c">Costo / ha (L)</div>
+          <div style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;margin-top:3px">267.69</div>
+          <div style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c;margin-top:2px">9.30 ha en ciclo</div>
+        </div>
+        <div style="padding:10px 16px">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:#8c8c8c">Jornales quincena</div>
+          <div style="font:600 22px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;margin-top:3px">93</div>
+          <div style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c;margin-top:2px">12 trabajadores activos</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 340px;gap:0;flex:1">
+        <div style="border-right:1px solid #2e2e2e;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:baseline;gap:8px;padding:12px 16px 8px">
+            <span style="font:600 13px 'Geist',sans-serif">Costo por parcela</span>
+            <span style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c">ciclo 2026-A · HNL</span>
+            <a href="#1d" style="margin-left:auto;font-size:11px">Ver en mapa →</a>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;color:#8c8c8c;border-top:1px solid #2e2e2e;border-bottom:1px solid #2e2e2e;background:#1c1c1c">
+            <div style="padding:5px 16px">Parcela</div><div style="padding:5px 10px">Cultivo</div><div style="padding:5px 10px;text-align:right">ha</div><div style="padding:5px 10px;text-align:right">Insumos</div><div style="padding:5px 10px;text-align:right">M. obra</div><div style="padding:5px 10px;text-align:right">Otros</div><div style="padding:5px 10px;text-align:right">Total</div><div style="padding:5px 16px 5px 10px;text-align:right">L/ha</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #242424;font-size:12px" style-hover="background:#1c1c1c">
+            <div style="padding:0 16px"><a href="#1d" style="color:oklch(0.75 0.09 245)">El Naranjal</a> <span style="font:10px 'Geist Mono',monospace;color:#6b6b6b">NAR-01</span></div><div style="padding:0 10px;color:#a3a3a3">Café</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">3.20</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">412.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">486.50</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">36.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500">934.50</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">292.03</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #242424;font-size:12px" style-hover="background:#1c1c1c">
+            <div style="padding:0 16px"><a href="#1d" style="color:oklch(0.75 0.09 245)">La Loma</a> <span style="font:10px 'Geist Mono',monospace;color:#6b6b6b">LOM-02</span></div><div style="padding:0 10px;color:#a3a3a3">Café</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">2.10</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">238.25</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">301.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">0.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500">539.25</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">256.79</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #242424;font-size:12px" style-hover="background:#1c1c1c">
+            <div style="padding:0 16px"><a href="#1d" style="color:oklch(0.75 0.09 245)">Bajo Grande</a> <span style="font:10px 'Geist Mono',monospace;color:#6b6b6b">BAJ-03</span></div><div style="padding:0 10px;color:#a3a3a3">Maíz</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1.80</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">190.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">214.50</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">12.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500">416.50</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">231.39</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #242424;font-size:12px" style-hover="background:#1c1c1c">
+            <div style="padding:0 16px"><a href="#1d" style="color:oklch(0.75 0.09 245)">El Guayabo</a> <span style="font:10px 'Geist Mono',monospace;color:#6b6b6b">GUA-04</span></div><div style="padding:0 10px;color:#a3a3a3">Café</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1.45</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">148.75</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">176.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">8.50</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500">333.25</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">229.83</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #242424;font-size:12px" style-hover="background:#1c1c1c">
+            <div style="padding:0 16px"><a href="#1d" style="color:oklch(0.75 0.09 245)">Los Cerros</a> <span style="font:10px 'Geist Mono',monospace;color:#6b6b6b">CER-05</span></div><div style="padding:0 10px;color:#a3a3a3">Frijol</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">0.75</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">102.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">129.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">35.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500">266.00</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.76 0.15 25)">354.67</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 0.9fr 0.6fr 0.8fr 0.8fr 0.8fr 0.8fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #2e2e2e;font-size:12px;background:#1c1c1c">
+            <div style="padding:0 16px;font-weight:600">Total</div><div></div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">9.30</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">1,091.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">1,307.00</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">91.50</div><div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">2,489.50</div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">267.69</div>
+          </div>
+
+          <div style="display:flex;align-items:baseline;gap:8px;padding:14px 16px 8px">
+            <span style="font:600 13px 'Geist',sans-serif">Actividades recientes</span>
+            <a href="#1f" style="margin-left:auto;font-size:11px">Registrar actividad →</a>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;color:#8c8c8c;border-top:1px solid #2e2e2e;border-bottom:1px solid #2e2e2e;background:#1c1c1c">
+            <div style="padding:5px 16px">Fecha</div><div style="padding:5px 10px">Actividad</div><div style="padding:5px 10px">Parcela</div><div style="padding:5px 10px">Registró</div><div style="padding:5px 16px 5px 10px;text-align:right">Costo (L)</div>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #242424;font-size:12px" style-hover="background:#1c1c1c">
+            <div style="padding:0 16px;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">07 jul</div><div style="padding:0 10px">Fumigación <span style="font:10px 'Geist Mono',monospace;color:oklch(0.48 0.11 70);border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);padding:1px 5px;margin-left:4px">por sincronizar</span></div><div style="padding:0 10px"><a href="#1d" style="color:oklch(0.75 0.09 245)">El Naranjal</a></div><div style="padding:0 10px"><a href="#1b" style="color:oklch(0.75 0.09 245)">C. Ordóñez</a></div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">184.00</div>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #242424;font-size:12px" style-hover="background:#1c1c1c">
+            <div style="padding:0 16px;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">06 jul</div><div style="padding:0 10px">Deshierba</div><div style="padding:0 10px"><a href="#1d" style="color:oklch(0.75 0.09 245)">La Loma</a></div><div style="padding:0 10px"><a href="#1b" style="color:oklch(0.75 0.09 245)">M. E. Cruz</a></div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">96.00</div>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #242424;font-size:12px" style-hover="background:#1c1c1c">
+            <div style="padding:0 16px;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">05 jul</div><div style="padding:0 10px">Fertilización — urea 46%</div><div style="padding:0 10px"><a href="#1d" style="color:oklch(0.75 0.09 245)">Bajo Grande</a></div><div style="padding:0 10px"><a href="#1b" style="color:oklch(0.75 0.09 245)">J. A. Mejía</a></div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">228.50</div>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;align-items:center;height:28px;border-bottom:1px solid #242424;font-size:12px" style-hover="background:#1c1c1c">
+            <div style="padding:0 16px;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">04 jul</div><div style="padding:0 10px">Monitoreo — Roya del café <span style="font:10px 'Geist Mono',monospace;color:oklch(0.76 0.15 25);border:1px solid oklch(0.87 0.05 25);background:oklch(0.965 0.02 25);padding:1px 5px;margin-left:4px">Alta · 18%</span></div><div style="padding:0 10px"><a href="#1d" style="color:oklch(0.75 0.09 245)">El Naranjal</a></div><div style="padding:0 10px"><a href="#1b" style="color:oklch(0.75 0.09 245)">C. Ordóñez</a></div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#6b6b6b">—</div>
+          </div>
+          <div style="display:grid;grid-template-columns:0.8fr 1.4fr 1.2fr 1fr 0.7fr;align-items:center;height:28px;font-size:12px" style-hover="background:#1c1c1c">
+            <div style="padding:0 16px;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">03 jul</div><div style="padding:0 10px">Poda sanitaria</div><div style="padding:0 10px"><a href="#1d" style="color:oklch(0.75 0.09 245)">El Guayabo</a></div><div style="padding:0 10px"><a href="#1b" style="color:oklch(0.75 0.09 245)">D. A. Fúnez</a></div><div style="padding:0 16px 0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">64.00</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column">
+          <div style="display:flex;align-items:baseline;gap:8px;padding:12px 14px 8px">
+            <span style="font:600 13px 'Geist',sans-serif">Pendiente de sincronizar</span>
+            <span style="font:500 10px 'Geist Mono',monospace;color:oklch(0.48 0.11 70);border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);padding:1px 5px">3</span>
+          </div>
+          <div style="border-top:1px solid #2e2e2e">
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #242424">
+              <span style="width:6px;height:6px;background:oklch(0.70 0.13 80);flex:none"></span>
+              <div style="min-width:0"><div style="font-size:12px">Actividad — Fumigación · <a href="#1d" style="color:oklch(0.75 0.09 245)">El Naranjal</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">hoy 06:42 · dispositivo de C. Ordóñez</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #242424">
+              <span style="width:6px;height:6px;background:oklch(0.70 0.13 80);flex:none"></span>
+              <div style="min-width:0"><div style="font-size:12px">Asistencia — 07 jul · 11 marcas</div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">hoy 06:15 · dispositivo de M. E. Cruz</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #2e2e2e">
+              <span style="width:6px;height:6px;background:oklch(0.55 0.19 25);flex:none"></span>
+              <div style="min-width:0"><div style="font-size:12px">Monitoreo — Roya del café <span style="font:10px 'Geist Mono',monospace;color:oklch(0.76 0.15 25)">con error</span></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">ayer 17:03 · <a href="#1b" style="font-size:10px">reintentar</a> · <a href="#1b" style="font-size:10px">descartar</a></div></div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:baseline;gap:8px;padding:14px 14px 8px">
+            <span style="font:600 13px 'Geist',sans-serif">Lluvia — últimos 30 días</span>
+            <span style="font:10.5px 'Geist Mono',monospace;color:#8c8c8c">mm/día</span>
+          </div>
+          <div style="border-top:1px solid #2e2e2e;padding:12px 14px 10px">
+            <div style="display:flex;align-items:flex-end;gap:2px;height:64px">
+              <div style="flex:1;background:oklch(0.55 0.09 245);height:12%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:4%"></div><div style="flex:1;background:#2a2a2a;height:2px"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:30%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:55%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:18%"></div><div style="flex:1;background:#2a2a2a;height:2px"></div><div style="flex:1;background:#2a2a2a;height:2px"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:8%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:42%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:88%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:64%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:22%"></div><div style="flex:1;background:#2a2a2a;height:2px"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:10%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:6%"></div><div style="flex:1;background:#2a2a2a;height:2px"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:36%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:72%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:48%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:14%"></div><div style="flex:1;background:#2a2a2a;height:2px"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:26%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:58%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:100%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:80%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:34%"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:16%"></div><div style="flex:1;background:#2a2a2a;height:2px"></div><div style="flex:1;background:oklch(0.55 0.09 245);height:20%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font:9.5px 'Geist Mono',monospace;color:#6b6b6b;margin-top:4px"><span>08 jun</span><span>máx 38.4</span><span>07 jul</span></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid #242424;margin-top:10px;padding-top:8px;font-size:11px">
+              <span style="color:#a3a3a3">Lluvia acumulada del ciclo</span>
+              <span style="font:500 12px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">412.6 mm</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px">
+              <span style="color:#a3a3a3">Fuente</span>
+              <span style="font:11px 'Geist Mono',monospace;color:#a3a3a3">Open-Meteo · 26 días</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:baseline;gap:8px;padding:14px 14px 8px">
+            <span style="font:600 13px 'Geist',sans-serif">Órdenes abiertas</span>
+            <a href="#1h" style="margin-left:auto;font-size:11px">Todas →</a>
+          </div>
+          <div style="border-top:1px solid #2e2e2e">
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #242424">
+              <a href="#1h" style="font:500 11px 'Geist Mono',monospace">OT-0042</a>
+              <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Fumigación lote norte</span>
+              <span style="margin-left:auto;font:500 10px 'Geist Mono',monospace;padding:1px 6px;border:1px solid oklch(0.40 0.07 80);background:oklch(0.28 0.05 80);color:oklch(0.84 0.12 80);flex:none">En progreso</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #242424">
+              <a href="#1h" style="font:500 11px 'Geist Mono',monospace">OT-0043</a>
+              <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Resiembra frijol</span>
+              <span style="margin-left:auto;font:500 10px 'Geist Mono',monospace;padding:1px 6px;border:1px solid oklch(0.40 0.07 245);background:oklch(0.28 0.05 245);color:oklch(0.78 0.09 245);flex:none">Asignada</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid #242424">
+              <a href="#1h" style="font:500 11px 'Geist Mono',monospace">OT-0044</a>
+              <span style="font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Mantenimiento despulpadora</span>
+              <span style="margin-left:auto;font:500 10px 'Geist Mono',monospace;padding:1px 6px;border:1px solid #3d3d3d;background:#262626;color:#a3a3a3;flex:none">Borrador</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!--/dash-dark-->
+</div>
+</div>
+
+<!-- ============ 1d MAP ============ -->
+<div class="dv-opt" id="1d">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Mapa de finca (oficina · claro y oscuro) — basemap satelital constante, chrome y leyenda tematizados</div>
+<div class="dv-card" style="width:1360px" data-screen-label="Mapa">
+<!--map-->
+<div style="display:flex">
+
+  <!-- LIGHT chrome -->
+  <div style="width:680px;background:#ffffff;color:#171717;font-family:'Geist',sans-serif;font-size:12px;display:flex;flex-direction:column;border-right:1px solid #e4e4e4">
+    <div style="display:flex;align-items:center;gap:10px;height:40px;border-bottom:1px solid #e4e4e4;padding:0 14px">
+      <span style="font:600 13px 'Geist',sans-serif">Mapa — Finca Bonafé</span>
+      <span style="font:11px 'Geist Mono',monospace;color:#8c8c8c">tema claro</span>
+      <div style="display:flex;margin-left:auto;border:1px solid #e4e4e4">
+        <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;background:#171717;color:#fff">Satélite</span>
+        <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;color:#525252;border-left:1px solid #e4e4e4">Calles</span>
+      </div>
+    </div>
+    <div style="display:flex;flex:1;min-height:560px">
+      <div style="width:230px;border-right:1px solid #e4e4e4;display:flex;flex-direction:column;flex:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #e4e4e4;background:#fafafa">
+          <span style="font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c">Todas las parcelas</span>
+          <span style="font:11px 'Geist Mono',monospace;color:#525252;font-variant-numeric:tabular-nums">5 · 9.30 ha</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0">
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #f0f0f0;background:#f4f4f4;border-left:2px solid #171717">
+            <span style="width:9px;height:9px;background:oklch(0.62 0.14 45);border:1px solid #fff;outline:1px solid rgba(0,0,0,.3);flex:none"></span>
+            <div style="min-width:0;flex:1"><div style="font-weight:600"><a href="#1d" style="color:#171717">El Naranjal</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">NAR-01 · Café</div></div>
+            <span style="font:11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">3.20 ha</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #f0f0f0" style-hover="background:#fafafa">
+            <span style="width:9px;height:9px;background:oklch(0.60 0.13 150);border:1px solid #fff;outline:1px solid rgba(0,0,0,.3);flex:none"></span>
+            <div style="min-width:0;flex:1"><div><a href="#1d">La Loma</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">LOM-02 · Café</div></div>
+            <span style="font:11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">2.10 ha</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #f0f0f0" style-hover="background:#fafafa">
+            <span style="width:9px;height:9px;background:oklch(0.72 0.12 85);border:1px solid #fff;outline:1px solid rgba(0,0,0,.3);flex:none"></span>
+            <div style="min-width:0;flex:1"><div><a href="#1d">Bajo Grande</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">BAJ-03 · Maíz</div></div>
+            <span style="font:11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">1.80 ha</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #f0f0f0" style-hover="background:#fafafa">
+            <span style="width:9px;height:9px;background:oklch(0.60 0.13 150);border:1px solid #fff;outline:1px solid rgba(0,0,0,.3);flex:none"></span>
+            <div style="min-width:0;flex:1"><div><a href="#1d">El Guayabo</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">GUA-04 · Café</div></div>
+            <span style="font:11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">1.45 ha</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #f0f0f0" style-hover="background:#fafafa">
+            <span style="width:9px;height:9px;background:oklch(0.66 0.14 300);border:1px solid #fff;outline:1px solid rgba(0,0,0,.3);flex:none"></span>
+            <div style="min-width:0;flex:1"><div><a href="#1d">Los Cerros</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">CER-05 · Frijol</div></div>
+            <span style="font:11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">0.75 ha</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:8px 12px;border-top:1px solid #e4e4e4;font:10px 'Geist Mono',monospace;color:#8c8c8c;line-height:1.5">Sel. <a href="#1d">El Naranjal</a> · NAR-01<br>13.94°N 86.17°O</div>
+      </div>
+
+      <!-- MAP CANVAS (constant satellite basemap) -->
+      <div style="flex:1;position:relative;overflow:hidden;background:
+          radial-gradient(70% 60% at 22% 30%, oklch(0.42 0.06 150) 0%, transparent 60%),
+          radial-gradient(50% 55% at 75% 25%, oklch(0.46 0.05 140) 0%, transparent 55%),
+          radial-gradient(60% 50% at 60% 78%, oklch(0.40 0.05 130) 0%, transparent 60%),
+          radial-gradient(40% 40% at 88% 70%, oklch(0.5 0.05 90) 0%, transparent 55%),
+          linear-gradient(120deg, oklch(0.38 0.045 150), oklch(0.44 0.05 120))">
+        <div style="position:absolute;inset:0;opacity:0.5;background:repeating-linear-gradient(58deg, rgba(0,0,0,0.10) 0 2px, transparent 2px 9px)"></div>
+        <div style="position:absolute;inset:0;opacity:0.35;background:radial-gradient(30% 22% at 35% 55%, oklch(0.55 0.03 90) 0%, transparent 70%)"></div>
+        <svg viewBox="0 0 440 560" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+          <polygon points="60,70 190,55 215,150 130,205 55,160" fill="oklch(0.62 0.14 45 / 0.30)" stroke="oklch(0.72 0.16 45)" stroke-width="2.5"></polygon>
+          <polygon points="250,60 360,80 350,175 255,165" fill="oklch(0.60 0.13 150 / 0.22)" stroke="oklch(0.72 0.13 150)" stroke-width="2"></polygon>
+          <polygon points="70,250 200,235 220,340 90,360" fill="oklch(0.72 0.12 85 / 0.22)" stroke="oklch(0.80 0.13 85)" stroke-width="2"></polygon>
+          <polygon points="255,215 360,225 375,320 270,330" fill="oklch(0.60 0.13 150 / 0.22)" stroke="oklch(0.72 0.13 150)" stroke-width="2"></polygon>
+          <polygon points="120,400 235,395 250,490 140,500" fill="oklch(0.66 0.14 300 / 0.22)" stroke="oklch(0.74 0.14 300)" stroke-width="2"></polygon>
+        </svg>
+        <div style="position:absolute;left:110px;top:120px;font:600 11px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none">El Naranjal</div>
+        <div style="position:absolute;left:285px;top:110px;font:11px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none">La Loma</div>
+        <div style="position:absolute;left:110px;top:295px;font:11px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none">Bajo Grande</div>
+        <div style="position:absolute;left:290px;top:265px;font:11px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none">El Guayabo</div>
+        <div style="position:absolute;left:160px;top:440px;font:11px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none">Los Cerros</div>
+
+        <!-- overlay legend: theme-INDEPENDENT, always high-contrast panel over imagery -->
+        <div style="position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,0.94);border:1px solid rgba(0,0,0,0.25);padding:8px 10px;font-size:11px;color:#171717;min-width:150px">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#525252;margin-bottom:5px">Cultivo</div>
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><span style="width:9px;height:9px;background:oklch(0.62 0.14 45)"></span>Café · plena producción</div>
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><span style="width:9px;height:9px;background:oklch(0.72 0.12 85)"></span>Maíz</div>
+          <div style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;background:oklch(0.66 0.14 300)"></span>Frijol</div>
+        </div>
+        <!-- scale + attribution: also constant over imagery -->
+        <div style="position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <div style="background:rgba(255,255,255,0.94);border:1px solid rgba(0,0,0,0.25);padding:3px 7px;display:flex;align-items:center;gap:6px"><span style="width:44px;height:3px;background:#171717;display:inline-block"></span><span style="font:10px 'Geist Mono',monospace;color:#171717">200 m</span></div>
+          <div style="font:9px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9)">Basemap: Esri World Imagery</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DARK chrome (same basemap, dark UI + dark-appropriate legend) -->
+  <div style="width:680px;background:#141414;color:#ededed;font-family:'Geist',sans-serif;font-size:12px;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;gap:10px;height:40px;border-bottom:1px solid #2e2e2e;padding:0 14px">
+      <span style="font:600 13px 'Geist',sans-serif">Mapa — Finca Bonafé</span>
+      <span style="font:11px 'Geist Mono',monospace;color:#8c8c8c">tema oscuro</span>
+      <div style="display:flex;margin-left:auto;border:1px solid #2e2e2e">
+        <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;background:#ededed;color:#141414">Satélite</span>
+        <span style="font:11px 'Geist Mono',monospace;padding:4px 10px;color:#a3a3a3;border-left:1px solid #2e2e2e">Calles</span>
+      </div>
+    </div>
+    <div style="display:flex;flex:1;min-height:560px">
+      <div style="width:230px;border-right:1px solid #2e2e2e;display:flex;flex-direction:column;flex:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #2e2e2e;background:#1c1c1c">
+          <span style="font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c">Todas las parcelas</span>
+          <span style="font:11px 'Geist Mono',monospace;color:#a3a3a3;font-variant-numeric:tabular-nums">5 · 9.30 ha</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0">
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #242424;background:#232323;border-left:2px solid #ededed">
+            <span style="width:9px;height:9px;background:oklch(0.62 0.14 45);border:1px solid #141414;outline:1px solid rgba(255,255,255,.35);flex:none"></span>
+            <div style="min-width:0;flex:1"><div style="font-weight:600"><a href="#1d" style="color:#ededed">El Naranjal</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">NAR-01 · Café</div></div>
+            <span style="font:11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">3.20 ha</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #242424" style-hover="background:#1c1c1c">
+            <span style="width:9px;height:9px;background:oklch(0.60 0.13 150);border:1px solid #141414;outline:1px solid rgba(255,255,255,.35);flex:none"></span>
+            <div style="min-width:0;flex:1"><div><a href="#1d" style="color:oklch(0.75 0.09 245)">La Loma</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">LOM-02 · Café</div></div>
+            <span style="font:11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">2.10 ha</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #242424" style-hover="background:#1c1c1c">
+            <span style="width:9px;height:9px;background:oklch(0.72 0.12 85);border:1px solid #141414;outline:1px solid rgba(255,255,255,.35);flex:none"></span>
+            <div style="min-width:0;flex:1"><div><a href="#1d" style="color:oklch(0.75 0.09 245)">Bajo Grande</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">BAJ-03 · Maíz</div></div>
+            <span style="font:11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">1.80 ha</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #242424" style-hover="background:#1c1c1c">
+            <span style="width:9px;height:9px;background:oklch(0.60 0.13 150);border:1px solid #141414;outline:1px solid rgba(255,255,255,.35);flex:none"></span>
+            <div style="min-width:0;flex:1"><div><a href="#1d" style="color:oklch(0.75 0.09 245)">El Guayabo</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">GUA-04 · Café</div></div>
+            <span style="font:11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">1.45 ha</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 12px;border-bottom:1px solid #242424" style-hover="background:#1c1c1c">
+            <span style="width:9px;height:9px;background:oklch(0.66 0.14 300);border:1px solid #141414;outline:1px solid rgba(255,255,255,.35);flex:none"></span>
+            <div style="min-width:0;flex:1"><div><a href="#1d" style="color:oklch(0.75 0.09 245)">Los Cerros</a></div><div style="font:10px 'Geist Mono',monospace;color:#8c8c8c">CER-05 · Frijol</div></div>
+            <span style="font:11px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">0.75 ha</span>
+          </div>
+        </div>
+        <div style="margin-top:auto;padding:8px 12px;border-top:1px solid #2e2e2e;font:10px 'Geist Mono',monospace;color:#8c8c8c;line-height:1.5">Sel. <a href="#1d" style="color:oklch(0.75 0.09 245)">El Naranjal</a> · NAR-01<br>13.94°N 86.17°O</div>
+      </div>
+
+      <!-- MAP CANVAS — identical basemap, imagery does NOT invert with theme -->
+      <div style="flex:1;position:relative;overflow:hidden;background:
+          radial-gradient(70% 60% at 22% 30%, oklch(0.42 0.06 150) 0%, transparent 60%),
+          radial-gradient(50% 55% at 75% 25%, oklch(0.46 0.05 140) 0%, transparent 55%),
+          radial-gradient(60% 50% at 60% 78%, oklch(0.40 0.05 130) 0%, transparent 60%),
+          radial-gradient(40% 40% at 88% 70%, oklch(0.5 0.05 90) 0%, transparent 55%),
+          linear-gradient(120deg, oklch(0.38 0.045 150), oklch(0.44 0.05 120))">
+        <div style="position:absolute;inset:0;opacity:0.5;background:repeating-linear-gradient(58deg, rgba(0,0,0,0.10) 0 2px, transparent 2px 9px)"></div>
+        <div style="position:absolute;inset:0;opacity:0.35;background:radial-gradient(30% 22% at 35% 55%, oklch(0.55 0.03 90) 0%, transparent 70%)"></div>
+        <svg viewBox="0 0 440 560" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+          <polygon points="60,70 190,55 215,150 130,205 55,160" fill="oklch(0.62 0.14 45 / 0.30)" stroke="oklch(0.78 0.16 45)" stroke-width="2.5"></polygon>
+          <polygon points="250,60 360,80 350,175 255,165" fill="oklch(0.60 0.13 150 / 0.22)" stroke="oklch(0.78 0.13 150)" stroke-width="2"></polygon>
+          <polygon points="70,250 200,235 220,340 90,360" fill="oklch(0.72 0.12 85 / 0.22)" stroke="oklch(0.84 0.13 85)" stroke-width="2"></polygon>
+          <polygon points="255,215 360,225 375,320 270,330" fill="oklch(0.60 0.13 150 / 0.22)" stroke="oklch(0.78 0.13 150)" stroke-width="2"></polygon>
+          <polygon points="120,400 235,395 250,490 140,500" fill="oklch(0.66 0.14 300 / 0.22)" stroke="oklch(0.80 0.14 300)" stroke-width="2"></polygon>
+        </svg>
+        <div style="position:absolute;left:110px;top:120px;font:600 11px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none">El Naranjal</div>
+        <div style="position:absolute;left:285px;top:110px;font:11px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none">La Loma</div>
+        <div style="position:absolute;left:110px;top:295px;font:11px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none">Bajo Grande</div>
+        <div style="position:absolute;left:290px;top:265px;font:11px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none">El Guayabo</div>
+        <div style="position:absolute;left:160px;top:440px;font:11px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);pointer-events:none">Los Cerros</div>
+
+        <!-- overlay legend: dark panel, still high-contrast against bright imagery -->
+        <div style="position:absolute;left:12px;bottom:12px;background:rgba(20,20,20,0.90);border:1px solid rgba(255,255,255,0.30);padding:8px 10px;font-size:11px;color:#ededed;min-width:150px">
+          <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#a3a3a3;margin-bottom:5px">Cultivo</div>
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><span style="width:9px;height:9px;background:oklch(0.62 0.14 45)"></span>Café · plena producción</div>
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px"><span style="width:9px;height:9px;background:oklch(0.72 0.12 85)"></span>Maíz</div>
+          <div style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;background:oklch(0.66 0.14 300)"></span>Frijol</div>
+        </div>
+        <div style="position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <div style="background:rgba(20,20,20,0.90);border:1px solid rgba(255,255,255,0.30);padding:3px 7px;display:flex;align-items:center;gap:6px"><span style="width:44px;height:3px;background:#ededed;display:inline-block"></span><span style="font:10px 'Geist Mono',monospace;color:#ededed">200 m</span></div>
+          <div style="font:9px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9)">Basemap: Esri World Imagery</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<!--/map-->
+</div>
+</div>
+
+<!-- ============ 1f FIELD CAPTURE LIGHT ============ -->
+<div class="dv-opt" id="1f">
+<div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Captura en campo (campo · claro alto contraste) — registrar actividad offline</div>
+<div class="dv-card" style="width:390px" data-screen-label="Captura campo claro">
+<!--cap-light-->
+<div style="background:#ffffff;color:#0a0a0a;font-family:'Geist',sans-serif;display:flex;flex-direction:column;min-height:800px">
+  <div style="display:flex;align-items:center;gap:8px;height:44px;padding:0 16px;background:oklch(0.97 0.035 85);border-bottom:1px solid oklch(0.87 0.06 85)">
+    <span style="width:8px;height:8px;background:oklch(0.62 0.15 60);flex:none"></span>
+    <span style="font:600 12px 'Geist Mono',monospace;color:oklch(0.42 0.11 60)">Sin conexión — 2 pendientes</span>
+    <span style="margin-left:auto;font:11px 'Geist Mono',monospace;color:oklch(0.42 0.11 60)">06:44</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid #e4e4e4">
+    <a href="#1f" style="font-size:22px;color:#0a0a0a;text-decoration:none">‹</a>
+    <span style="font:600 18px 'Geist',sans-serif">Registrar actividad</span>
+  </div>
+
+  <div style="padding:16px 16px 0;display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#525252">Parcela</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="height:56px;border:2px solid #0a0a0a;background:#0a0a0a;color:#fff;display:flex;flex-direction:column;justify-content:center;padding:0 14px"><span style="font:600 15px 'Geist',sans-serif">El Naranjal</span><span style="font:10px 'Geist Mono',monospace;color:#c9c9c9">NAR-01 · 3.20 ha</span></div>
+      <div style="height:56px;border:1px solid #d4d4d4;display:flex;flex-direction:column;justify-content:center;padding:0 14px"><span style="font:500 15px 'Geist',sans-serif">La Loma</span><span style="font:10px 'Geist Mono',monospace;color:#8c8c8c">LOM-02 · 2.10 ha</span></div>
+      <div style="height:56px;border:1px solid #d4d4d4;display:flex;flex-direction:column;justify-content:center;padding:0 14px"><span style="font:500 15px 'Geist',sans-serif">Bajo Grande</span><span style="font:10px 'Geist Mono',monospace;color:#8c8c8c">BAJ-03 · 1.80 ha</span></div>
+      <div style="height:56px;border:1px solid #d4d4d4;display:flex;align-items:center;justify-content:center;color:#525252;font-size:14px">+ otra parcela</div>
+    </div>
+  </div>
+
+  <div style="padding:16px 16px 0;display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#525252">Tipo de actividad</span>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <span style="height:48px;display:flex;align-items:center;padding:0 16px;border:2px solid #0a0a0a;background:#0a0a0a;color:#fff;font:600 15px 'Geist',sans-serif">Fumigación</span>
+      <span style="height:48px;display:flex;align-items:center;padding:0 16px;border:1px solid #d4d4d4;font-size:15px">Fertilización</span>
+      <span style="height:48px;display:flex;align-items:center;padding:0 16px;border:1px solid #d4d4d4;font-size:15px">Deshierba</span>
+      <span style="height:48px;display:flex;align-items:center;padding:0 16px;border:1px solid #d4d4d4;font-size:15px">Poda</span>
+      <span style="height:48px;display:flex;align-items:center;padding:0 16px;border:1px solid #d4d4d4;font-size:15px">Cosecha</span>
+    </div>
+  </div>
+
+  <div style="padding:16px 16px 0;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:600 11px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#525252">Insumos</span><span style="font:11px 'Geist Mono',monospace;color:#525252;font-variant-numeric:tabular-nums">Subtotal 184.00</span></div>
+    <div style="border:1px solid #d4d4d4;display:flex;flex-direction:column">
+      <div style="display:grid;grid-template-columns:1fr 64px 84px;align-items:center;min-height:52px;border-bottom:1px solid #eaeaea">
+        <span style="padding:0 14px;font-size:15px">Glifosato 48% SL</span>
+        <span style="padding:0 8px;text-align:right;font:15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">2 L</span>
+        <span style="padding:0 14px 0 8px;text-align:right;font:15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">164.00</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 64px 84px;align-items:center;min-height:52px">
+        <span style="padding:0 14px;font-size:15px">Adherente</span>
+        <span style="padding:0 8px;text-align:right;font:15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">1 L</span>
+        <span style="padding:0 14px 0 8px;text-align:right;font:15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">20.00</span>
+      </div>
+    </div>
+    <div style="height:48px;border:1px dashed #b8b8b8;display:flex;align-items:center;justify-content:center;color:#525252;font-size:15px">+ Agregar insumo</div>
+  </div>
+
+  <div style="padding:16px 16px 0;display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#525252">Ubicación</span>
+    <div style="display:flex;align-items:center;gap:10px;height:52px;border:1px solid #d4d4d4;padding:0 14px">
+      <span style="font:600 12px 'Geist Mono',monospace;padding:3px 8px;border:1px solid oklch(0.88 0.05 150);background:oklch(0.965 0.025 150);color:oklch(0.40 0.11 150)">📍 ±8 m</span>
+      <span style="font:13px 'Geist Mono',monospace;color:#525252;font-variant-numeric:tabular-nums">13.9412°N 86.1703°O</span>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;margin:16px 16px 0;padding:10px 12px;background:oklch(0.965 0.025 150);border:1px solid oklch(0.88 0.05 150)">
+    <span style="font-size:13px;color:oklch(0.36 0.09 150);line-height:1.4">Se guardó en este dispositivo y se sincronizará al recuperar conexión.</span>
+  </div>
+
+  <div style="margin-top:auto;padding:16px;border-top:1px solid #e4e4e4;display:flex;gap:10px">
+    <div style="width:56px;height:56px;border:1px solid #d4d4d4;display:flex;align-items:center;justify-content:center;font:22px 'Geist',sans-serif;color:#525252">×</div>
+    <div style="flex:1;height:56px;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;font:600 16px 'Geist',sans-serif">Guardar actividad</div>
+  </div>
+</div>
+<!--/cap-light-->
+</div>
+</div>
+
+<!-- ============ 1g FIELD CAPTURE DARK ============ -->
+<div class="dv-opt" id="1g">
+<div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>Captura en campo (campo · oscuro) — madrugada / amanecer</div>
+<div class="dv-card" style="width:390px" data-screen-label="Captura campo oscuro">
+<!--cap-dark-->
+<div style="background:#0e0e0e;color:#f2f2f2;font-family:'Geist',sans-serif;display:flex;flex-direction:column;min-height:800px">
+  <div style="display:flex;align-items:center;gap:8px;height:44px;padding:0 16px;background:oklch(0.28 0.05 80);border-bottom:1px solid oklch(0.40 0.07 80)">
+    <span style="width:8px;height:8px;background:oklch(0.78 0.14 80);flex:none"></span>
+    <span style="font:600 12px 'Geist Mono',monospace;color:oklch(0.86 0.12 80)">Sin conexión — 2 pendientes</span>
+    <span style="margin-left:auto;font:11px 'Geist Mono',monospace;color:oklch(0.86 0.12 80)">05:12</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid #2b2b2b">
+    <a href="#1g" style="font-size:22px;color:#f2f2f2;text-decoration:none">‹</a>
+    <span style="font:600 18px 'Geist',sans-serif">Registrar actividad</span>
+  </div>
+
+  <div style="padding:16px 16px 0;display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#a3a3a3">Parcela</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="height:56px;border:2px solid #f2f2f2;background:#f2f2f2;color:#0e0e0e;display:flex;flex-direction:column;justify-content:center;padding:0 14px"><span style="font:600 15px 'Geist',sans-serif">El Naranjal</span><span style="font:10px 'Geist Mono',monospace;color:#4a4a4a">NAR-01 · 3.20 ha</span></div>
+      <div style="height:56px;border:1px solid #3a3a3a;display:flex;flex-direction:column;justify-content:center;padding:0 14px"><span style="font:500 15px 'Geist',sans-serif">La Loma</span><span style="font:10px 'Geist Mono',monospace;color:#8c8c8c">LOM-02 · 2.10 ha</span></div>
+      <div style="height:56px;border:1px solid #3a3a3a;display:flex;flex-direction:column;justify-content:center;padding:0 14px"><span style="font:500 15px 'Geist',sans-serif">Bajo Grande</span><span style="font:10px 'Geist Mono',monospace;color:#8c8c8c">BAJ-03 · 1.80 ha</span></div>
+      <div style="height:56px;border:1px solid #3a3a3a;display:flex;align-items:center;justify-content:center;color:#a3a3a3;font-size:14px">+ otra parcela</div>
+    </div>
+  </div>
+
+  <div style="padding:16px 16px 0;display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#a3a3a3">Tipo de actividad</span>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <span style="height:48px;display:flex;align-items:center;padding:0 16px;border:2px solid #f2f2f2;background:#f2f2f2;color:#0e0e0e;font:600 15px 'Geist',sans-serif">Fumigación</span>
+      <span style="height:48px;display:flex;align-items:center;padding:0 16px;border:1px solid #3a3a3a;font-size:15px">Fertilización</span>
+      <span style="height:48px;display:flex;align-items:center;padding:0 16px;border:1px solid #3a3a3a;font-size:15px">Deshierba</span>
+      <span style="height:48px;display:flex;align-items:center;padding:0 16px;border:1px solid #3a3a3a;font-size:15px">Poda</span>
+      <span style="height:48px;display:flex;align-items:center;padding:0 16px;border:1px solid #3a3a3a;font-size:15px">Cosecha</span>
+    </div>
+  </div>
+
+  <div style="padding:16px 16px 0;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:600 11px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#a3a3a3">Insumos</span><span style="font:11px 'Geist Mono',monospace;color:#a3a3a3;font-variant-numeric:tabular-nums">Subtotal 184.00</span></div>
+    <div style="border:1px solid #3a3a3a;display:flex;flex-direction:column">
+      <div style="display:grid;grid-template-columns:1fr 64px 84px;align-items:center;min-height:52px;border-bottom:1px solid #262626">
+        <span style="padding:0 14px;font-size:15px">Glifosato 48% SL</span>
+        <span style="padding:0 8px;text-align:right;font:15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">2 L</span>
+        <span style="padding:0 14px 0 8px;text-align:right;font:15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">164.00</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 64px 84px;align-items:center;min-height:52px">
+        <span style="padding:0 14px;font-size:15px">Adherente</span>
+        <span style="padding:0 8px;text-align:right;font:15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">1 L</span>
+        <span style="padding:0 14px 0 8px;text-align:right;font:15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums">20.00</span>
+      </div>
+    </div>
+    <div style="height:48px;border:1px dashed #4a4a4a;display:flex;align-items:center;justify-content:center;color:#a3a3a3;font-size:15px">+ Agregar insumo</div>
+  </div>
+
+  <div style="padding:16px 16px 0;display:flex;flex-direction:column;gap:8px">
+    <span style="font:600 11px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#a3a3a3">Ubicación</span>
+    <div style="display:flex;align-items:center;gap:10px;height:52px;border:1px solid #3a3a3a;padding:0 14px">
+      <span style="font:600 12px 'Geist Mono',monospace;padding:3px 8px;border:1px solid oklch(0.38 0.06 152);background:oklch(0.27 0.04 152);color:oklch(0.82 0.11 152)">📍 ±8 m</span>
+      <span style="font:13px 'Geist Mono',monospace;color:#a3a3a3;font-variant-numeric:tabular-nums">13.9412°N 86.1703°O</span>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;margin:16px 16px 0;padding:10px 12px;background:oklch(0.27 0.04 152);border:1px solid oklch(0.38 0.06 152)">
+    <span style="font-size:13px;color:oklch(0.85 0.09 152);line-height:1.4">Se guardó en este dispositivo y se sincronizará al recuperar conexión.</span>
+  </div>
+
+  <div style="margin-top:auto;padding:16px;border-top:1px solid #2b2b2b;display:flex;gap:10px">
+    <div style="width:56px;height:56px;border:1px solid #3a3a3a;display:flex;align-items:center;justify-content:center;font:22px 'Geist',sans-serif;color:#a3a3a3">×</div>
+    <div style="flex:1;height:56px;background:#f2f2f2;color:#0e0e0e;display:flex;align-items:center;justify-content:center;font:600 16px 'Geist',sans-serif">Guardar actividad</div>
+  </div>
+</div>
+<!--/cap-dark-->
+</div>
+</div>
+
+<!-- ============ 1h WORK ORDER ============ -->
+<div class="dv-opt" id="1h">
+<div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>Orden de trabajo OT-0042 (campo · claro) — ciclo de vida + checklist</div>
+<div class="dv-card" style="width:390px" data-screen-label="Orden de trabajo">
+<!--wo-->
+<div style="background:#ffffff;color:#0a0a0a;font-family:'Geist',sans-serif;display:flex;flex-direction:column;min-height:800px">
+  <div style="display:flex;align-items:center;gap:8px;height:44px;padding:0 16px;background:oklch(0.965 0.025 150);border-bottom:1px solid oklch(0.88 0.05 150)">
+    <span style="width:8px;height:8px;background:oklch(0.55 0.14 150);flex:none"></span>
+    <span style="font:600 12px 'Geist Mono',monospace;color:oklch(0.40 0.11 150)">Sincronizado · hace 3 min</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid #e4e4e4">
+    <a href="#1h" style="font-size:22px;color:#0a0a0a;text-decoration:none">‹</a>
+    <span style="font:600 15px 'Geist Mono',monospace">OT-0042</span>
+    <span style="margin-left:auto;font:600 12px 'Geist Mono',monospace;padding:4px 10px;border:1px solid oklch(0.87 0.06 85);background:oklch(0.97 0.035 85);color:oklch(0.46 0.11 70)">En progreso</span>
+  </div>
+
+  <div style="padding:16px 16px 0">
+    <div style="font:600 20px 'Geist',sans-serif;line-height:1.2">Fumigación lote norte</div>
+    <div style="font-size:14px;color:#525252;margin-top:6px;line-height:1.45">Aplicar Glifosato 48% en franja norte de la parcela. Revisar viento antes de iniciar.</div>
+  </div>
+
+  <div style="padding:16px 16px 0;display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #e4e4e4;margin:16px 16px 0">
+    <div style="padding:10px 14px;border-right:1px solid #eaeaea;border-bottom:1px solid #eaeaea"><div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c">Parcela</div><div style="font-size:14px;margin-top:3px"><a href="#1d">El Naranjal</a></div></div>
+    <div style="padding:10px 14px;border-bottom:1px solid #eaeaea"><div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c">Responsable</div><div style="font-size:14px;margin-top:3px"><a href="#1h">C. Ordóñez</a></div></div>
+    <div style="padding:10px 14px;border-right:1px solid #eaeaea"><div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c">Programada</div><div style="font:14px 'Geist Mono',monospace;margin-top:3px;font-variant-numeric:tabular-nums">07 jul 2026</div></div>
+    <div style="padding:10px 14px"><div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c">Tipo</div><div style="font-size:14px;margin-top:3px">Labor de campo</div></div>
+  </div>
+
+  <div style="padding:20px 16px 0">
+    <div style="display:flex;align-items:center">
+      <div style="display:flex;flex-direction:column;align-items:center;flex:none;width:64px"><span style="width:14px;height:14px;border-radius:50%;background:#0a0a0a"></span><span style="font:9.5px 'Geist Mono',monospace;color:#525252;margin-top:5px">Borrador</span></div>
+      <div style="flex:1;height:2px;background:#0a0a0a;margin-bottom:19px"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;flex:none;width:64px"><span style="width:14px;height:14px;border-radius:50%;background:#0a0a0a"></span><span style="font:9.5px 'Geist Mono',monospace;color:#525252;margin-top:5px">Asignada</span></div>
+      <div style="flex:1;height:2px;background:#0a0a0a;margin-bottom:19px"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;flex:none;width:70px"><span style="width:16px;height:16px;border-radius:50%;background:oklch(0.70 0.13 80);outline:3px solid oklch(0.97 0.035 85)"></span><span style="font:600 9.5px 'Geist Mono',monospace;color:oklch(0.46 0.11 70);margin-top:5px">En progreso</span></div>
+      <div style="flex:1;height:2px;background:#e4e4e4;margin-bottom:19px"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;flex:none;width:64px"><span style="width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid #d4d4d4"></span><span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3;margin-top:5px">Completada</span></div>
+    </div>
+  </div>
+
+  <div style="padding:20px 16px 0;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between"><span style="font:600 11px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#525252">Lista de verificación</span><span style="font:11px 'Geist Mono',monospace;color:#525252;font-variant-numeric:tabular-nums">2 / 3</span></div>
+    <div style="border:1px solid #d4d4d4;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:12px;min-height:56px;padding:0 14px;border-bottom:1px solid #eaeaea">
+        <span style="width:28px;height:28px;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none">✓</span>
+        <span style="font-size:16px;color:#525252;text-decoration:line-through">Revisar aspersores</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;min-height:56px;padding:0 14px;border-bottom:1px solid #eaeaea">
+        <span style="width:28px;height:28px;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none">✓</span>
+        <span style="font-size:16px;color:#525252;text-decoration:line-through">Cargar producto</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;min-height:56px;padding:0 14px">
+        <span style="width:28px;height:28px;border:2px solid #0a0a0a;flex:none"></span>
+        <span style="font-size:16px;font-weight:500">Verificar EPP</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin:14px 16px 0;padding:10px 12px;background:oklch(0.965 0.02 25);border:1px solid oklch(0.87 0.05 25)">
+    <span style="font-size:13px;color:oklch(0.44 0.15 25);line-height:1.4">No se puede completar la orden: hay puntos de la lista de verificación sin marcar.</span>
+  </div>
+
+  <div style="margin-top:auto;padding:16px;border-top:1px solid #e4e4e4;display:flex;gap:10px">
+    <div style="width:56px;height:56px;border:1px solid #d4d4d4;display:flex;align-items:center;justify-content:center;font-size:13px;color:#525252;text-align:center;line-height:1.2">Pausar</div>
+    <div style="flex:1;height:56px;background:#f0f0f0;color:#a3a3a3;border:1px solid #e0e0e0;display:flex;align-items:center;justify-content:center;font:600 16px 'Geist',sans-serif">Completar orden</div>
+  </div>
+</div>
+<!--/wo-->
+</div>
+</div>
+
+<!-- ============ 1i PAYROLL ============ -->
+<div class="dv-opt" id="1i">
+<div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a>Planilla (oficina · claro) — la tabla más densa, período cerrado</div>
+<div class="dv-card" style="width:1360px" data-screen-label="Planilla">
+<!--pay-->
+<div style="background:#ffffff;color:#171717;font-family:'Geist',sans-serif;font-size:12px;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;gap:10px;padding:12px 16px 10px;border-bottom:1px solid #e4e4e4">
+    <span style="font:600 16px 'Geist',sans-serif">Planilla</span>
+    <span style="color:#d4d4d4">/</span>
+    <span style="font-size:12px;color:#525252">Quincena 1 julio 2026</span>
+    <span style="font:11px 'Geist Mono',monospace;color:#8c8c8c">01–15 jul · Finca Bonafé</span>
+    <span style="font:600 10px 'Geist Mono',monospace;padding:3px 8px;border:1px solid #d4d4d4;background:#f5f5f5;color:#525252;display:inline-flex;align-items:center;gap:5px">🔒 Cerrada</span>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <span style="font:11px 'Geist Mono',monospace;padding:5px 12px;border:1px solid #e4e4e4;color:#525252">Exportar CSV</span>
+      <span style="font:11px 'Geist Mono',monospace;padding:5px 12px;border:1px solid #e4e4e4;color:#525252">Ver recibos</span>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;padding:7px 16px;background:#f8f8f6;border-bottom:1px solid #e4e4e4">
+    <span style="width:6px;height:6px;background:#8c8c8c;flex:none"></span>
+    <span style="font-size:11px;color:#525252">Período cerrado el 16 jul 2026 por <a href="#1i">M. Castillo</a> · registros en solo lectura. Reabrir requiere rol de administrador.</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;font:600 10px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.04em;color:#8c8c8c;border-bottom:1px solid #e4e4e4;background:#fafafa">
+    <div style="padding:6px 0 6px 12px">#</div>
+    <div style="padding:6px 10px">Trabajador</div>
+    <div style="padding:6px 10px;text-align:right">Jornales</div>
+    <div style="padding:6px 10px;text-align:right">H. extra</div>
+    <div style="padding:6px 10px;text-align:right">Devengado</div>
+    <div style="padding:6px 10px;text-align:right">Extra</div>
+    <div style="padding:6px 10px;text-align:right">Bonif.</div>
+    <div style="padding:6px 10px;text-align:right">Deducc.</div>
+    <div style="padding:6px 10px;text-align:right">Neto (L)</div>
+    <div style="padding:6px 16px 6px 10px">Días marcados</div>
+  </div>
+
+  <!-- worker rows: dense 28px -->
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:29px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+    <div style="padding-left:12px;font:10px 'Geist Mono',monospace;color:#a3a3a3">01</div>
+    <div style="padding:0 10px"><a href="#1i">María Elena Cruz</a> <span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3">TR-014</span></div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">13.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">4.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1,820.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">122.50</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">50.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">−96.20</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">1,896.30</div>
+    <div style="padding:0 16px 0 10px;display:flex;gap:2px">
+      <span title="Presente" style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span title="Medio día" style="width:11px;height:16px;background:oklch(0.75 0.13 85)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span title="Descanso" style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:29px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+    <div style="padding-left:12px;font:10px 'Geist Mono',monospace;color:#a3a3a3">02</div>
+    <div style="padding:0 10px"><a href="#1i">José Antonio Mejía</a> <span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3">TR-007</span></div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">14.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">6.5</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1,960.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">199.06</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">0.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">−103.60</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">2,055.46</div>
+    <div style="padding:0 16px 0 10px;display:flex;gap:2px">
+      <span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:29px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+    <div style="padding-left:12px;font:10px 'Geist Mono',monospace;color:#a3a3a3">03</div>
+    <div style="padding:0 10px"><a href="#1i">Carlos Ordóñez</a> <span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3">TR-002</span></div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">14.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">2.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1,960.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">61.25</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">150.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">−103.60</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">2,067.65</div>
+    <div style="padding:0 16px 0 10px;display:flex;gap:2px">
+      <span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:29px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+    <div style="padding-left:12px;font:10px 'Geist Mono',monospace;color:#a3a3a3">04</div>
+    <div style="padding:0 10px"><a href="#1i">Dora Alicia Fúnez</a> <span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3">TR-011</span></div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">12.5</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">0.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1,750.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">0.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">50.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">−92.50</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">1,707.50</div>
+    <div style="padding:0 16px 0 10px;display:flex;gap:2px">
+      <span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span title="Enfermo" style="width:11px;height:16px;background:oklch(0.62 0.13 300)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.75 0.13 85)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:29px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+    <div style="padding-left:12px;font:10px 'Geist Mono',monospace;color:#a3a3a3">05</div>
+    <div style="padding:0 10px"><a href="#1i">Pedro Zelaya</a> <span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3">TR-019</span></div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">14.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">8.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1,960.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">245.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">0.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">−103.60</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">2,101.40</div>
+    <div style="padding:0 16px 0 10px;display:flex;gap:2px">
+      <span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:29px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+    <div style="padding-left:12px;font:10px 'Geist Mono',monospace;color:#a3a3a3">06</div>
+    <div style="padding:0 10px"><a href="#1i">Rigoberto Cálix</a> <span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3">TR-005</span></div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">11.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">1.5</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1,540.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">45.94</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">0.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">−81.40</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">1,504.54</div>
+    <div style="padding:0 16px 0 10px;display:flex;gap:2px">
+      <span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span title="Ausente" style="width:11px;height:16px;background:oklch(0.60 0.18 25)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span title="Permiso" style="width:11px;height:16px;background:oklch(0.60 0.12 245)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.18 25)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:29px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+    <div style="padding-left:12px;font:10px 'Geist Mono',monospace;color:#a3a3a3">07</div>
+    <div style="padding:0 10px"><a href="#1i">Santos Izaguirre</a> <span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3">TR-022</span></div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">14.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">3.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1,960.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">91.88</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">50.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">−103.60</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">1,998.28</div>
+    <div style="padding:0 16px 0 10px;display:flex;gap:2px">
+      <span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.75 0.13 85)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:29px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+    <div style="padding-left:12px;font:10px 'Geist Mono',monospace;color:#a3a3a3">08</div>
+    <div style="padding:0 10px"><a href="#1i">Reina Padilla</a> <span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3">TR-016</span></div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">13.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">0.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1,820.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">0.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">50.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">−96.20</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">1,773.80</div>
+    <div style="padding:0 16px 0 10px;display:flex;gap:2px">
+      <span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.75 0.13 85)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:29px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+    <div style="padding-left:12px;font:10px 'Geist Mono',monospace;color:#a3a3a3">09</div>
+    <div style="padding:0 10px"><a href="#1i">Óscar Banegas</a> <span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3">TR-009</span></div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">14.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">5.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1,960.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">153.13</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#a3a3a3">0.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">−103.60</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">2,009.53</div>
+    <div style="padding:0 16px 0 10px;display:flex;gap:2px">
+      <span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:29px;border-bottom:1px solid #f0f0f0;font-size:12px" style-hover="background:#fafafa">
+    <div style="padding-left:12px;font:10px 'Geist Mono',monospace;color:#a3a3a3">10</div>
+    <div style="padding:0 10px"><a href="#1i">Blanca Interiano</a> <span style="font:9.5px 'Geist Mono',monospace;color:#a3a3a3">TR-024</span></div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">12.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">2.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums">1,680.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">61.25</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:#525252">50.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:oklch(0.46 0.17 25)">−88.80</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">1,702.45</div>
+    <div style="padding:0 16px 0 10px;display:flex;gap:2px">
+      <span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.75 0.13 85)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.75 0.13 85)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:#e4e4e4"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span><span style="width:11px;height:16px;background:oklch(0.60 0.13 150)"></span>
+    </div>
+  </div>
+
+  <!-- totals -->
+  <div style="display:grid;grid-template-columns:26px 1.6fr 0.7fr 0.7fr 0.9fr 0.8fr 0.9fr 0.9fr 1fr 1.4fr;align-items:center;height:32px;border-bottom:1px solid #e4e4e4;border-top:1px solid #e4e4e4;background:#fafafa;font-size:12px">
+    <div></div>
+    <div style="padding:0 10px;font-weight:600">Total · 12 trabajadores</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">156.0</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600;color:#525252">39.5</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600">21,840.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600;color:#525252">1,210.31</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600;color:#525252">550.00</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:600;color:oklch(0.46 0.17 25)">−1,155.30</div>
+    <div style="padding:0 10px;text-align:right;font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;font-weight:700">22,445.01</div>
+    <div></div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:18px;padding:9px 16px;border-bottom:1px solid #e4e4e4">
+    <span style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:#8c8c8c">Días marcados</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="width:10px;height:12px;background:oklch(0.60 0.13 150)"></span>Presente</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="width:10px;height:12px;background:oklch(0.75 0.13 85)"></span>Medio día</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="width:10px;height:12px;background:oklch(0.60 0.18 25)"></span>Ausente</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="width:10px;height:12px;background:oklch(0.62 0.13 300)"></span>Enfermo</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="width:10px;height:12px;background:oklch(0.60 0.12 245)"></span>Permiso</span>
+    <span style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="width:10px;height:12px;background:#e4e4e4"></span>Descanso</span>
+    <span style="margin-left:auto;font:11px 'Geist Mono',monospace;color:#8c8c8c">Tarifa base L 140.00/jornal · extra ×1.25</span>
+  </div>
+</div>
+<!--/pay-->
+</div>
+</div>
+
+</div>
+<p class="dv-next">Prueba: "densifica la <a class="dv-oid" href="#1i">1i</a> a filas de 26px" · "agrega el detalle de trabajador desde <a class="dv-oid" href="#1i">1i</a>" · "haz el mapa <a class="dv-oid" href="#1d">1d</a> con overlay de severidad de plagas" · "variante de <a class="dv-oid" href="#1f">1f</a> para monitoreo (Roya del café)"</p>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1500px&quot;}}">class Component extends DCLogic {
+  state = {
+    t: 0,
+    feed: [
+      { id: 1, time: "06:44:02", kind: "sync",  text: "Actividad · Fumigación — El Naranjal", dev: "C. Ordóñez", dot: "oklch(0.70 0.13 80)" },
+      { id: 2, time: "06:41:55", kind: "att",   text: "Asistencia · 11 marcas — cuadrilla norte", dev: "M. E. Cruz", dot: "oklch(0.62 0.13 245)" },
+      { id: 3, time: "06:38:10", kind: "rain",  text: "Lluvia · +1.2 mm — estación Bonafé", dev: "Open-Meteo", dot: "oklch(0.62 0.13 245)" },
+      { id: 4, time: "06:33:47", kind: "mon",   text: "Monitoreo · Roya del café — El Naranjal", dev: "C. Ordóñez", dot: "oklch(0.62 0.18 25)" },
+      { id: 5, time: "06:29:02", kind: "harv",  text: "Cosecha · 42 kg café — El Guayabo", dev: "D. A. Fúnez", dot: "oklch(0.62 0.13 150)" },
+      { id: 6, time: "06:22:31", kind: "act",   text: "Actividad · Deshierba — La Loma", dev: "J. A. Mejía", dot: "oklch(0.62 0.13 150)" }
+    ]
+  };
+  componentDidMount() {
+    this._seq = 100;
+    this._pool = [
+      { kind: "act",  text: "Actividad · Deshierba — La Loma", dev: "J. A. Mejía", dot: "oklch(0.62 0.13 150)" },
+      { kind: "att",  text: "Asistencia · 3 marcas — cuadrilla sur", dev: "M. E. Cruz", dot: "oklch(0.62 0.13 245)" },
+      { kind: "mon",  text: "Monitoreo · Broca — Bajo Grande", dev: "R. Cálix", dot: "oklch(0.62 0.18 25)" },
+      { kind: "rain", text: "Lluvia · +2.4 mm — estación Bonafé", dev: "Open-Meteo", dot: "oklch(0.62 0.13 245)" },
+      { kind: "harv", text: "Cosecha · 38 kg café — El Guayabo", dev: "D. A. Fúnez", dot: "oklch(0.62 0.13 150)" },
+      { kind: "sync", text: "Sincronizado · 2 registros del outbox", dev: "sistema", dot: "oklch(0.62 0.13 150)" },
+      { kind: "act",  text: "Actividad · Fertilización — Los Cerros", dev: "S. Izaguirre", dot: "oklch(0.62 0.13 150)" }
+    ];
+    // real-time stream retired — office dashboard is now the map cockpit (2a/2b)
+  }
+  componentWillUnmount() { clearInterval(this.tick); clearInterval(this.pump); }
+  pushEvent() {
+    const p = this._pool[Math.floor(Math.random() * this._pool.length)];
+    const time = new Date().toLocaleTimeString("es", { hour12: false });
+    this.setState((s) => ({ feed: [{ id: ++this._seq, time, ...p }, ...s.feed].slice(0, 7) }));
+  }
+  renderVals() {
+    const t = this.state.t;
+    const j = (base, amp, ph, d) => (base + amp * Math.sin((t + ph) / 5)).toFixed(d);
+    return {
+      clock: new Date().toLocaleTimeString("es", { hour12: false }),
+      feed: this.state.feed,
+      soilNar: j(38, 1.4, 0, 0),
+      soilLom: j(41, 1.1, 3, 0),
+      soilBaj: j(29, 1.6, 6, 0),
+      temp: j(24.6, 0.4, 1, 1),
+      rainRate: j(1.8, 0.6, 2, 1),
+      wind: j(7.2, 1.1, 4, 1),
+      ndvi: j(0.72, 0.02, 2, 2),
+      lat: (13.9412 + 0.0002 * Math.sin(t / 7)).toFixed(4),
+      lng: (86.1703 + 0.0002 * Math.cos(t / 7)).toFixed(4)
+    };
+  }
+}</script>
+</body>
+</html>

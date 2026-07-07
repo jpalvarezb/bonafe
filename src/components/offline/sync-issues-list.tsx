@@ -50,7 +50,7 @@ export function SyncIssuesList({ orgSlug }: { orgSlug: string }) {
                 </span>
               </div>
               {entry.lastError && (
-                <p className="truncate text-sm text-red-700 dark:text-red-400">
+                <p className="truncate text-sm text-sync-error-fg">
                   {entry.lastError}
                 </p>
               )}

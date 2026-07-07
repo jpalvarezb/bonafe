@@ -19,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Notice } from "@/components/ui/notice";
 
 const selectClass =
   "border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs";
@@ -104,10 +105,10 @@ export default async function ClimatePage({
       )}
 
       {ingestedCount !== null && !ingestErrorKey && (
-        <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100">
+        <Notice variant="success">
           {t("ingest.success", { count: ingestedCount })} —{" "}
           {t(ingestedProviderKey)}
-        </div>
+        </Notice>
       )}
 
       {farmsList.length > 1 && (

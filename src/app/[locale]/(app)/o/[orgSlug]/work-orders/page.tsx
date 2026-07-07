@@ -24,17 +24,20 @@ import {
 } from "@/components/ui/card";
 import { CompleteWorkOrderCard } from "@/components/work-orders/complete-work-order-card";
 import { PendingEntries } from "@/components/offline/pending-entries";
+import { StatusChip } from "@/components/ui/status-chip";
 
 const KNOWN_ERROR_KEYS = ["checklistIncomplete"];
 
-const STATUS_CHIP_CLASS: Record<WorkOrderStatus, string> = {
-  draft: "bg-muted text-muted-foreground",
-  assigned:
-    "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  in_progress:
-    "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100",
-  done: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-  cancelled: "bg-muted text-muted-foreground line-through",
+// DB status -> StatusChip `wo` state (in_progress has no direct token name).
+const WO_CHIP_STATE: Record<
+  WorkOrderStatus,
+  "draft" | "assigned" | "progress" | "done" | "cancelled"
+> = {
+  draft: "draft",
+  assigned: "assigned",
+  in_progress: "progress",
+  done: "done",
+  cancelled: "cancelled",
 };
 
 /** Next statuses reachable from `status`, per the allowed transition set. */
@@ -132,11 +135,13 @@ export default async function WorkOrdersPage({
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CHIP_CLASS[status]}`}
+                      <StatusChip
+                        family="wo"
+                        state={WO_CHIP_STATE[status]}
+                        className={status === "cancelled" ? "line-through" : undefined}
                       >
                         {t(`status.${status}`)}
-                      </span>
+                      </StatusChip>
                       {transitions.map((next) => {
                         // The completion card below owns "done" for rows it
                         // handles — skip the plain online-only form here.

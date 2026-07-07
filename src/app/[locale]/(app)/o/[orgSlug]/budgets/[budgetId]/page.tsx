@@ -29,11 +29,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-const STATUS_CHIP_CLASS: Record<"draft" | "active", string> = {
-  draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100",
-  active: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-};
+import { StatusChip } from "@/components/ui/status-chip";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
 
@@ -85,11 +81,15 @@ export default async function BudgetDetailPage({
       currency: budget.currencyCode,
     });
 
+  // Variance sign is inverted from plain arithmetic sign: positive variance
+  // means actual spend exceeded budget (bad -> fin-negative/red), negative
+  // variance means under budget (good -> fin-positive/green). Not a fit for
+  // <Metric signed> for that reason.
   const varianceClass = (value: string) =>
     Number(value) > 0
-      ? "text-red-600 dark:text-red-400"
+      ? "text-fin-negative"
       : Number(value) < 0
-        ? "text-green-600 dark:text-green-400"
+        ? "text-fin-positive"
         : "";
 
   function scopeLabel() {
@@ -120,13 +120,12 @@ export default async function BudgetDetailPage({
               {scopeLabel()} · {budget.currencyCode}
             </p>
           </div>
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-              STATUS_CHIP_CLASS[budget.status as "draft" | "active"]
-            }`}
+          <StatusChip
+            family="life"
+            state={budget.status as "draft" | "active"}
           >
             {t(`status.${budget.status}`)}
-          </span>
+          </StatusChip>
         </div>
       </div>
 
@@ -324,10 +323,10 @@ export default async function BudgetDetailPage({
               </div>
 
               <p className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <span className="text-green-600 dark:text-green-400">
+                <span className="text-fin-positive">
                   ● {t("variance.legendUnder")}
                 </span>
-                <span className="text-red-600 dark:text-red-400">
+                <span className="text-fin-negative">
                   ● {t("variance.legendOver")}
                 </span>
               </p>

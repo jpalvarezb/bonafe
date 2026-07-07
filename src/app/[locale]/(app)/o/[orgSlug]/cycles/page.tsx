@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatusChip } from "@/components/ui/status-chip";
 
 const KNOWN_ERROR_KEYS = ["cycleOverlap"];
 
@@ -100,15 +101,9 @@ export default async function CyclesPage({
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <span
-                      className={
-                        cycle.status === "active"
-                          ? "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100"
-                          : "rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                      }
-                    >
+                    <StatusChip family="life" state={cycle.status}>
                       {t(`status.${cycle.status}`)}
-                    </span>
+                    </StatusChip>
                     {cycle.status === "active" &&
                       canSetStage &&
                       cropStageOptions.length > 0 && (

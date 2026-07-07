@@ -4,6 +4,8 @@ import { SidebarNav } from "@/components/app-shell/sidebar-nav";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { SyncProvider } from "@/components/offline/sync-provider";
 import { SyncStatusBadge } from "@/components/offline/sync-status-badge";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { ModeToggle } from "@/components/layout/mode-toggle";
 
 export default async function OrgLayout({
   children,
@@ -27,6 +29,8 @@ export default async function OrgLayout({
         </div>
         <div className="flex items-center gap-3">
           <SyncStatusBadge orgSlug={orgSlug} />
+          <ModeToggle />
+          <ThemeToggle />
           <LogoutButton />
         </div>
       </header>

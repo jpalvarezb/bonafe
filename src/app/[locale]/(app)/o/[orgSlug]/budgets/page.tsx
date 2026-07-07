@@ -20,11 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-const STATUS_CHIP_CLASS: Record<"draft" | "active", string> = {
-  draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100",
-  active: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-};
+import { StatusChip } from "@/components/ui/status-chip";
 
 const selectClass =
   "border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs";
@@ -88,13 +84,12 @@ export default async function BudgetsPage({
                   </p>
                 </Link>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      STATUS_CHIP_CLASS[budget.status as "draft" | "active"]
-                    }`}
+                  <StatusChip
+                    family="life"
+                    state={budget.status as "draft" | "active"}
                   >
                     {t(`status.${budget.status}`)}
-                  </span>
+                  </StatusChip>
                   {canManage && (
                     <form action={deleteBudgetAction}>
                       <input type="hidden" name="locale" value={locale} />

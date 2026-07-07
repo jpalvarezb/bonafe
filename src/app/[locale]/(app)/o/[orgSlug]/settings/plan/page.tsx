@@ -11,6 +11,7 @@ import {
 } from "@/server/actions/billing";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Notice } from "@/components/ui/notice";
 
 export default async function PlanPage({
   params,
@@ -83,28 +84,26 @@ export default async function PlanPage({
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       {showUpgraded && (
-        <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100">
+        <Notice variant="success">
           <p>{tBilling("upgraded.title")}</p>
           <p className="font-normal">{tBilling("upgraded.description")}</p>
-        </div>
+        </Notice>
       )}
 
       {isReadOnly && (
-        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-medium text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
+        <Notice variant="error">
           {t("readOnlyNotice", { status: t(`status.${plan.status}`) })}
-        </div>
+        </Notice>
       )}
 
       {limitParam && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
-          {t(`limitReached.${limitParam}`)}
-        </div>
+        <Notice variant="warning">{t(`limitReached.${limitParam}`)}</Notice>
       )}
 
       {featureParam && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+        <Notice variant="warning">
           {t("featureLocked", { feature: t(`features.${featureParam}`) })}
-        </div>
+        </Notice>
       )}
 
       <Card>

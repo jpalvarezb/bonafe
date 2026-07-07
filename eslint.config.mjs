@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     // next.config.ts swDest) — not source, must not be linted.
     "public/sw.js",
     "public/sw.js.map",
+    // Vendored design-doc support assets (support.js etc.) — not app source.
+    "docs/design/**",
   ]),
 ]);
 

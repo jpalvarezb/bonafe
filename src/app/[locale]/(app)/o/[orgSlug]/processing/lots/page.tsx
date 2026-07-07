@@ -16,17 +16,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatusChip } from "@/components/ui/status-chip";
 
 const KNOWN_UNITS = ["kg", "lb", "qq", "lata", "saco"];
 
 const selectClass =
   "border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs";
-
-const STATUS_CHIP_CLASS: Record<"open" | "closed", string> = {
-  open: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  closed:
-    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-};
 
 export default async function ProcessingLotsPage({
   params,
@@ -92,13 +87,12 @@ export default async function ProcessingLotsPage({
                           )
                           .join(" · ")}
                   </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      STATUS_CHIP_CLASS[lot.status as "open" | "closed"]
-                    }`}
+                  <StatusChip
+                    family="life"
+                    state={lot.status as "open" | "closed"}
                   >
                     {t(`lots.status.${lot.status}`)}
-                  </span>
+                  </StatusChip>
                 </div>
               </Link>
             ))}

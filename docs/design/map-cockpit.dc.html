@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="position:relative;width:100%;height:760px;overflow:hidden;font-family:'Geist',sans-serif;font-size:12px;background:
+    radial-gradient(60% 55% at 24% 30%, oklch(0.45 0.06 150) 0%, transparent 60%),
+    radial-gradient(46% 52% at 76% 22%, oklch(0.47 0.05 140) 0%, transparent 55%),
+    radial-gradient(56% 50% at 56% 78%, oklch(0.41 0.05 128) 0%, transparent 60%),
+    radial-gradient(40% 40% at 90% 66%, oklch(0.5 0.05 90) 0%, transparent 55%),
+    linear-gradient(120deg, oklch(0.36 0.045 150), oklch(0.43 0.05 118))">
+
+  <div style="position:absolute;inset:0;opacity:0.5;background:repeating-linear-gradient(58deg, rgba(0,0,0,0.10) 0 2px, transparent 2px 9px)"></div>
+  <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.045) 1px,transparent 1px);background-size:72px 72px"></div>
+
+  <svg viewBox="0 0 900 620" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+    <sc-for list="{{ polys }}" as="p" hint-placeholder-count="5">
+      <polygon points="{{ p.pts }}" fill="{{ p.fill }}" stroke="{{ p.stroke }}" stroke-width="{{ p.sw }}" opacity="{{ p.op }}" onClick="{{ p.onSelect }}" style="cursor:pointer"></polygon>
+    </sc-for>
+  </svg>
+
+  <!-- parcel name labels -->
+  <sc-for list="{{ polys }}" as="p" hint-placeholder-count="5">
+    <div style="position:absolute;left:{{ p.lx }};top:{{ p.ly }};transform:translate(-50%,-50%);pointer-events:none;font:600 10.5px 'Geist Mono',monospace;color:#ffffff;text-shadow:0 1px 3px rgba(0,0,0,.95);white-space:nowrap;opacity:{{ p.labelOp }}">{{ p.name }}</div>
+  </sc-for>
+
+  <!-- monitoring pins (severity tokens, over imagery = theme-independent) -->
+  <div style="position:absolute;left:20%;top:23%;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;pointer-events:none">
+    <span style="font:600 9px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.95);margin-bottom:2px">Roya · Alta</span>
+    <span style="width:15px;height:15px;border-radius:50% 50% 50% 0;transform:rotate(45deg);background:oklch(0.58 0.20 25);border:1.5px solid #fff"></span>
+  </div>
+  <div style="position:absolute;left:29%;top:63%;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;pointer-events:none">
+    <span style="font:600 9px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.95);margin-bottom:2px">Broca · Media</span>
+    <span style="width:15px;height:15px;border-radius:50% 50% 50% 0;transform:rotate(45deg);background:oklch(0.70 0.15 70);border:1.5px solid #fff"></span>
+  </div>
+
+  <!-- work-order markers -->
+  <div style="position:absolute;left:31%;top:37%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:5px;pointer-events:none">
+    <span style="width:14px;height:14px;transform:rotate(45deg);background:oklch(0.70 0.13 80);border:1.5px solid #fff"></span>
+    <span style="font:600 9.5px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.95)">OT-0042</span>
+  </div>
+  <div style="position:absolute;left:66%;top:24%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:5px;pointer-events:none">
+    <span style="width:14px;height:14px;transform:rotate(45deg);background:oklch(0.62 0.13 245);border:1.5px solid #fff"></span>
+    <span style="font:600 9.5px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.95)">OT-0043</span>
+  </div>
+
+  <!-- HUD corners -->
+  <div style="position:absolute;left:10px;top:10px;width:14px;height:14px;border-left:1px solid rgba(255,255,255,.45);border-top:1px solid rgba(255,255,255,.45)"></div>
+  <div style="position:absolute;left:10px;bottom:10px;width:14px;height:14px;border-left:1px solid rgba(255,255,255,.45);border-bottom:1px solid rgba(255,255,255,.45)"></div>
+
+  <!-- top-left: view toggle + layer switcher -->
+  <div style="position:absolute;left:16px;top:16px;display:flex;flex-direction:column;gap:8px;width:214px">
+    <div style="display:flex;background:{{ c.pBg }};border:1px solid {{ c.pBd }}">
+      <span style="flex:1;text-align:center;font:600 11px 'Geist Mono',monospace;padding:6px 0;background:{{ c.aBg }};color:{{ c.aTx }}">Mapa</span>
+      <a href="#1b" style="flex:1;text-align:center;font:600 11px 'Geist Mono',monospace;padding:6px 0;color:{{ c.sub }};border-left:1px solid {{ c.pBd }};text-decoration:none">Panel</a>
+    </div>
+    <div style="background:{{ c.pBg }};border:1px solid {{ c.pBd }}">
+      <div style="padding:7px 10px 6px;font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:{{ c.faint }};border-bottom:1px solid {{ c.hair }}">Colorear parcelas por</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
+        <sc-for list="{{ layerBtns }}" as="b" hint-placeholder-count="4">
+          <div onClick="{{ b.onClick }}" style="font:500 11px 'Geist',sans-serif;padding:8px 10px;cursor:pointer;background:{{ b.bg }};color:{{ b.fg }};border-bottom:1px solid {{ c.hair }};border-right:1px solid {{ c.hair }}">{{ b.label }}</div>
+        </sc-for>
+      </div>
+      <div style="padding:8px 10px;display:flex;flex-direction:column;gap:5px">
+        <div style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.05em;color:{{ c.faint }}">{{ legend.title }}</div>
+        <sc-for list="{{ legend.items }}" as="it" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:{{ c.tx }}"><span style="width:11px;height:11px;flex:none;background:{{ it.sw }}"></span>{{ it.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- top-center: KPI strip (per selected parcel) -->
+  <div style="position:absolute;left:50%;top:16px;transform:translateX(-50%);background:{{ c.pBg }};border:1px solid {{ c.pBd }}">
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 16px;border-bottom:1px solid {{ c.hair }}">
+      <span style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:{{ c.faint }}">Parcela</span>
+      <span style="font:600 11px 'Geist Mono',monospace;color:{{ c.tx }}">{{ kpi.scope }}</span>
+    </div>
+    <div style="display:flex">
+      <div style="padding:7px 16px;border-right:1px solid {{ c.hair }}"><div style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:{{ c.faint }}">Ingresos L</div><div style="font:600 15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:{{ c.tx }};margin-top:1px">{{ kpi.incomeStr }}</div></div>
+      <div style="padding:7px 16px;border-right:1px solid {{ c.hair }}"><div style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:{{ c.faint }}">Costos L</div><div style="font:600 15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:{{ c.tx }};margin-top:1px">{{ kpi.costsStr }}</div></div>
+      <div style="padding:7px 16px;border-right:1px solid {{ c.hair }}"><div style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:{{ c.faint }}">Margen L</div><div style="font:600 15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:{{ kpi.marginColor }};margin-top:1px">{{ kpi.marginStr }} <span style="font-size:11px">{{ kpi.pctStr }}</span></div></div>
+      <div style="padding:7px 16px"><div style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.07em;color:{{ c.faint }}">Costo/ha L</div><div style="font:600 15px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:{{ c.tx }};margin-top:1px">{{ kpi.costHaStr }}</div></div>
+    </div>
+  </div>
+
+  <!-- bottom-left: attribution + scale -->
+  <div style="position:absolute;left:16px;bottom:16px;display:flex;flex-direction:column;gap:6px;pointer-events:none">
+    <div style="background:{{ c.pBg }};border:1px solid {{ c.pBd }};padding:3px 8px;display:flex;align-items:center;gap:6px;width:max-content"><span style="width:42px;height:3px;background:{{ c.tx }};display:inline-block"></span><span style="font:10px 'Geist Mono',monospace;color:{{ c.tx }}">200 m</span></div>
+    <div style="font:9px 'Geist Mono',monospace;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9)">Basemap: Esri World Imagery · z16</div>
+  </div>
+
+  <!-- right rail: selected parcel + sync queue -->
+  <div style="position:absolute;right:16px;top:16px;bottom:16px;width:300px;background:{{ c.pBg }};border:1px solid {{ c.pBd }};display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:10px 14px;border-bottom:1px solid {{ c.hair }}">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font:600 9px 'Geist Mono',monospace;color:{{ c.faint }};border:1px solid {{ c.chipBd }};padding:1px 5px">⌖ enfocada</span>
+        <span style="font:10px 'Geist Mono',monospace;color:{{ c.faint }}">{{ sel.id }}</span>
+      </div>
+      <div style="font:600 17px 'Geist',sans-serif;color:{{ c.tx }};margin-top:6px">{{ sel.name }}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr">
+      <div style="padding:8px 14px;border-right:1px solid {{ c.hair }};border-bottom:1px solid {{ c.hair }}"><div style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:{{ c.faint }}">Cultivo</div><div style="font-size:13px;color:{{ c.tx }};margin-top:2px">{{ sel.crop }}</div></div>
+      <div style="padding:8px 14px;border-bottom:1px solid {{ c.hair }}"><div style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:{{ c.faint }}">Área</div><div style="font:13px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:{{ c.tx }};margin-top:2px">{{ sel.haStr }} ha</div></div>
+      <div style="padding:8px 14px;border-right:1px solid {{ c.hair }};border-bottom:1px solid {{ c.hair }}"><div style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:{{ c.faint }}">Ciclo</div><div style="font-size:13px;color:{{ c.tx }};margin-top:2px"><a href="#1b" style="color:{{ c.link }};text-decoration:none">{{ sel.cycle }}</a></div></div>
+      <div style="padding:8px 14px;border-bottom:1px solid {{ c.hair }}"><div style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:{{ c.faint }}">Etapa</div><div style="font-size:13px;color:{{ c.tx }};margin-top:2px">{{ sel.stage }}</div></div>
+      <div style="padding:8px 14px;border-right:1px solid {{ c.hair }};border-bottom:1px solid {{ c.hair }}"><div style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:{{ c.faint }}">Costo/ha</div><div style="font:13px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:{{ c.tx }};margin-top:2px">{{ sel.costHaStr }}</div></div>
+      <div style="padding:8px 14px;border-bottom:1px solid {{ c.hair }}"><div style="font:600 8.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:{{ c.faint }}">Margen</div><div style="font:13px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:{{ sel.marginColor }};margin-top:2px">{{ sel.marginStr }}</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid {{ c.hair }}">
+      <span style="font-size:12px;color:{{ c.sub }}">Lluvia acumulada del ciclo</span>
+      <span style="font:600 13px 'Geist Mono',monospace;font-variant-numeric:tabular-nums;color:{{ c.tx }}">{{ sel.rainStr }} mm</span>
+    </div>
+
+    <div style="padding:9px 14px 5px;font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:{{ c.faint }}">Actividades recientes</div>
+    <sc-for list="{{ sel.acts }}" as="a" hint-placeholder-count="3">
+      <div style="display:flex;gap:10px;padding:5px 14px;font-size:12px">
+        <span style="font:10.5px 'Geist Mono',monospace;color:{{ c.faint }};font-variant-numeric:tabular-nums;flex:none;width:38px">{{ a.d }}</span>
+        <a href="#1f" style="color:{{ c.link }};text-decoration:none;line-height:1.3">{{ a.t }}</a>
+      </div>
+    </sc-for>
+
+    <div style="margin-top:auto;border-top:1px solid {{ c.pBd }}">
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 14px 6px">
+        <span style="font:600 9.5px 'Geist Mono',monospace;text-transform:uppercase;letter-spacing:0.06em;color:{{ c.faint }}">Cola de sincronización</span>
+        <span style="margin-left:auto;font:500 10px 'Geist Mono',monospace;color:{{ c.amber }};border:1px solid {{ c.amberBd }};padding:1px 6px">3</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 14px;border-top:1px solid {{ c.hair }}"><span style="width:6px;height:6px;background:oklch(0.70 0.13 80);flex:none"></span><div style="min-width:0;flex:1"><div style="font-size:11px;color:{{ c.tx }}">Fumigación · <a href="#1f" style="color:{{ c.link }};text-decoration:none">El Naranjal</a></div><div style="font:9.5px 'Geist Mono',monospace;color:{{ c.faint }}">C. Ordóñez · 06:42</div></div></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 14px;border-top:1px solid {{ c.hair }}"><span style="width:6px;height:6px;background:oklch(0.70 0.13 80);flex:none"></span><div style="min-width:0;flex:1"><div style="font-size:11px;color:{{ c.tx }}">Asistencia · 11 marcas</div><div style="font:9.5px 'Geist Mono',monospace;color:{{ c.faint }}">M. E. Cruz · 06:15</div></div></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 14px;border-top:1px solid {{ c.hair }}"><span style="width:6px;height:6px;background:oklch(0.58 0.20 25);flex:none"></span><div style="min-width:0;flex:1"><div style="font-size:11px;color:{{ c.tx }}">Monitoreo · Roya <span style="font:9.5px 'Geist Mono',monospace;color:{{ c.red }}">con error</span></div><div style="font:9.5px 'Geist Mono',monospace;color:{{ c.faint }}"><a href="#1f" style="color:{{ c.link }};text-decoration:none">reintentar</a> · <a href="#1f" style="color:{{ c.link }};text-decoration:none">descartar</a></div></div></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1400px&quot;,&quot;height&quot;:&quot;760px&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;}}">
+class Component extends DCLogic {
+  state = { layer: "costHa", sel: "NAR-01" };
+  renderVals() {
+    const dark = this.props.theme === "dark";
+    const c = dark ? {
+      pBg: "rgba(16,16,16,0.92)", pBd: "rgba(255,255,255,0.26)", tx: "#ededed", sub: "#a3a3a3",
+      faint: "#8c8c8c", hair: "rgba(255,255,255,0.10)", aBg: "#ededed", aTx: "#0d0d0d",
+      link: "oklch(0.75 0.09 245)", chipBd: "rgba(255,255,255,0.20)", pos: "oklch(0.80 0.11 152)",
+      red: "oklch(0.76 0.15 25)", amber: "oklch(0.84 0.12 80)", amberBd: "oklch(0.40 0.07 80)"
+    } : {
+      pBg: "rgba(255,255,255,0.95)", pBd: "rgba(0,0,0,0.20)", tx: "#171717", sub: "#525252",
+      faint: "#8c8c8c", hair: "rgba(0,0,0,0.08)", aBg: "#171717", aTx: "#ffffff",
+      link: "oklch(0.50 0.11 245)", chipBd: "rgba(0,0,0,0.14)", pos: "oklch(0.42 0.11 150)",
+      red: "oklch(0.46 0.17 25)", amber: "oklch(0.48 0.11 70)", amberBd: "oklch(0.87 0.06 85)"
+    };
+
+    const P = [
+      { id: "NAR-01", name: "El Naranjal", pts: "120,90 400,70 450,220 280,300 110,230", lx: "25%", ly: "27%",
+        crop: "Café", ha: 3.20, costHa: 292.03, income: 1874.00, costs: 934.50, stage: "Producción", rain: 412.6, cycle: "Ciclo 2026-A",
+        acts: [{ d: "07 jul", t: "Fumigación — lote norte" }, { d: "04 jul", t: "Monitoreo · Roya del café" }, { d: "30 jun", t: "Poda sanitaria" }] },
+      { id: "LOM-02", name: "La Loma", pts: "520,80 760,110 740,260 530,240", lx: "70%", ly: "26%",
+        crop: "Café", ha: 2.10, costHa: 256.79, income: 1156.00, costs: 539.25, stage: "Floración", rain: 388.2, cycle: "Ciclo 2026-A",
+        acts: [{ d: "06 jul", t: "Deshierba" }, { d: "01 jul", t: "Fertilización · foliar" }] },
+      { id: "BAJ-03", name: "Bajo Grande", pts: "140,350 420,330 460,470 180,500", lx: "29%", ly: "66%",
+        crop: "Maíz", ha: 1.80, costHa: 231.39, income: 812.00, costs: 416.50, stage: "Cosecha", rain: 401.0, cycle: "Ciclo 2026-A",
+        acts: [{ d: "05 jul", t: "Fertilización — urea 46%" }, { d: "28 jun", t: "Monitoreo · Broca" }] },
+      { id: "GUA-04", name: "El Guayabo", pts: "540,320 770,340 800,470 560,480", lx: "73%", ly: "63%",
+        crop: "Café", ha: 1.45, costHa: 229.83, income: 906.00, costs: 333.25, stage: "Producción", rain: 395.4, cycle: "Ciclo 2026-A",
+        acts: [{ d: "03 jul", t: "Poda sanitaria" }] },
+      { id: "CER-05", name: "Los Cerros", pts: "250,540 470,530 500,600 270,600", lx: "41%", ly: "90%",
+        crop: "Frijol", ha: 0.75, costHa: 354.67, income: 244.00, costs: 266.00, stage: "Establecimiento", rain: 372.9, cycle: "Ciclo 2026-A",
+        acts: [{ d: "02 jul", t: "Siembra" }] }
+    ];
+
+    const layer = this.state.layer;
+    const sel = this.state.sel;
+    const cropCat = { "Café": [0.56, 0.13, 162], "Maíz": [0.72, 0.14, 78], "Frijol": [0.56, 0.14, 300] };
+    const stageCat = { "Producción": [0.56, 0.13, 162], "Floración": [0.64, 0.16, 330], "Cosecha": [0.72, 0.14, 78], "Establecimiento": [0.58, 0.13, 250] };
+    const costCol = (v) => v <= 260 ? [0.62, 0.14, 150] : v <= 320 ? [0.72, 0.14, 75] : [0.60, 0.19, 30];
+    const marginCol = (v) => v >= 40 ? [0.62, 0.14, 150] : v >= 20 ? [0.72, 0.14, 75] : [0.60, 0.19, 30];
+    const pctOf = (p) => p.income > 0 ? ((p.income - p.costs) / p.income) * 100 : -100;
+    const baseFor = (p) => layer === "costHa" ? costCol(p.costHa) : layer === "margin" ? marginCol(pctOf(p)) : layer === "crop" ? cropCat[p.crop] : stageCat[p.stage];
+
+    const anySel = !!sel;
+    const polys = P.map((p) => {
+      const b = baseFor(p);
+      const isSel = p.id === sel;
+      return {
+        id: p.id, pts: p.pts, name: p.name, lx: p.lx, ly: p.ly,
+        fill: "oklch(" + b[0] + " " + b[1] + " " + b[2] + " / " + (isSel ? 0.52 : 0.26) + ")",
+        stroke: "oklch(" + Math.min(b[0] + 0.14, 0.86) + " " + b[1] + " " + b[2] + ")",
+        sw: isSel ? 3.5 : 1.5,
+        op: anySel && !isSel ? 0.5 : 1,
+        labelOp: anySel && !isSel ? 0.6 : 1,
+        onSelect: () => this.setState({ sel: p.id })
+      };
+    });
+
+    let legend;
+    if (layer === "costHa") legend = { title: "Costo por hectárea · L/ha", items: [
+      { sw: "oklch(0.62 0.14 150)", label: "≤ 260 · óptimo" }, { sw: "oklch(0.72 0.14 75)", label: "260–320 · medio" }, { sw: "oklch(0.60 0.19 30)", label: "> 320 · alto" }] };
+    else if (layer === "margin") legend = { title: "Margen del ciclo", items: [
+      { sw: "oklch(0.62 0.14 150)", label: "≥ 40%" }, { sw: "oklch(0.72 0.14 75)", label: "20–40%" }, { sw: "oklch(0.60 0.19 30)", label: "< 20% · en riesgo" }] };
+    else if (layer === "crop") legend = { title: "Cultivo", items: [
+      { sw: "oklch(0.56 0.13 162)", label: "Café" }, { sw: "oklch(0.72 0.14 78)", label: "Maíz" }, { sw: "oklch(0.56 0.14 300)", label: "Frijol" }] };
+    else legend = { title: "Etapa del ciclo", items: [
+      { sw: "oklch(0.56 0.13 162)", label: "Producción" }, { sw: "oklch(0.64 0.16 330)", label: "Floración" }, { sw: "oklch(0.72 0.14 78)", label: "Cosecha" }, { sw: "oklch(0.58 0.13 250)", label: "Establecimiento" }] };
+
+    const mk = (key, label) => ({ key, label, bg: layer === key ? c.aBg : "transparent", fg: layer === key ? c.aTx : c.sub, onClick: () => this.setState({ layer: key }) });
+    const layerBtns = [mk("costHa", "Costo/ha"), mk("margin", "Margen"), mk("crop", "Cultivo"), mk("cycle", "Etapa")];
+
+    const s = P.find((p) => p.id === sel) || P[0];
+    const fmt = (n) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const kpiMargin = s.income - s.costs;
+    const kpiPct = s.income > 0 ? (kpiMargin / s.income) * 100 : 0;
+    const kpi = {
+      scope: s.name + " · " + s.id,
+      incomeStr: fmt(s.income),
+      costsStr: fmt(s.costs),
+      marginStr: (kpiMargin >= 0 ? "+" : "−") + fmt(Math.abs(kpiMargin)),
+      pctStr: (kpiPct >= 0 ? "" : "−") + Math.abs(kpiPct).toFixed(2) + "%",
+      marginColor: kpiMargin >= 0 ? c.pos : c.red,
+      costHaStr: fmt(s.costHa)
+    };
+    const selDetail = {
+      id: s.id, name: s.name, crop: s.crop, stage: s.stage, cycle: s.cycle,
+      haStr: s.ha.toFixed(2), costHaStr: s.costHa.toFixed(2), rainStr: s.rain.toFixed(1),
+      marginStr: (kpiPct >= 0 ? "+" : "−") + Math.abs(kpiPct).toFixed(1) + "%",
+      marginColor: kpiPct >= 0 ? c.pos : c.red,
+      acts: s.acts
+    };
+
+    return { c, polys, legend, layerBtns, sel: selDetail, kpi };
+  }
+}
+</script>
+</body>
+</html>

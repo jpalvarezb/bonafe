@@ -24,6 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatusChip } from "@/components/ui/status-chip";
 
 const selectClass =
   "border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs";
@@ -159,15 +160,12 @@ export default async function PieceworkPage({
                         {rate.rate} {currency}
                       </td>
                       <td className="px-4 py-2">
-                        <span
-                          className={
-                            rate.active
-                              ? "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100"
-                              : "rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                          }
+                        <StatusChip
+                          family="life"
+                          state={rate.active ? "active" : "inactive"}
                         >
                           {t(rate.active ? "rates.status.active" : "rates.status.inactive")}
-                        </span>
+                        </StatusChip>
                       </td>
                       {canManageRates && (
                         <td className="px-4 py-2">

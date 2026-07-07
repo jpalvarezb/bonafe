@@ -46,6 +46,111 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Semantic status tokens (severity / sync / work-order / attendance) */
+  --color-sev-low-bg: var(--sev-low-bg);
+  --color-sev-low-fg: var(--sev-low-fg);
+  --color-sev-low-border: var(--sev-low-border);
+  --color-sev-medium-bg: var(--sev-medium-bg);
+  --color-sev-medium-fg: var(--sev-medium-fg);
+  --color-sev-medium-border: var(--sev-medium-border);
+  --color-sev-high-bg: var(--sev-high-bg);
+  --color-sev-high-fg: var(--sev-high-fg);
+  --color-sev-high-border: var(--sev-high-border);
+
+  --color-sync-pending-bg: var(--sync-pending-bg);
+  --color-sync-pending-fg: var(--sync-pending-fg);
+  --color-sync-pending-border: var(--sync-pending-border);
+  --color-sync-ok-bg: var(--sync-ok-bg);
+  --color-sync-ok-fg: var(--sync-ok-fg);
+  --color-sync-ok-border: var(--sync-ok-border);
+  --color-sync-error-bg: var(--sync-error-bg);
+  --color-sync-error-fg: var(--sync-error-fg);
+  --color-sync-error-border: var(--sync-error-border);
+  --color-sync-offline-bg: var(--sync-offline-bg);
+  --color-sync-offline-fg: var(--sync-offline-fg);
+  --color-sync-offline-border: var(--sync-offline-border);
+
+  --color-wo-draft-bg: var(--wo-draft-bg);
+  --color-wo-draft-fg: var(--wo-draft-fg);
+  --color-wo-draft-border: var(--wo-draft-border);
+  --color-wo-assigned-bg: var(--wo-assigned-bg);
+  --color-wo-assigned-fg: var(--wo-assigned-fg);
+  --color-wo-assigned-border: var(--wo-assigned-border);
+  --color-wo-progress-bg: var(--wo-progress-bg);
+  --color-wo-progress-fg: var(--wo-progress-fg);
+  --color-wo-progress-border: var(--wo-progress-border);
+  --color-wo-done-bg: var(--wo-done-bg);
+  --color-wo-done-fg: var(--wo-done-fg);
+  --color-wo-done-border: var(--wo-done-border);
+  --color-wo-cancelled-bg: var(--wo-cancelled-bg);
+  --color-wo-cancelled-fg: var(--wo-cancelled-fg);
+  --color-wo-cancelled-border: var(--wo-cancelled-border);
+
+  --color-att-present-bg: var(--att-present-bg);
+  --color-att-present-fg: var(--att-present-fg);
+  --color-att-present-border: var(--att-present-border);
+  --color-att-half-bg: var(--att-half-bg);
+  --color-att-half-fg: var(--att-half-fg);
+  --color-att-half-border: var(--att-half-border);
+  --color-att-absent-bg: var(--att-absent-bg);
+  --color-att-absent-fg: var(--att-absent-fg);
+  --color-att-absent-border: var(--att-absent-border);
+  --color-att-sick-bg: var(--att-sick-bg);
+  --color-att-sick-fg: var(--att-sick-fg);
+  --color-att-sick-border: var(--att-sick-border);
+  --color-att-leave-bg: var(--att-leave-bg);
+  --color-att-leave-fg: var(--att-leave-fg);
+  --color-att-leave-border: var(--att-leave-border);
+
+  /* Financial emphasis + entity link + choropleth ramp */
+  --color-fin-positive: var(--fin-positive);
+  --color-fin-negative: var(--fin-negative);
+  --color-fin-neutral: var(--fin-neutral);
+  --color-accent-link: var(--accent-link);
+  --color-metric-good: var(--metric-good);
+  --color-metric-mid: var(--metric-mid);
+  --color-metric-bad: var(--metric-bad);
+
+  /* Generic record lifecycle */
+  --color-life-active-bg: var(--life-active-bg);
+  --color-life-active-fg: var(--life-active-fg);
+  --color-life-active-border: var(--life-active-border);
+  --color-life-open-bg: var(--life-open-bg);
+  --color-life-open-fg: var(--life-open-fg);
+  --color-life-open-border: var(--life-open-border);
+  --color-life-converted-bg: var(--life-converted-bg);
+  --color-life-converted-fg: var(--life-converted-fg);
+  --color-life-converted-border: var(--life-converted-border);
+  --color-life-draft-bg: var(--life-draft-bg);
+  --color-life-draft-fg: var(--life-draft-fg);
+  --color-life-draft-border: var(--life-draft-border);
+  --color-life-planned-bg: var(--life-planned-bg);
+  --color-life-planned-fg: var(--life-planned-fg);
+  --color-life-planned-border: var(--life-planned-border);
+  --color-life-inactive-bg: var(--life-inactive-bg);
+  --color-life-inactive-fg: var(--life-inactive-fg);
+  --color-life-inactive-border: var(--life-inactive-border);
+  --color-life-closed-bg: var(--life-closed-bg);
+  --color-life-closed-fg: var(--life-closed-fg);
+  --color-life-closed-border: var(--life-closed-border);
+  --color-life-cancelled-bg: var(--life-cancelled-bg);
+  --color-life-cancelled-fg: var(--life-cancelled-fg);
+  --color-life-cancelled-border: var(--life-cancelled-border);
+
+  /* Page-level banners / alerts */
+  --color-notice-success-bg: var(--notice-success-bg);
+  --color-notice-success-fg: var(--notice-success-fg);
+  --color-notice-success-border: var(--notice-success-border);
+  --color-notice-warning-bg: var(--notice-warning-bg);
+  --color-notice-warning-fg: var(--notice-warning-fg);
+  --color-notice-warning-border: var(--notice-warning-border);
+  --color-notice-error-bg: var(--notice-error-bg);
+  --color-notice-error-fg: var(--notice-error-fg);
+  --color-notice-error-border: var(--notice-error-border);
+  --color-notice-info-bg: var(--notice-info-bg);
+  --color-notice-info-fg: var(--notice-info-fg);
+  --color-notice-info-border: var(--notice-info-border);
 }
 
 :root {
@@ -81,6 +186,131 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Severity */
+  --sev-low-bg: oklch(0.965 0.025 150);
+  --sev-low-fg: oklch(0.42 0.11 150);
+  --sev-low-border: oklch(0.88 0.05 150);
+  --sev-medium-bg: oklch(0.97 0.035 85);
+  --sev-medium-fg: oklch(0.48 0.11 70);
+  --sev-medium-border: oklch(0.87 0.06 85);
+  --sev-high-bg: oklch(0.965 0.02 25);
+  --sev-high-fg: oklch(0.46 0.17 25);
+  --sev-high-border: oklch(0.87 0.05 25);
+
+  /* Sync status */
+  --sync-pending-bg: oklch(0.97 0.035 85);
+  --sync-pending-fg: oklch(0.48 0.11 70);
+  --sync-pending-border: oklch(0.87 0.06 85);
+  --sync-ok-bg: oklch(0.965 0.025 150);
+  --sync-ok-fg: oklch(0.42 0.11 150);
+  --sync-ok-border: oklch(0.88 0.05 150);
+  --sync-error-bg: oklch(0.965 0.02 25);
+  --sync-error-fg: oklch(0.46 0.17 25);
+  --sync-error-border: oklch(0.87 0.05 25);
+  --sync-offline-bg: #f5f5f5;
+  --sync-offline-fg: #525252;
+  --sync-offline-border: #d4d4d4;
+
+  /* Work order status */
+  --wo-draft-bg: #f5f5f5;
+  --wo-draft-fg: #525252;
+  --wo-draft-border: #d4d4d4;
+  --wo-assigned-bg: oklch(0.965 0.02 245);
+  --wo-assigned-fg: oklch(0.46 0.11 245);
+  --wo-assigned-border: oklch(0.87 0.05 245);
+  --wo-progress-bg: oklch(0.97 0.035 85);
+  --wo-progress-fg: oklch(0.48 0.11 70);
+  --wo-progress-border: oklch(0.87 0.06 85);
+  --wo-done-bg: oklch(0.965 0.025 150);
+  --wo-done-fg: oklch(0.42 0.11 150);
+  --wo-done-border: oklch(0.88 0.05 150);
+  --wo-cancelled-bg: #fff;
+  --wo-cancelled-fg: #6b6b6b;
+  --wo-cancelled-border: #e4e4e4;
+
+  /* Attendance status */
+  --att-present-bg: oklch(0.965 0.025 150);
+  --att-present-fg: oklch(0.42 0.11 150);
+  --att-present-border: oklch(0.88 0.05 150);
+  --att-half-bg: oklch(0.97 0.035 85);
+  --att-half-fg: oklch(0.48 0.11 70);
+  --att-half-border: oklch(0.87 0.06 85);
+  --att-absent-bg: oklch(0.965 0.02 25);
+  --att-absent-fg: oklch(0.46 0.17 25);
+  --att-absent-border: oklch(0.87 0.05 25);
+  --att-sick-bg: oklch(0.965 0.02 300);
+  --att-sick-fg: oklch(0.46 0.11 300);
+  --att-sick-border: oklch(0.87 0.05 300);
+  --att-leave-bg: oklch(0.965 0.02 245);
+  --att-leave-fg: oklch(0.46 0.11 245);
+  --att-leave-border: oklch(0.87 0.05 245);
+
+  /* Financial emphasis, entity link, choropleth ramp */
+  --fin-positive: oklch(0.50 0.12 150);
+  --fin-negative: oklch(0.46 0.17 25);
+  --fin-neutral: var(--foreground);
+  --accent-link: oklch(0.50 0.11 245);
+  --metric-good: oklch(0.55 0.12 150);
+  --metric-mid: oklch(0.70 0.13 80);
+  --metric-bad: oklch(0.55 0.19 25);
+
+  /* Generic record lifecycle */
+  --life-active-bg: oklch(0.965 0.025 150);
+  --life-active-fg: oklch(0.42 0.11 150);
+  --life-active-border: oklch(0.88 0.05 150);
+  --life-open-bg: oklch(0.965 0.025 150);
+  --life-open-fg: oklch(0.42 0.11 150);
+  --life-open-border: oklch(0.88 0.05 150);
+  --life-converted-bg: oklch(0.965 0.025 150);
+  --life-converted-fg: oklch(0.42 0.11 150);
+  --life-converted-border: oklch(0.88 0.05 150);
+  --life-draft-bg: #f5f5f5;
+  --life-draft-fg: #525252;
+  --life-draft-border: #d4d4d4;
+  --life-planned-bg: #f5f5f5;
+  --life-planned-fg: #525252;
+  --life-planned-border: #d4d4d4;
+  --life-inactive-bg: #fff;
+  --life-inactive-fg: #6b6b6b;
+  --life-inactive-border: #e4e4e4;
+  --life-closed-bg: #fff;
+  --life-closed-fg: #6b6b6b;
+  --life-closed-border: #e4e4e4;
+  --life-cancelled-bg: #fff;
+  --life-cancelled-fg: #6b6b6b;
+  --life-cancelled-border: #e4e4e4;
+
+  /* Page-level banners / alerts */
+  --notice-success-bg: oklch(0.965 0.025 150);
+  --notice-success-fg: oklch(0.42 0.11 150);
+  --notice-success-border: oklch(0.88 0.05 150);
+  --notice-warning-bg: oklch(0.97 0.035 85);
+  --notice-warning-fg: oklch(0.48 0.11 70);
+  --notice-warning-border: oklch(0.87 0.06 85);
+  --notice-error-bg: oklch(0.965 0.02 25);
+  --notice-error-fg: oklch(0.46 0.17 25);
+  --notice-error-border: oklch(0.87 0.05 25);
+  --notice-info-bg: oklch(0.965 0.02 245);
+  --notice-info-fg: oklch(0.46 0.11 245);
+  --notice-info-border: oklch(0.87 0.05 245);
+
+  /* Density (office defaults; overridden under [data-mode="field"]) */
+  --density-row-h: 28px;
+  --density-control-h: 24px;
+  --density-font-body: 12px;
+  --density-font-label: 10px;
+  --density-cell-px: 10px;
+  --density-cell-py: 6px;
+}
+
+[data-mode="field"] {
+  --density-row-h: 56px;
+  --density-control-h: 48px;
+  --density-font-body: 16px;
+  --density-font-label: 12px;
+  --density-cell-px: 16px;
+  --density-cell-py: 14px;
 }
 
 .dark {
@@ -115,6 +345,113 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Severity */
+  --sev-low-bg: oklch(0.27 0.04 152);
+  --sev-low-fg: oklch(0.80 0.11 152);
+  --sev-low-border: oklch(0.38 0.06 152);
+  --sev-medium-bg: oklch(0.28 0.05 80);
+  --sev-medium-fg: oklch(0.84 0.12 80);
+  --sev-medium-border: oklch(0.40 0.07 80);
+  --sev-high-bg: oklch(0.27 0.06 25);
+  --sev-high-fg: oklch(0.76 0.15 25);
+  --sev-high-border: oklch(0.40 0.08 25);
+
+  /* Sync status */
+  --sync-pending-bg: oklch(0.28 0.05 80);
+  --sync-pending-fg: oklch(0.84 0.12 80);
+  --sync-pending-border: oklch(0.40 0.07 80);
+  --sync-ok-bg: oklch(0.27 0.04 152);
+  --sync-ok-fg: oklch(0.80 0.11 152);
+  --sync-ok-border: oklch(0.38 0.06 152);
+  --sync-error-bg: oklch(0.27 0.06 25);
+  --sync-error-fg: oklch(0.76 0.15 25);
+  --sync-error-border: oklch(0.40 0.08 25);
+  --sync-offline-bg: #262626;
+  --sync-offline-fg: #a3a3a3;
+  --sync-offline-border: #3d3d3d;
+
+  /* Work order status */
+  --wo-draft-bg: #262626;
+  --wo-draft-fg: #a3a3a3;
+  --wo-draft-border: #3d3d3d;
+  --wo-assigned-bg: oklch(0.28 0.05 245);
+  --wo-assigned-fg: oklch(0.78 0.09 245);
+  --wo-assigned-border: oklch(0.40 0.07 245);
+  --wo-progress-bg: oklch(0.28 0.05 80);
+  --wo-progress-fg: oklch(0.84 0.12 80);
+  --wo-progress-border: oklch(0.40 0.07 80);
+  --wo-done-bg: oklch(0.27 0.04 152);
+  --wo-done-fg: oklch(0.80 0.11 152);
+  --wo-done-border: oklch(0.38 0.06 152);
+  --wo-cancelled-bg: #171717;
+  --wo-cancelled-fg: #8c8c8c;
+  --wo-cancelled-border: #333333;
+
+  /* Attendance status */
+  --att-present-bg: oklch(0.27 0.04 152);
+  --att-present-fg: oklch(0.80 0.11 152);
+  --att-present-border: oklch(0.38 0.06 152);
+  --att-half-bg: oklch(0.28 0.05 80);
+  --att-half-fg: oklch(0.84 0.12 80);
+  --att-half-border: oklch(0.40 0.07 80);
+  --att-absent-bg: oklch(0.27 0.06 25);
+  --att-absent-fg: oklch(0.76 0.15 25);
+  --att-absent-border: oklch(0.40 0.08 25);
+  --att-sick-bg: oklch(0.28 0.05 300);
+  --att-sick-fg: oklch(0.78 0.09 300);
+  --att-sick-border: oklch(0.40 0.07 300);
+  --att-leave-bg: oklch(0.28 0.05 245);
+  --att-leave-fg: oklch(0.78 0.09 245);
+  --att-leave-border: oklch(0.40 0.07 245);
+
+  /* Financial emphasis, entity link, choropleth ramp */
+  --fin-positive: oklch(0.75 0.13 152);
+  --fin-negative: oklch(0.76 0.15 25);
+  --accent-link: oklch(0.75 0.09 245);
+  --metric-good: oklch(0.70 0.13 152);
+  --metric-mid: oklch(0.75 0.13 80);
+  --metric-bad: oklch(0.65 0.17 25);
+
+  /* Generic record lifecycle */
+  --life-active-bg: oklch(0.27 0.04 152);
+  --life-active-fg: oklch(0.80 0.11 152);
+  --life-active-border: oklch(0.38 0.06 152);
+  --life-open-bg: oklch(0.27 0.04 152);
+  --life-open-fg: oklch(0.80 0.11 152);
+  --life-open-border: oklch(0.38 0.06 152);
+  --life-converted-bg: oklch(0.27 0.04 152);
+  --life-converted-fg: oklch(0.80 0.11 152);
+  --life-converted-border: oklch(0.38 0.06 152);
+  --life-draft-bg: #262626;
+  --life-draft-fg: #a3a3a3;
+  --life-draft-border: #3d3d3d;
+  --life-planned-bg: #262626;
+  --life-planned-fg: #a3a3a3;
+  --life-planned-border: #3d3d3d;
+  --life-inactive-bg: #171717;
+  --life-inactive-fg: #8c8c8c;
+  --life-inactive-border: #333333;
+  --life-closed-bg: #171717;
+  --life-closed-fg: #8c8c8c;
+  --life-closed-border: #333333;
+  --life-cancelled-bg: #171717;
+  --life-cancelled-fg: #8c8c8c;
+  --life-cancelled-border: #333333;
+
+  /* Page-level banners / alerts */
+  --notice-success-bg: oklch(0.27 0.04 152);
+  --notice-success-fg: oklch(0.80 0.11 152);
+  --notice-success-border: oklch(0.38 0.06 152);
+  --notice-warning-bg: oklch(0.28 0.05 80);
+  --notice-warning-fg: oklch(0.84 0.12 80);
+  --notice-warning-border: oklch(0.40 0.07 80);
+  --notice-error-bg: oklch(0.27 0.06 25);
+  --notice-error-fg: oklch(0.76 0.15 25);
+  --notice-error-border: oklch(0.40 0.08 25);
+  --notice-info-bg: oklch(0.28 0.05 245);
+  --notice-info-fg: oklch(0.78 0.09 245);
+  --notice-info-border: oklch(0.40 0.07 245);
 }
 
 @layer base {
@@ -126,5 +463,11 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }

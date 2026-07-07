@@ -9,16 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MonitoringForm } from "@/components/monitoring/monitoring-form";
 import { PendingEntries } from "@/components/offline/pending-entries";
-
-function severityChipClass(severity: number): string {
-  if (severity <= 2) {
-    return "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100";
-  }
-  if (severity === 3) {
-    return "rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-100";
-  }
-  return "rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900 dark:text-red-100";
-}
+import { StatusChip } from "@/components/ui/status-chip";
+import { severityBand } from "@/lib/severity";
 
 export default async function MonitoringPage({
   params,
@@ -57,9 +49,12 @@ export default async function MonitoringPage({
                     <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                       {t(`types.${record.type}`)}
                     </span>
-                    <span className={severityChipClass(record.severity)}>
+                    <StatusChip
+                      family="sev"
+                      state={severityBand(record.severity)}
+                    >
                       {t("severity")} {record.severity}
-                    </span>
+                    </StatusChip>
                     <span className="font-medium">{record.agentName}</span>
                     {record.location && (
                       <span

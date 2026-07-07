@@ -116,19 +116,15 @@ export default async function ProfitabilityReportPage({
                       <span
                         className={cn(
                           "font-medium",
-                          isProfit
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-red-600 dark:text-red-400",
+                          isProfit ? "text-fin-positive" : "text-fin-negative",
                         )}
                       >
                         {money(row.profit)}
                       </span>
                       <span
-                        className={cn(
-                          isProfit
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-red-600 dark:text-red-400",
-                        )}
+                        className={
+                          isProfit ? "text-fin-positive" : "text-fin-negative"
+                        }
                       >
                         {row.marginPct != null ? `${row.marginPct}%` : "—"}
                       </span>

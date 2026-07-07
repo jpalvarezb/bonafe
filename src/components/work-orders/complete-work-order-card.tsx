@@ -147,7 +147,7 @@ export function CompleteWorkOrderCard({
       </Button>
 
       {localPending && (
-        <p className="rounded-md bg-amber-100 px-3 py-1.5 text-xs text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+        <p className="rounded-md bg-sync-pending-bg px-3 py-1.5 text-xs text-sync-pending-fg">
           {tOffline("pendingNote")}
         </p>
       )}

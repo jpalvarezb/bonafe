@@ -8,6 +8,7 @@ import { listWorkers } from "@/server/services/workers";
 import { setWorkerActiveAction } from "@/server/actions/workers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { StatusChip } from "@/components/ui/status-chip";
 
 export default async function WorkersPage({
   params,
@@ -79,15 +80,12 @@ export default async function WorkersPage({
                       {worker.hourlyRate} {currency}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={
-                          worker.active
-                            ? "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-100"
-                            : "rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                        }
+                      <StatusChip
+                        family="life"
+                        state={worker.active ? "active" : "inactive"}
                       >
                         {t(worker.active ? "status.active" : "status.inactive")}
-                      </span>
+                      </StatusChip>
                     </td>
                     {canManage && (
                       <td className="px-4 py-3">

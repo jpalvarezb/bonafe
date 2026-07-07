@@ -50,7 +50,7 @@ export function PendingEntries({ orgSlug, kind }: Props) {
         return (
           <div
             key={entry.id}
-            className="flex items-center justify-between gap-3 rounded-md bg-amber-100 px-3 py-2 text-sm text-amber-800 dark:bg-amber-900 dark:text-amber-100"
+            className="flex items-center justify-between gap-3 rounded-md bg-sync-pending-bg px-3 py-2 text-sm text-sync-pending-fg"
           >
             <span className="truncate">{description}</span>
             <span className="shrink-0 text-xs">{t("pendingNote")}</span>

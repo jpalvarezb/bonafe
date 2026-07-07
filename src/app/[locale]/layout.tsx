@@ -4,6 +4,8 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ModeProvider } from "@/components/providers/mode-provider";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -52,9 +54,19 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ModeProvider>
+            <NextIntlClientProvider>{children}</NextIntlClientProvider>
+          </ModeProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

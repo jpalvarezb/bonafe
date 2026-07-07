@@ -37,6 +37,17 @@
     "es": "Español",
     "en": "English"
   },
+  "theme": {
+    "toggleLabel": "Theme: {current}. Click to change.",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "mode": {
+    "toggleLabel": "Mode: {current}. Click to change.",
+    "office": "Office",
+    "field": "Field"
+  },
   "actions": {
     "save": "Save",
     "cancel": "Cancel",

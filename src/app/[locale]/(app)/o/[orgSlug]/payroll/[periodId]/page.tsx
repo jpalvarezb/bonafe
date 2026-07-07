@@ -26,12 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-const STATUS_CHIP_CLASS: Record<"open" | "closed", string> = {
-  open: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  closed:
-    "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-};
+import { StatusChip } from "@/components/ui/status-chip";
 
 const GRID_COLS =
   "grid-cols-[1.4fr_0.6fr_0.6fr_0.9fr_0.9fr_0.9fr_0.9fr_0.9fr_auto]";
@@ -78,11 +73,12 @@ export default async function PayrollPeriodDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CHIP_CLASS[period.status as "open" | "closed"]}`}
+          <StatusChip
+            family="life"
+            state={period.status as "open" | "closed"}
           >
             {t(`status.${period.status}`)}
-          </span>
+          </StatusChip>
           {canManage && isOpen && (
             <>
               <form action={generatePayrollEntriesAction}>
