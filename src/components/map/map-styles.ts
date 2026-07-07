@@ -6,6 +6,10 @@ export const STREETS_STYLE = "https://tiles.openfreemap.org/styles/liberty";
 /** Esri World Imagery raster tiles (attribution required). */
 export const SATELLITE_STYLE: StyleSpecification = {
   version: 8,
+  // Free, no-key glyphs (same OpenFreeMap host as STREETS_STYLE) — without
+  // this, symbol-layer text-fields (parcel name labels, cockpit pin/marker
+  // labels) silently render no glyphs at all.
+  glyphs: "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
   sources: {
     esri: {
       type: "raster",

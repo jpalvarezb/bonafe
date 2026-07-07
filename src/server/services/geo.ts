@@ -42,3 +42,45 @@ export async function farmCentroid(
 ): Promise<LatLng | null> {
   return withOrgRls(ctx.org.id, (tx) => farmCentroidInTx(tx, ctx, farmId));
 }
+
+export type ParcelCentroid = LatLng & { parcelId: string };
+
+/**
+ * Per-parcel centroids for every parcel of a farm that has a drawn boundary
+ * — used to anchor work-order markers on the map cockpit. One bulk query
+ * for the whole farm rather than one `farmCentroidInTx`-style call per
+ * parcel.
+ *
+ * Exported as an `...InTx` variant too, following the module's convention,
+ * so callers already inside a transaction (e.g. cockpitData's Promise.all
+ * of independent outer withOrgRls calls) can still use it directly if
+ * needed without nesting.
+ */
+export async function parcelCentroidsInTx(
+  tx: Tx,
+  ctx: OrgContext,
+  farmId: string,
+): Promise<ParcelCentroid[]> {
+  const result = await tx.execute(sql`
+    SELECT id AS parcel_id, ST_Y(ST_Centroid(boundary)) AS lat, ST_X(ST_Centroid(boundary)) AS lng
+    FROM parcels
+    WHERE farm_id = ${farmId}
+      AND org_id = ${ctx.org.id}
+      AND boundary IS NOT NULL
+  `);
+  return result.rows.map((row) => {
+    const r = row as {
+      parcel_id: string;
+      lat: number | string;
+      lng: number | string;
+    };
+    return { parcelId: r.parcel_id, lat: Number(r.lat), lng: Number(r.lng) };
+  });
+}
+
+export async function parcelCentroids(
+  ctx: OrgContext,
+  farmId: string,
+): Promise<ParcelCentroid[]> {
+  return withOrgRls(ctx.org.id, (tx) => parcelCentroidsInTx(tx, ctx, farmId));
+}

@@ -54,32 +54,36 @@ export async function cycleProfitabilityReport(
     if (cycles.length === 0) return [];
     const cycleIds = cycles.map((c) => c.id);
 
-    const [salesRows, activityRows, processingRows] = await Promise.all([
-      tx
-        .select({
-          cropCycleId: sales.cropCycleId,
-          income: sum(saleIncomeInBase),
-        })
-        .from(sales)
-        .where(
-          and(eq(sales.orgId, ctx.org.id), inArray(sales.cropCycleId, cycleIds)),
-        )
-        .groupBy(sales.cropCycleId),
-      tx
-        .select({
-          cropCycleId: activities.cropCycleId,
-          cost: sum(activityCostInBase),
-        })
-        .from(activities)
-        .where(
-          and(
-            eq(activities.orgId, ctx.org.id),
-            inArray(activities.cropCycleId, cycleIds),
-          ),
-        )
-        .groupBy(activities.cropCycleId),
-      tx
-        .select({
+    // Sequential on purpose: these three share one transaction client, and
+    // pg does not support concurrent queries on a single connection — a
+    // Promise.all here "works" (pg queues internally) but emits the
+    // "client already executing a query" deprecation warning and breaks
+    // outright at pg@9.
+    const salesRows = await tx
+      .select({
+        cropCycleId: sales.cropCycleId,
+        income: sum(saleIncomeInBase),
+      })
+      .from(sales)
+      .where(
+        and(eq(sales.orgId, ctx.org.id), inArray(sales.cropCycleId, cycleIds)),
+      )
+      .groupBy(sales.cropCycleId);
+    const activityRows = await tx
+      .select({
+        cropCycleId: activities.cropCycleId,
+        cost: sum(activityCostInBase),
+      })
+      .from(activities)
+      .where(
+        and(
+          eq(activities.orgId, ctx.org.id),
+          inArray(activities.cropCycleId, cycleIds),
+        ),
+      )
+      .groupBy(activities.cropCycleId);
+    const processingRows = await tx
+      .select({
           cropCycleId: processingRuns.cropCycleId,
           cost: sum(processingRuns.cost),
           outputQuantity: sum(processingRuns.outputQuantity),
@@ -88,15 +92,14 @@ export async function cycleProfitabilityReport(
           unitCount: sql<number>`count(distinct ${processingRuns.outputUnit})`,
           outputUnit: sql<string | null>`min(${processingRuns.outputUnit})`,
         })
-        .from(processingRuns)
-        .where(
-          and(
-            eq(processingRuns.orgId, ctx.org.id),
-            inArray(processingRuns.cropCycleId, cycleIds),
-          ),
-        )
-        .groupBy(processingRuns.cropCycleId),
-    ]);
+      .from(processingRuns)
+      .where(
+        and(
+          eq(processingRuns.orgId, ctx.org.id),
+          inArray(processingRuns.cropCycleId, cycleIds),
+        ),
+      )
+      .groupBy(processingRuns.cropCycleId);
 
     const salesByCycle = new Map(
       salesRows.map((r) => [r.cropCycleId, r.income ?? "0"]),

@@ -1,0 +1,79 @@
+{
+  "toggle": {
+    "mapa": "Mapa",
+    "panel": "Panel"
+  },
+  "layers": {
+    "title": "Colorear parcelas por",
+    "costHa": "Costo/ha",
+    "margin": "Margen",
+    "crop": "Cultivo",
+    "stage": "Etapa"
+  },
+  "legend": {
+    "titles": {
+      "costHa": "Costo por hectárea",
+      "margin": "Margen del ciclo",
+      "crop": "Cultivo",
+      "stage": "Etapa del ciclo"
+    },
+    "costLow": "óptimo",
+    "costMid": "medio",
+    "costHigh": "alto",
+    "marginLow": "en riesgo",
+    "marginMid": "medio",
+    "marginHigh": "saludable",
+    "noActiveCycle": "sin ciclo activo",
+    "noStage": "sin etapa"
+  },
+  "kpi": {
+    "farmScope": "Finca",
+    "parcelScope": "Parcela",
+    "income": "Ingresos",
+    "costs": "Costos",
+    "margin": "Margen",
+    "costHa": "Costo/ha"
+  },
+  "rail": {
+    "focused": "enfocada",
+    "crop": "Cultivo",
+    "area": "Área",
+    "cycle": "Ciclo",
+    "stage": "Etapa",
+    "costHa": "Costo/ha",
+    "margin": "Margen",
+    "rainfall": "Lluvia acumulada del ciclo",
+    "recentActivities": "Actividades recientes",
+    "noActivities": "Sin actividades recientes",
+    "moreCycles": "+{count} ciclos activos",
+    "noCycle": "Sin ciclo activo",
+    "noMargin": "Sin datos",
+    "noSelection": "Selecciona una parcela en el mapa para ver su detalle.",
+    "farmSummaryTitle": "Resumen de la finca",
+    "farmParcels": "Parcelas",
+    "farmArea": "Área total",
+    "farmActiveCycles": "Ciclos activos",
+    "syncQueue": "Cola de sincronización"
+  },
+  "farmPicker": {
+    "label": "Finca"
+  },
+  "empty": {
+    "noFarms": "Todavía no tienes fincas. Crea una para ver el cockpit del mapa.",
+    "noParcels": "Esta finca no tiene parcelas activas todavía."
+  },
+  "scaleUnit": "m",
+  "basemapAttribution": "Basemap: Esri World Imagery",
+  "workOrder": {
+    "status": {
+      "draft": "Borrador",
+      "assigned": "Asignada",
+      "in_progress": "En progreso"
+    }
+  },
+  "severity": {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta"
+  }
+}

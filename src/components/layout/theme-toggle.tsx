@@ -53,7 +53,11 @@ export function ThemeToggle() {
     theme === "light" || theme === "dark" || theme === "system"
       ? theme
       : "system";
-  const Icon = THEME_ICONS[current];
+  // Before mount the server can't know the persisted theme, so it always
+  // renders "system"; the label/title must match that until mounted or the
+  // aria-label/title mismatch trips a hydration error.
+  const shown: ThemeOption = mounted ? current : "system";
+  const Icon = THEME_ICONS[shown];
 
   return (
     <Button
@@ -61,8 +65,8 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon-sm"
       onClick={() => setTheme(nextTheme(current))}
-      aria-label={t("toggleLabel", { current: t(current) })}
-      title={t("toggleLabel", { current: t(current) })}
+      aria-label={t("toggleLabel", { current: t(shown) })}
+      title={t("toggleLabel", { current: t(shown) })}
     >
       {mounted ? <Icon /> : <span className="size-3.5" />}
     </Button>

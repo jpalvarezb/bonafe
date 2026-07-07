@@ -1,0 +1,79 @@
+{
+  "toggle": {
+    "mapa": "Map",
+    "panel": "Panel"
+  },
+  "layers": {
+    "title": "Color parcels by",
+    "costHa": "Cost/ha",
+    "margin": "Margin",
+    "crop": "Crop",
+    "stage": "Stage"
+  },
+  "legend": {
+    "titles": {
+      "costHa": "Cost per hectare",
+      "margin": "Cycle margin",
+      "crop": "Crop",
+      "stage": "Cycle stage"
+    },
+    "costLow": "optimal",
+    "costMid": "mid",
+    "costHigh": "high",
+    "marginLow": "at risk",
+    "marginMid": "mid",
+    "marginHigh": "healthy",
+    "noActiveCycle": "no active cycle",
+    "noStage": "no stage"
+  },
+  "kpi": {
+    "farmScope": "Farm",
+    "parcelScope": "Parcel",
+    "income": "Income",
+    "costs": "Costs",
+    "margin": "Margin",
+    "costHa": "Cost/ha"
+  },
+  "rail": {
+    "focused": "focused",
+    "crop": "Crop",
+    "area": "Area",
+    "cycle": "Cycle",
+    "stage": "Stage",
+    "costHa": "Cost/ha",
+    "margin": "Margin",
+    "rainfall": "Cycle accumulated rainfall",
+    "recentActivities": "Recent activities",
+    "noActivities": "No recent activities",
+    "moreCycles": "+{count} active cycles",
+    "noCycle": "No active cycle",
+    "noMargin": "No data",
+    "noSelection": "Select a parcel on the map to see its detail.",
+    "farmSummaryTitle": "Farm summary",
+    "farmParcels": "Parcels",
+    "farmArea": "Total area",
+    "farmActiveCycles": "Active cycles",
+    "syncQueue": "Sync queue"
+  },
+  "farmPicker": {
+    "label": "Farm"
+  },
+  "empty": {
+    "noFarms": "You don't have any farms yet. Create one to see the map cockpit.",
+    "noParcels": "This farm has no active parcels yet."
+  },
+  "scaleUnit": "m",
+  "basemapAttribution": "Basemap: Esri World Imagery",
+  "workOrder": {
+    "status": {
+      "draft": "Draft",
+      "assigned": "Assigned",
+      "in_progress": "In progress"
+    }
+  },
+  "severity": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
+  }
+}

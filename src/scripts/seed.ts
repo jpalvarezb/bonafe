@@ -609,6 +609,8 @@ async function seedNeighborOrg() {
 }
 
 async function seedMonitoring(orgId: string, createdBy: string) {
+  // Interior points of each parcel's polygonAround(...) boundary above (well
+  // within the half-extents), so the map cockpit has real pins to render.
   const rows = [
     {
       id: "01900000-0000-7000-8000-00000000ee01",
@@ -621,6 +623,7 @@ async function seedMonitoring(orgId: string, createdBy: string) {
       incidencePct: "12.50",
       notes: "Focos en el sector norte",
       actionsTaken: "Trampas con alcohol instaladas",
+      location: { type: "Point" as const, coordinates: [-85.9205, 12.9305] },
     },
     {
       id: "01900000-0000-7000-8000-00000000ee02",
@@ -633,6 +636,7 @@ async function seedMonitoring(orgId: string, createdBy: string) {
       incidencePct: "22.00",
       notes: "Avance rápido tras lluvias",
       actionsTaken: "Aplicación de cyproconazol programada",
+      location: { type: "Point" as const, coordinates: [-85.9192, 12.9295] },
     },
     {
       id: "01900000-0000-7000-8000-00000000ee03",
@@ -645,6 +649,7 @@ async function seedMonitoring(orgId: string, createdBy: string) {
       incidencePct: "8.00",
       notes: null,
       actionsTaken: "Chapoda manual",
+      location: { type: "Point" as const, coordinates: [-86.0508, 12.8497] },
     },
   ];
   for (const row of rows) {

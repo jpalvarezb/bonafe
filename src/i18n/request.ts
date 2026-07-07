@@ -12,6 +12,7 @@ const NAMESPACES = [
   "cycles",
   "activities",
   "dashboard",
+  "cockpit",
   "monitoring",
   "climate",
   "workorders",
