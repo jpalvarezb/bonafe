@@ -20,11 +20,19 @@
   "locationDenied": "Couldn't get location",
   "locationUnavailable": "Location not available on this device",
   "locationTitle": "Location: {lat}, {lng}",
+  "photos": "Photos",
+  "photosPlaceholder": "Attach photos (coming soon)",
   "create": "Save record",
   "delete": "Delete",
   "types": {
     "pest": "Pest",
     "disease": "Disease",
     "weed": "Weed"
+  },
+  "gps": {
+    "north": "N",
+    "south": "S",
+    "east": "E",
+    "west": "W"
   }
 }

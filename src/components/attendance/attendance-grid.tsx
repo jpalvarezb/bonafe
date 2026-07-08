@@ -5,10 +5,10 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { enqueue, flushOutbox } from "@/lib/offline/outbox";
 import { newId } from "@/lib/ids";
-import { StatusChip } from "@/components/ui/status-chip";
+import { StatusChip, chipClasses } from "@/components/ui/status-chip";
 
 type AttendanceStatus = "present" | "half_day" | "absent" | "sick" | "leave";
 
@@ -61,6 +61,14 @@ const ATT_CHIP_STATE: Record<
   sick: "sick",
   leave: "leave",
 };
+
+// Density-driven building blocks — office mode gets 28/24px sizing, field
+// mode gets 56/48px glove targets, from the same className strings
+// (globals.css [data-mode="field"]).
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const CONTROL =
+  "h-[var(--density-control-h)] rounded-[3px] border border-border bg-transparent px-[var(--density-cell-px)] text-[length:var(--density-font-body)] outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function AttendanceGrid({ orgSlug, date, rows }: Props) {
   const t = useTranslations("attendance");
@@ -161,7 +169,7 @@ export function AttendanceGrid({ orgSlug, date, rows }: Props) {
           type="date"
           value={date}
           onChange={(e) => e.target.value && goToDate(e.target.value)}
-          className="w-40"
+          className={cn(CONTROL, "w-40")}
         />
         <Button variant="outline" size="sm" onClick={() => goToDate(shiftDate(date, 1))}>
           {t("nav.next")}
@@ -188,97 +196,114 @@ export function AttendanceGrid({ orgSlug, date, rows }: Props) {
         )}
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col rounded-[3px] border border-border">
         {rows.map((row) => {
           const entry = entries[row.workerId];
           return (
-            <Card key={row.workerId}>
-              <CardContent className="flex flex-col gap-3 py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{row.name}</p>
-                    {row.code && (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {row.code}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {STATUSES.map((status) => {
-                      const active = entry.status === status;
-                      return (
-                        <Button
-                          key={status}
-                          type="button"
-                          size="sm"
-                          variant={active ? "default" : "outline"}
-                          disabled={entry.submitting}
-                          onClick={() =>
-                            saveRow(
-                              row.workerId,
-                              status,
-                              entry.hoursWorked,
-                              entry.notes,
-                            )
-                          }
-                        >
-                          {t(`statuses.${status}`)}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-[10rem_1fr_auto]">
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.25"
-                    placeholder={t("hoursPlaceholder")}
-                    value={entry.hoursWorked}
-                    onChange={(e) =>
-                      updateEntry(row.workerId, {
-                        hoursWorked: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    placeholder={t("notesPlaceholder")}
-                    value={entry.notes}
-                    onChange={(e) =>
-                      updateEntry(row.workerId, { notes: e.target.value })
-                    }
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    disabled={entry.submitting}
-                    onClick={() =>
-                      saveRow(
-                        row.workerId,
-                        entry.status ?? "present",
-                        entry.hoursWorked,
-                        entry.notes,
-                      )
-                    }
-                  >
-                    {t("save")}
-                  </Button>
-                </div>
-
-                {entry.localPending && (
-                  <p className="rounded-md bg-sync-pending-bg px-3 py-1.5 text-xs text-sync-pending-fg">
-                    {tOffline("pendingNote")}
+            <div
+              key={row.workerId}
+              className="flex flex-col gap-3 border-b border-border px-[var(--density-cell-px)] py-[var(--density-cell-py)] last:border-b-0"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3 min-h-[var(--density-row-h)]">
+                <div className="min-w-0">
+                  <p className="truncate text-[length:var(--density-font-body)] font-medium">
+                    {row.name}
                   </p>
-                )}
-                {entry.saveError && (
-                  <p className="text-xs text-destructive">
-                    {tOffline("saveError")}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                  {row.code && (
+                    <p className="truncate font-mono text-[length:var(--density-font-label)] text-muted-foreground">
+                      {row.code}
+                    </p>
+                  )}
+                </div>
+                <div
+                  role="group"
+                  aria-label={row.name}
+                  className="flex flex-wrap gap-1.5"
+                >
+                  {STATUSES.map((status) => {
+                    const active = entry.status === status;
+                    return (
+                      <button
+                        key={status}
+                        type="button"
+                        aria-pressed={active}
+                        disabled={entry.submitting}
+                        onClick={() =>
+                          saveRow(
+                            row.workerId,
+                            status,
+                            entry.hoursWorked,
+                            entry.notes,
+                          )
+                        }
+                        className={cn(
+                          "h-[var(--density-control-h)] rounded-[3px] border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors disabled:opacity-50",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          active
+                            ? cn("border-2", chipClasses("att", ATT_CHIP_STATE[status]))
+                            : "border-border text-foreground hover:bg-muted",
+                        )}
+                      >
+                        {t(`statuses.${status}`)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-[10rem_1fr_auto]">
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.25"
+                  placeholder={t("hoursPlaceholder")}
+                  value={entry.hoursWorked}
+                  onChange={(e) =>
+                    updateEntry(row.workerId, {
+                      hoursWorked: e.target.value,
+                    })
+                  }
+                  className={cn(CONTROL, "w-full text-right font-mono tabular")}
+                />
+                <Input
+                  placeholder={t("notesPlaceholder")}
+                  value={entry.notes}
+                  onChange={(e) =>
+                    updateEntry(row.workerId, { notes: e.target.value })
+                  }
+                  className={cn(CONTROL, "w-full")}
+                />
+                <button
+                  type="button"
+                  disabled={entry.submitting}
+                  onClick={() =>
+                    saveRow(
+                      row.workerId,
+                      entry.status ?? "present",
+                      entry.hoursWorked,
+                      entry.notes,
+                    )
+                  }
+                  className={cn(
+                    CONTROL,
+                    "px-[var(--density-cell-px)] font-medium text-foreground hover:bg-muted disabled:opacity-50",
+                  )}
+                >
+                  {t("save")}
+                </button>
+              </div>
+
+              {entry.localPending && (
+                <p className={cn(MICRO_LABEL, "rounded-[3px] bg-sync-pending-bg px-[var(--density-cell-px)] py-[var(--density-cell-py)] text-sync-pending-fg normal-case")}>
+                  {tOffline("pendingNote")}
+                </p>
+              )}
+              {entry.saveError && (
+                <p className="text-[length:var(--density-font-label)] text-destructive">
+                  {tOffline("saveError")}
+                </p>
+              )}
+            </div>
           );
         })}
       </div>

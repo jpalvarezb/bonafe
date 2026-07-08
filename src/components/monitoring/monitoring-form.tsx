@@ -3,15 +3,10 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Notice } from "@/components/ui/notice";
+import { cn } from "@/lib/utils";
 import { enqueue, flushOutbox } from "@/lib/offline/outbox";
 import { newId } from "@/lib/ids";
 
@@ -43,6 +38,25 @@ const GEOLOCATION_OPTIONS: PositionOptions = {
   timeout: 10_000,
   maximumAge: 0,
 };
+
+// Density-driven building blocks — see activity-form.tsx for the same
+// pattern; office mode gets 28/24px sizing, field mode gets 56/48px glove
+// targets from the same className strings (globals.css [data-mode="field"]).
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const CONTROL =
+  "h-[var(--density-control-h)] rounded-[3px] border border-border bg-transparent px-[var(--density-cell-px)] text-[length:var(--density-font-body)] outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+function chipClass(selected: boolean, extra?: string) {
+  return cn(
+    "flex items-center justify-center rounded-[3px] border text-[length:var(--density-font-body)] transition-colors",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    selected
+      ? "border-2 border-foreground bg-foreground font-semibold text-background"
+      : "border-border font-medium text-foreground hover:bg-muted",
+    extra,
+  );
+}
 
 export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
   const t = useTranslations("monitoring");
@@ -140,18 +154,22 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
     }
   }
 
-  const selectClass =
-    "border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs";
-
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("new")}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+    <div className="flex flex-col gap-2 rounded-[3px] border border-border">
+      <div className="border-b border-border px-[var(--density-cell-px)] py-[var(--density-cell-py)]">
+        <span className={MICRO_LABEL}>{t("new")}</span>
+      </div>
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-5 p-[var(--density-cell-px)]"
+      >
+        {/* Parcel + cycle stay as selects — secondary office-style fields,
+            not part of the board 1f chip treatment. */}
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="parcelId">{t("parcel")}</Label>
+            <Label htmlFor="parcelId" className={MICRO_LABEL}>
+              {t("parcel")}
+            </Label>
             <select
               id="parcelId"
               value={parcelId}
@@ -160,7 +178,7 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
                 setCropCycleId("");
               }}
               required
-              className={selectClass}
+              className={cn(CONTROL, "w-full")}
             >
               {parcels.map((parcel) => (
                 <option key={parcel.id} value={parcel.id}>
@@ -170,12 +188,14 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
             </select>
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="cropCycleId">{t("cycle")}</Label>
+            <Label htmlFor="cropCycleId" className={MICRO_LABEL}>
+              {t("cycle")}
+            </Label>
             <select
               id="cropCycleId"
               value={cropCycleId}
               onChange={(e) => setCropCycleId(e.target.value)}
-              className={selectClass}
+              className={cn(CONTROL, "w-full")}
             >
               <option value="">{t("cycleNone")}</option>
               {parcelCycles.map((cycle) => (
@@ -186,57 +206,87 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
             </select>
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="date">{t("date")}</Label>
+            <Label htmlFor="date" className={MICRO_LABEL}>
+              {t("date")}
+            </Label>
             <Input
               id="date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
+              className={cn(CONTROL, "w-full")}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="type">{t("type")}</Label>
-            <select
-              id="type"
-              value={type}
-              onChange={(e) => setType(e.target.value as MonitoringType)}
-              required
-              className={selectClass}
-            >
-              <option value="pest">{t("types.pest")}</option>
-              <option value="disease">{t("types.disease")}</option>
-              <option value="weed">{t("types.weed")}</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="agentName">{t("agentName")}</Label>
+            <Label htmlFor="agentName" className={MICRO_LABEL}>
+              {t("agentName")}
+            </Label>
             <Input
               id="agentName"
               value={agentName}
               onChange={(e) => setAgentName(e.target.value)}
               required
               placeholder={t("agentNamePlaceholder")}
+              className={cn(CONTROL, "w-full")}
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="severity">{t("severity")}</Label>
-            <select
-              id="severity"
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value)}
-              required
-              className={selectClass}
-            >
-              {[1, 2, 3, 4, 5].map((value) => (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              ))}
-            </select>
+        </div>
+
+        {/* Type picker — pest / disease / weed chips. */}
+        <div className="flex flex-col gap-2">
+          <span className={MICRO_LABEL}>{t("type")}</span>
+          <div role="group" aria-label={t("type")} className="flex flex-wrap gap-2">
+            {(["pest", "disease", "weed"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={type === value}
+                onClick={() => setType(value)}
+                className={chipClass(
+                  type === value,
+                  "h-[var(--density-control-h)] px-[var(--density-cell-px)]",
+                )}
+              >
+                {t(`types.${value}`)}
+              </button>
+            ))}
           </div>
+        </div>
+
+        {/* Severity picker — 1 (low) .. 5 (high) chips (monochrome selected style). */}
+        <div className="flex flex-col gap-2">
+          <span className={MICRO_LABEL}>{t("severity")}</span>
+          <div
+            role="group"
+            aria-label={t("severity")}
+            className="grid grid-cols-5 gap-2"
+          >
+            {[1, 2, 3, 4, 5].map((value) => {
+              const selected = severity === String(value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setSeverity(String(value))}
+                  className={chipClass(
+                    selected,
+                    "h-[var(--density-control-h)] font-mono tabular",
+                  )}
+                >
+                  {value}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="incidencePct">{t("incidencePct")}</Label>
+            <Label htmlFor="incidencePct" className={MICRO_LABEL}>
+              {t("incidencePct")}
+            </Label>
             <Input
               id="incidencePct"
               type="number"
@@ -245,72 +295,109 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
               step="0.01"
               value={incidencePct}
               onChange={(e) => setIncidencePct(e.target.value)}
+              className={cn(CONTROL, "w-full text-right font-mono tabular")}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="notes">{t("notes")}</Label>
+            <Label htmlFor="notes" className={MICRO_LABEL}>
+              {t("notes")}
+            </Label>
             <Input
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              className={cn(CONTROL, "w-full")}
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="actionsTaken">{t("actionsTaken")}</Label>
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <Label htmlFor="actionsTaken" className={MICRO_LABEL}>
+              {t("actionsTaken")}
+            </Label>
             <Input
               id="actionsTaken"
               value={actionsTaken}
               onChange={(e) => setActionsTaken(e.target.value)}
+              className={cn(CONTROL, "w-full")}
             />
           </div>
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label>{t("location")}</Label>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={captureLocation}
-                disabled={locationStatus === "capturing"}
-              >
-                {locationStatus === "capturing"
-                  ? t("locationCapturing")
-                  : t("locationUse")}
-              </Button>
-              {locationStatus === "success" && location && accuracy !== null && (
+        </div>
+
+        {/* GPS chip — board 1f/1g treatment: green ±accuracy pill + mono
+            lat/lng, using sev-low tokens (green family) via StatusChip's
+            palette so it stays theme-aware without a raw color class. */}
+        <div className="flex flex-col gap-2">
+          <span className={MICRO_LABEL}>{t("location")}</span>
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-[var(--density-cell-py)] rounded-[3px] border border-border",
+              "px-[var(--density-cell-px)] py-[var(--density-cell-py)] min-h-[var(--density-control-h)]",
+            )}
+          >
+            <button
+              type="button"
+              onClick={captureLocation}
+              disabled={locationStatus === "capturing"}
+              className={cn(
+                CONTROL,
+                "px-[var(--density-cell-px)] font-medium text-foreground hover:bg-muted disabled:opacity-50",
+              )}
+            >
+              {locationStatus === "capturing"
+                ? t("locationCapturing")
+                : t("locationUse")}
+            </button>
+            {locationStatus === "success" && location && accuracy !== null && (
+              <>
                 <span
-                  className="text-sm text-muted-foreground"
-                  title={`${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`}
+                  className="rounded-[3px] border border-sync-ok-border bg-sync-ok-bg px-[7px] py-0.5 font-mono text-[length:var(--density-font-label)] font-semibold text-sync-ok-fg"
+                  title={t("locationTitle", {
+                    lat: location.lat.toFixed(6),
+                    lng: location.lng.toFixed(6),
+                  })}
                 >
                   {t("locationCaptured", { accuracy: Math.round(accuracy) })}
                 </span>
-              )}
-              {locationStatus === "denied" && (
-                <span className="text-sm text-muted-foreground">
-                  {t("locationDenied")}
+                <span className="font-mono tabular text-[length:var(--density-font-body)] text-muted-foreground">
+                  {/* Hemisphere letters derive from the coordinate sign — the
+                      demo farms are north/west but nothing guarantees that. */}
+                  {Math.abs(location.lat).toFixed(4)}°
+                  {location.lat >= 0 ? t("gps.north") : t("gps.south")}{" "}
+                  {Math.abs(location.lng).toFixed(4)}°
+                  {location.lng >= 0 ? t("gps.east") : t("gps.west")}
                 </span>
-              )}
-              {locationStatus === "unavailable" && (
-                <span className="text-sm text-muted-foreground">
-                  {t("locationUnavailable")}
-                </span>
-              )}
-            </div>
+              </>
+            )}
+            {locationStatus === "denied" && (
+              <span className="text-[length:var(--density-font-body)] text-muted-foreground">
+                {t("locationDenied")}
+              </span>
+            )}
+            {locationStatus === "unavailable" && (
+              <span className="text-[length:var(--density-font-body)] text-muted-foreground">
+                {t("locationUnavailable")}
+              </span>
+            )}
           </div>
-          {saveError && (
-            <p className="text-sm text-destructive sm:col-span-2">
-              {tOffline("saveError")}
-            </p>
-          )}
-          <Button
-            type="submit"
-            disabled={submitting}
-            className="self-end justify-self-start"
-          >
-            {t("create")}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+
+        {/* Photos placeholder — decorative only, no upload wired yet. */}
+        <div className="flex flex-col gap-2">
+          <span className={MICRO_LABEL}>{t("photos")}</span>
+          <div className="flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-dashed border-border text-[length:var(--density-font-body)] text-muted-foreground">
+            {t("photosPlaceholder")}
+          </div>
+        </div>
+
+        {saveError && <Notice variant="error">{tOffline("saveError")}</Notice>}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="h-[var(--density-control-h)] w-full rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto sm:self-start"
+        >
+          {t("create")}
+        </button>
+      </form>
+    </div>
   );
 }

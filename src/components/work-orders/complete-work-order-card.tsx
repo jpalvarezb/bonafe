@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
+import { cn } from "@/lib/utils";
 import { enqueue, flushOutbox } from "@/lib/offline/outbox";
 import { toggleChecklistItemAction } from "@/server/actions/work-orders";
 import type { WorkOrderStatus } from "@/server/services/work-orders";
@@ -26,6 +27,12 @@ type Props = {
   readonly workOrder: WorkOrderProp;
   readonly checklist: ChecklistItemProp[];
 };
+
+// Density-driven building blocks — office mode gets 28/24px sizing, field
+// mode gets 56/48px glove targets, from the same className strings
+// (globals.css [data-mode="field"]).
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
 
 /**
  * Offline-capable "complete my work order" card. Replaces the plain
@@ -50,6 +57,10 @@ export function CompleteWorkOrderCard({
     Object.fromEntries(checklist.map((item) => [item.id, item.done])),
   );
   const [submitting, setSubmitting] = useState(false);
+  // The blocked-completion notice only appears once the user engages with
+  // the checklist (or tries to complete) — a red error on first paint,
+  // before any interaction, reads as a fault rather than guidance.
+  const [interacted, setInteracted] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [localPending, setLocalPending] = useState(false);
 
@@ -57,6 +68,7 @@ export function CompleteWorkOrderCard({
 
   function toggle(item: ChecklistItemProp) {
     if (item.done) return; // already done server-side — can't un-check
+    setInteracted(true);
     const next = !checked[item.id];
     setChecked((prev) => ({ ...prev, [item.id]: next }));
 
@@ -107,53 +119,78 @@ export function CompleteWorkOrderCard({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded-md border bg-muted/30 p-2">
+    <div className="flex flex-col gap-2 rounded-[3px] border border-border">
       {checklist.length > 0 && (
         <>
-          <p className="text-xs font-medium text-muted-foreground">
-            {t("checklist.title")}
-          </p>
-          {checklist.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              disabled={item.done}
-              onClick={() => toggle(item)}
-              className="flex items-center gap-2 text-left text-sm hover:underline disabled:pointer-events-none disabled:no-underline"
-            >
-              <span aria-hidden>{checked[item.id] ? "☑" : "☐"}</span>
-              <span
-                className={
-                  checked[item.id]
-                    ? "text-muted-foreground line-through"
-                    : ""
-                }
-              >
-                {item.label}
-              </span>
-            </button>
-          ))}
+          <div className="border-b border-border px-[var(--density-cell-px)] py-[var(--density-cell-py)]">
+            <span className={MICRO_LABEL}>{t("checklist.title")}</span>
+          </div>
+          <div className="flex flex-col">
+            {checklist.map((item) => {
+              const isChecked = Boolean(checked[item.id]);
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="checkbox"
+                  aria-checked={isChecked}
+                  disabled={item.done}
+                  onClick={() => toggle(item)}
+                  className={cn(
+                    "flex min-h-[var(--density-row-h)] w-full items-center gap-3 border-b border-border px-[var(--density-cell-px)] py-[var(--density-cell-py)] text-left last:border-b-0",
+                    "text-[length:var(--density-font-body)] transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:hover:bg-transparent",
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "flex size-[calc(var(--density-control-h)*0.55)] shrink-0 items-center justify-center rounded-[3px] border-2 font-mono",
+                      isChecked
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border text-transparent",
+                    )}
+                  >
+                    ✓
+                  </span>
+                  <span
+                    className={
+                      isChecked ? "text-muted-foreground line-through" : ""
+                    }
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </>
       )}
 
-      <Button
-        type="button"
-        size="sm"
-        disabled={!allChecked || submitting}
-        onClick={handleComplete}
-        className="self-start"
-      >
-        {t("transition.done")}
-      </Button>
+      <div className="flex flex-col gap-2 p-[var(--density-cell-px)]">
+        {checklist.length > 0 && !allChecked && interacted && (
+          <Notice variant="error">{t("errors.checklistIncomplete")}</Notice>
+        )}
 
-      {localPending && (
-        <p className="rounded-md bg-sync-pending-bg px-3 py-1.5 text-xs text-sync-pending-fg">
-          {tOffline("pendingNote")}
-        </p>
-      )}
-      {saveError && (
-        <p className="text-xs text-destructive">{tOffline("saveError")}</p>
-      )}
+        <button
+          type="button"
+          disabled={!allChecked || submitting}
+          onClick={handleComplete}
+          className="h-[var(--density-control-h)] w-full rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto"
+        >
+          {t("transition.done")}
+        </button>
+
+        {localPending && (
+          <p className={cn(MICRO_LABEL, "rounded-[3px] bg-sync-pending-bg px-[var(--density-cell-px)] py-[var(--density-cell-py)] text-sync-pending-fg normal-case")}>
+            {tOffline("pendingNote")}
+          </p>
+        )}
+        {saveError && (
+          <p className="text-[length:var(--density-font-label)] text-destructive">
+            {tOffline("saveError")}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
