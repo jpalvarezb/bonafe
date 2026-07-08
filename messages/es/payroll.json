@@ -14,6 +14,8 @@
     "open": "Abierta",
     "closed": "Cerrada"
   },
+  "closedBanner": "Período cerrado el {date} · registros en solo lectura.",
+  "closedReadOnly": "Período cerrado · registros en solo lectura.",
   "entries": {
     "title": "Detalle de la planilla",
     "empty": "Todavía no hay jornales generados para este período. Usa \"Generar planilla\" para calcularlos a partir de la asistencia registrada.",
@@ -27,7 +29,15 @@
     "net": "Neto a pagar",
     "save": "Guardar",
     "notesPlaceholder": "Notas (opcional)",
-    "total": "Total de la planilla"
+    "total": "Total de la planilla",
+    "hoursShort": "H. extra",
+    "bonusesShort": "Bonif.",
+    "deductionsShort": "Deducc.",
+    "netShort": "Neto",
+    "piecework": "Destajo",
+    "daysMarked": "Días marcados",
+    "noRecord": "Sin registro",
+    "totalRow": "Total · {count, plural, one {# trabajador} other {# trabajadores}}"
   },
   "reports": {
     "title": "Eficiencia de la mano de obra",

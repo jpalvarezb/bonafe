@@ -14,6 +14,8 @@
     "open": "Open",
     "closed": "Closed"
   },
+  "closedBanner": "Period closed on {date} · records are read-only.",
+  "closedReadOnly": "Period closed · records are read-only.",
   "entries": {
     "title": "Payroll book",
     "empty": "No entries generated for this period yet. Use \"Generate entries\" to calculate them from recorded attendance.",
@@ -27,7 +29,15 @@
     "net": "Net pay",
     "save": "Save",
     "notesPlaceholder": "Notes (optional)",
-    "total": "Period total"
+    "total": "Period total",
+    "hoursShort": "OT hrs",
+    "bonusesShort": "Bonuses",
+    "deductionsShort": "Deduct.",
+    "netShort": "Net",
+    "piecework": "Piecework",
+    "daysMarked": "Days marked",
+    "noRecord": "No record",
+    "totalRow": "Total · {count, plural, one {# worker} other {# workers}}"
   },
   "reports": {
     "title": "Labor efficiency",
