@@ -8,6 +8,7 @@
     "title": "Sync issues",
     "empty": "No sync issues.",
     "discard": "Discard",
+    "viewAll": "View all",
     "kinds": {
       "activity_create": "Activity",
       "monitoring_create": "Monitoring",

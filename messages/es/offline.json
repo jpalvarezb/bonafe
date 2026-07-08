@@ -8,6 +8,7 @@
     "title": "Problemas de sincronización",
     "empty": "No hay problemas de sincronización.",
     "discard": "Descartar",
+    "viewAll": "Ver todo",
     "kinds": {
       "activity_create": "Actividad",
       "monitoring_create": "Monitoreo",

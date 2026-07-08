@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 
 // Only actions with a stub in messages/{locale}/audit.json#actions get a
 // translated label; anything else (including future actions added by other
@@ -99,6 +100,7 @@ export default async function AuditLogPage({
 
   return (
     <div className="flex max-w-5xl flex-col gap-6">
+      <SettingsTabs orgSlug={orgSlug} role={ctx.role} active="audit" />
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       <Card>

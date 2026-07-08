@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 
 export default async function CurrenciesPage({
   params,
@@ -37,6 +38,7 @@ export default async function CurrenciesPage({
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
+      <SettingsTabs orgSlug={orgSlug} role={ctx.role} active="currencies" />
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       <Card>

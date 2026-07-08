@@ -4,6 +4,7 @@ import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 
 export default async function GeneralSettingsPage({
   params,
@@ -36,6 +37,7 @@ export default async function GeneralSettingsPage({
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
+      <SettingsTabs orgSlug={orgSlug} role={ctx.role} active="general" />
       <h1 className="text-2xl font-semibold">{t("general.title")}</h1>
 
       <Card>

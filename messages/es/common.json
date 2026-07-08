@@ -32,7 +32,30 @@
     "settings": "Configuración",
     "logout": "Cerrar sesión",
     "locked": "Bloqueado",
-    "lockedTooltip": "Disponible desde el plan {tier}"
+    "lockedTooltip": "Disponible desde el plan {tier}",
+    "openMenu": "Abrir menú de navegación",
+    "closeMenu": "Cerrar menú",
+    "menuTitle": "Navegación",
+    "sections": {
+      "campo": "Campo",
+      "terreno": "Terreno",
+      "gente": "Gente",
+      "inventoryAssets": "Inventario y activos",
+      "commercial": "Comercial",
+      "catalog": "Catálogo"
+    }
+  },
+  "farmSwitcher": {
+    "label": "Fincas",
+    "allFarms": "Todas las fincas"
+  },
+  "settingsTabs": {
+    "navLabel": "Secciones de configuración",
+    "general": "General",
+    "plan": "Plan",
+    "currencies": "Monedas",
+    "import": "Importar",
+    "audit": "Auditoría"
   },
   "language": {
     "label": "Idioma",

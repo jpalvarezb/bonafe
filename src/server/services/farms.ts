@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 import { withOrgRls, type Tx } from "@/lib/db/rls";
 import { farms } from "@/lib/db/schema";
@@ -79,6 +80,27 @@ export async function listFarms(
       .orderBy(farms.name),
   );
 }
+
+/**
+ * Cheap id/name farm list for the header farm-switcher. Takes `orgId`
+ * (not `ctx`, unlike `listFarms` above) because `requireOrgContext` returns
+ * a fresh object on every call — React's `cache()` dedupes by argument
+ * identity, so keying on the stable orgId string (same pattern as
+ * `getOrgPlan` in plan-limits.ts) actually dedupes across the org layout
+ * and any page that separately resolves its own OrgContext in the same
+ * request, where keying on `ctx` would not.
+ */
+export const listFarmNames = cache(async function listFarmNames(
+  orgId: string,
+): Promise<{ id: string; name: string }[]> {
+  return withOrgRls(orgId, (tx) =>
+    tx
+      .select({ id: farms.id, name: farms.name })
+      .from(farms)
+      .where(and(eq(farms.orgId, orgId), eq(farms.active, true)))
+      .orderBy(farms.name),
+  );
+});
 
 /**
  * Exported as an `...InTx` variant too: climate-ingest's ingestRainfall

@@ -15,6 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 
 const KNOWN_ERROR_KEYS = ["duplicatePending"];
 
@@ -59,6 +60,7 @@ export default async function MembersPage({
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
+      <SettingsTabs orgSlug={orgSlug} role={ctx.role} active="members" />
       <h1 className="text-2xl font-semibold">{t("members.title")}</h1>
 
       {errorKey && (

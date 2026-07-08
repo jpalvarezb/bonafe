@@ -32,7 +32,30 @@
     "settings": "Settings",
     "logout": "Log out",
     "locked": "Locked",
-    "lockedTooltip": "Available from the {tier} plan"
+    "lockedTooltip": "Available from the {tier} plan",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close menu",
+    "menuTitle": "Navigation",
+    "sections": {
+      "campo": "Field",
+      "terreno": "Land",
+      "gente": "People",
+      "inventoryAssets": "Inventory & assets",
+      "commercial": "Commercial",
+      "catalog": "Catalog"
+    }
+  },
+  "farmSwitcher": {
+    "label": "Farms",
+    "allFarms": "All farms"
+  },
+  "settingsTabs": {
+    "navLabel": "Settings sections",
+    "general": "General",
+    "plan": "Plan",
+    "currencies": "Currencies",
+    "import": "Import",
+    "audit": "Audit"
   },
   "language": {
     "label": "Language",

@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 
 type RowError = { row: number; error: string };
 
@@ -38,6 +39,7 @@ export default async function ImportPage({
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
+      <SettingsTabs orgSlug={orgSlug} role={ctx.role} active="import" />
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       {(["products", "parcels"] as const).map((type) => (

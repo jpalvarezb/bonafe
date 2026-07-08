@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 
 export default async function PlanPage({
   params,
@@ -83,6 +84,7 @@ export default async function PlanPage({
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
+      <SettingsTabs orgSlug={orgSlug} role={ctx.role} active="plan" />
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       {showUpgraded && (
