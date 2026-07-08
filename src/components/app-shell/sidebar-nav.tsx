@@ -1,6 +1,7 @@
 "use client";
 
-import { Lock } from "lucide-react";
+import { useId, useState } from "react";
+import { ChevronRight, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -12,6 +13,7 @@ import {
   isSectionCollapsed,
   lowestUnlockTier,
   type NavItem,
+  type NavSection,
 } from "./nav-config";
 
 function LockBadge({
@@ -48,6 +50,54 @@ export function SidebarNav(props: {
   const { orgSlug, features, featureTiers, onNavigate } = props;
   const t = useTranslations("common.nav");
   const pathname = usePathname();
+
+  function sectionHasActiveRoute(section: NavSection) {
+    return section.items.some((item) =>
+      pathname.startsWith(`/o/${orgSlug}/${item.href}`),
+    );
+  }
+
+  // Session-only expansion state (no localStorage — spec is per-visit).
+  // Effective expanded state is `override ?? sectionHasActiveRoute`, so a
+  // section auto-expands whenever it holds the active route and the user
+  // hasn't manually toggled it since arriving there.
+  const [manualOverrides, setManualOverrides] = useState<
+    Readonly<Record<string, boolean>>
+  >({});
+  // Unique per instance: the desktop aside and the open mobile drawer both
+  // render SidebarNav, so static section ids would collide (invalid HTML,
+  // ambiguous aria-controls).
+  const instanceId = useId();
+
+  // Derived-during-render reset (same pattern as MobileNavDrawer's
+  // close-on-navigate effect): this component never remounts across
+  // client-side navigations, so on a pathname change we clear any manual
+  // override on the section that just became active, letting
+  // `override ?? isActive` win it open again. Other sections' overrides are
+  // left untouched — multi-open, independent toggles.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    const activeSection = NAV_SECTIONS.find((section) =>
+      sectionHasActiveRoute(section),
+    );
+    if (activeSection && activeSection.key in manualOverrides) {
+      setManualOverrides((prev) => {
+        const next = { ...prev };
+        delete next[activeSection.key];
+        return next;
+      });
+    }
+  }
+
+  function isSectionExpanded(section: NavSection) {
+    return manualOverrides[section.key] ?? sectionHasActiveRoute(section);
+  }
+
+  function toggleSection(section: NavSection) {
+    const current = isSectionExpanded(section);
+    setManualOverrides((prev) => ({ ...prev, [section.key]: !current }));
+  }
 
   function renderItem(item: NavItem) {
     const fullHref = `/o/${orgSlug}/${item.href}`;
@@ -109,12 +159,33 @@ export function SidebarNav(props: {
           );
         }
 
+        const expanded = isSectionExpanded(section);
+        const itemsId = `${instanceId}-nav-section-${section.key}-items`;
         return (
           <div key={section.key} className="flex flex-col gap-1">
-            <p className="px-3 pt-2 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
-              {t(section.labelKey)}
-            </p>
-            {section.items.map(renderItem)}
+            <button
+              type="button"
+              onClick={() => toggleSection(section)}
+              aria-expanded={expanded}
+              aria-controls={itemsId}
+              className="flex items-center gap-1 rounded-md px-3 pt-2 text-left font-mono text-[10px] tracking-wide text-muted-foreground uppercase transition-colors hover:text-foreground"
+            >
+              <ChevronRight
+                className={cn(
+                  "size-3 shrink-0 motion-safe:transition-transform motion-safe:duration-150",
+                  expanded && "rotate-90",
+                )}
+                aria-hidden="true"
+              />
+              <span className="min-w-0 flex-1 truncate">
+                {t(section.labelKey)}
+              </span>
+            </button>
+            {expanded && (
+              <div id={itemsId} className="flex flex-col gap-1">
+                {section.items.map(renderItem)}
+              </div>
+            )}
           </div>
         );
       })}
