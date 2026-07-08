@@ -9,5 +9,54 @@
   "costByMonth": "Costo por mes",
   "costPerHa": "Costo/ha",
   "recentActivities": "Actividades recientes",
-  "noData": "Sin datos todavía. Registra actividades para ver costos."
+  "noData": "Sin datos todavía. Registra actividades para ver costos.",
+  "panel": {
+    "kpi": {
+      "income": "Ingresos",
+      "incomeSub": "{count} ciclos con ventas",
+      "costs": "Costos",
+      "costsSub": "{count} ciclos (todos)",
+      "margin": "Margen",
+      "marginNoData": "Sin ventas",
+      "costHa": "Costo / ha",
+      "costHaSub": "{area} ha con costos",
+      "jornales": "Jornales quincena",
+      "jornalesSub": "{count} trabajadores activos"
+    },
+    "costByParcel": {
+      "title": "Costo por parcela",
+      "parcel": "Parcela",
+      "areaHa": "ha",
+      "total": "Total",
+      "costHa": "Costo/ha",
+      "totalRow": "Total",
+      "note": "Cultivo, insumos, mano de obra y otros no se muestran: ningún reporte existente expone ese desglose por parcela todavía. El total de esta tabla suma costos de actividades por parcela, mientras que el KPI de Costos suma costos por ciclo (incluye procesamiento), por lo que pueden diferir."
+    },
+    "activities": {
+      "title": "Actividades recientes",
+      "date": "Fecha",
+      "activity": "Actividad",
+      "parcel": "Parcela",
+      "cost": "Costo",
+      "empty": "Sin actividades registradas todavía.",
+      "note": "\"Registró\" no se muestra: ningún reporte existente une el nombre de quien capturó la actividad."
+    },
+    "sync": {
+      "title": "Pendiente de sincronizar"
+    },
+    "rainfall": {
+      "title": "Lluvia — últimos 30 días",
+      "unit": "mm/día",
+      "accumulated": "Lluvia acumulada (30 días)",
+      "daysWithData": "{days} de {window} días con datos",
+      "max": "máx {value}",
+      "empty": "Esta organización no tiene fincas todavía.",
+      "noReadings": "Sin lecturas de lluvia en este periodo."
+    },
+    "openWorkOrders": {
+      "title": "Órdenes abiertas",
+      "viewAll": "Todas →",
+      "empty": "Sin órdenes abiertas."
+    }
+  }
 }

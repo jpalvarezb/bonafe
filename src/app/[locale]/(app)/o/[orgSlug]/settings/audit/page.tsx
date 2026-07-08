@@ -5,15 +5,21 @@ import { withOrgRls } from "@/lib/db/rls";
 import { auditLog } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
+import { cn } from "@/lib/utils";
+
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const CELL = "px-[var(--density-cell-px)] py-[var(--density-cell-py)]";
+const CONTROL =
+  "h-[var(--density-control-h)] rounded-[3px] border border-border bg-transparent px-[var(--density-cell-px)] text-[length:var(--density-font-body)] outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const BTN =
+  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+const BTN_GHOST =
+  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] px-[var(--density-cell-px)] font-mono text-[length:var(--density-font-body)] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+const AUDIT_COLS =
+  "grid-cols-[150px_140px_1fr_150px_1.4fr]";
 
 // Only actions with a stub in messages/{locale}/audit.json#actions get a
 // translated label; anything else (including future actions added by other
@@ -103,81 +109,119 @@ export default async function AuditLogPage({
       <SettingsTabs orgSlug={orgSlug} role={ctx.role} active="audit" />
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("filter.label")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="border border-border">
+        <div className="px-3.5 py-2.5">
+          <span className="text-[13px] font-semibold">
+            {t("filter.label")}
+          </span>
+        </div>
+        <div className="border-t border-border px-3.5 py-3">
           <form
             method="GET"
             action={`/${locale}/o/${orgSlug}/settings/audit`}
-            className="flex flex-wrap gap-3"
+            className="flex flex-wrap items-center gap-3"
           >
             <Input
               name="action"
               defaultValue={sp.action ?? ""}
               placeholder={t("filter.placeholder")}
-              className="w-64"
+              className={cn(CONTROL, "w-64")}
             />
-            <Button type="submit">{t("filter.apply")}</Button>
+            <button type="submit" className={BTN}>
+              {t("filter.apply")}
+            </button>
             {sp.action && (
-              <Button asChild variant="ghost">
-                <a href={`/${locale}/o/${orgSlug}/settings/audit`}>
-                  {t("filter.clear")}
-                </a>
-              </Button>
+              <a
+                href={`/${locale}/o/${orgSlug}/settings/audit`}
+                className={BTN_GHOST}
+              >
+                {t("filter.clear")}
+              </a>
             )}
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardContent className="overflow-x-auto p-0">
-          {rows.length === 0 ? (
-            <p className="p-4 text-muted-foreground">{t("empty")}</p>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b text-muted-foreground">
-                  <th className="px-4 py-2 font-medium">{t("table.date")}</th>
-                  <th className="px-4 py-2 font-medium">{t("table.actor")}</th>
-                  <th className="px-4 py-2 font-medium">
-                    {t("table.action")}
-                  </th>
-                  <th className="px-4 py-2 font-medium">
-                    {t("table.entity")}
-                  </th>
-                  <th className="px-4 py-2 font-medium">{t("table.meta")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id} className="border-b last:border-0">
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      {dateFormatter.format(row.createdAt)}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      {row.actorName ?? t("table.system")}
-                    </td>
-                    <td className="px-4 py-2">
-                      {KNOWN_ACTIONS.has(row.action)
-                        ? t(`actions.${row.action}` as "actions.member.invite")
-                        : row.action}
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      {row.entity ?? "—"}
-                      {row.entityId ? ` (${row.entityId.slice(0, 8)})` : ""}
-                    </td>
-                    <td className="px-4 py-2 break-all text-muted-foreground">
-                      {formatMeta(row.meta)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
+      <div className="overflow-x-auto border border-border">
+        {rows.length === 0 ? (
+          <p
+            className={cn(
+              CELL,
+              "text-[length:var(--density-font-body)] text-muted-foreground",
+            )}
+          >
+            {t("empty")}
+          </p>
+        ) : (
+          <div className="min-w-[820px]">
+            <div
+              className={cn(
+                "grid border-b border-border bg-muted/40",
+                AUDIT_COLS,
+              )}
+            >
+              <div className={cn(CELL, "py-1.5", MICRO_LABEL)}>
+                {t("table.date")}
+              </div>
+              <div className={cn(CELL, "py-1.5", MICRO_LABEL)}>
+                {t("table.actor")}
+              </div>
+              <div className={cn(CELL, "py-1.5", MICRO_LABEL)}>
+                {t("table.action")}
+              </div>
+              <div className={cn(CELL, "py-1.5", MICRO_LABEL)}>
+                {t("table.entity")}
+              </div>
+              <div className={cn(CELL, "py-1.5", MICRO_LABEL)}>
+                {t("table.meta")}
+              </div>
+            </div>
+            {rows.map((row) => (
+              <div
+                key={row.id}
+                className={cn(
+                  "grid items-center border-b border-border transition-colors last:border-b-0 hover:bg-muted/40",
+                  AUDIT_COLS,
+                )}
+              >
+                <div
+                  className={cn(
+                    CELL,
+                    "tabular whitespace-nowrap font-mono text-[10.5px] text-muted-foreground",
+                  )}
+                >
+                  {dateFormatter.format(row.createdAt)}
+                </div>
+                <div className={cn(CELL, "truncate")}>
+                  {row.actorName ?? t("table.system")}
+                </div>
+                <div className={cn(CELL, "truncate font-mono text-[11px]")}>
+                  {KNOWN_ACTIONS.has(row.action)
+                    ? t(`actions.${row.action}` as "actions.member.invite")
+                    : row.action}
+                </div>
+                <div
+                  className={cn(
+                    CELL,
+                    "whitespace-nowrap font-mono text-[11px] text-muted-foreground",
+                  )}
+                >
+                  {row.entity ?? "—"}
+                  {row.entityId ? ` (${row.entityId.slice(0, 8)})` : ""}
+                </div>
+                <div
+                  className={cn(
+                    CELL,
+                    "break-all font-mono text-[10.5px] text-muted-foreground",
+                  )}
+                >
+                  {formatMeta(row.meta)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

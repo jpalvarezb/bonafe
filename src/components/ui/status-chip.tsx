@@ -71,7 +71,13 @@ const CHIP_CLASSES: {
   },
 };
 
-function chipClasses(family: StatusFamily, state: string): string {
+/**
+ * Exposes the same family+state token classes (bg, text, border) that
+ * StatusChip renders, for surfaces that need the raw tone classes on a
+ * differently-shaped element (e.g. a large field-mode chip picker button)
+ * instead of the compact pill markup.
+ */
+export function chipClasses(family: StatusFamily, state: string): string {
   const familyMap: Record<string, string | undefined> = CHIP_CLASSES[family];
   return familyMap[state] ?? "";
 }

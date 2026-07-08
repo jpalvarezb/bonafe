@@ -2,18 +2,16 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useRouter } from "@/i18n/navigation";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Notice } from "@/components/ui/notice";
+import { Metric } from "@/components/ui/metric";
+import { cn } from "@/lib/utils";
 import { computeActivityTotals } from "@/lib/calc/costs";
-import { enqueue, flushOutbox } from "@/lib/offline/outbox";
+import { enqueue, flushOutbox, outboxCounts } from "@/lib/offline/outbox";
+import { useOnlineStatus } from "@/components/offline/sync-status-badge";
 import { newId } from "@/lib/ids";
 
 type Option = { id: string; name: string };
@@ -49,6 +47,32 @@ type Props = {
 
 let keyCounter = 1;
 
+// Density-driven building blocks shared by every field on this form — office
+// mode gets the compact 28/24px sizing, field mode gets 56/48px glove
+// targets, from the exact same className strings (see globals.css
+// [data-mode="field"]).
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const CONTROL =
+  "h-[var(--density-control-h)] rounded-[3px] border border-border bg-transparent px-[var(--density-cell-px)] text-[length:var(--density-font-body)] outline-none focus-visible:ring-2 focus-visible:ring-ring";
+// Border-less variant for fields that live inside an already-bordered table
+// row (Insumos / Mano de obra lines) — avoids doubled/conflicting borders.
+const ROW_FIELD =
+  "h-[var(--density-control-h)] rounded-[3px] bg-transparent px-[var(--density-cell-px)] text-[length:var(--density-font-body)] outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const CELL =
+  "px-[var(--density-cell-px)] py-[var(--density-cell-py)] min-h-[var(--density-row-h)]";
+
+function chipClass(selected: boolean, extra?: string) {
+  return cn(
+    "flex items-center rounded-[3px] border text-left text-[length:var(--density-font-body)] transition-colors",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    selected
+      ? "border-2 border-foreground bg-foreground font-semibold text-background"
+      : "border-border font-medium text-foreground hover:bg-muted",
+    extra,
+  );
+}
+
 export function ActivityForm({
   locale,
   orgSlug,
@@ -77,6 +101,12 @@ export function ActivityForm({
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const tOffline = useTranslations("offline");
+  const online = useOnlineStatus();
+  const counts = useLiveQuery(
+    () => outboxCounts(orgSlug),
+    [orgSlug],
+    { pending: 0, rejected: 0 },
+  );
 
   const parcelCycles = cycles.filter(
     (c) => !parcelId || c.parcelId === parcelId,
@@ -153,59 +183,110 @@ export function ActivityForm({
     }
   }
 
-  const selectClass =
-    "border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs";
+  const selectClass = cn(CONTROL, "w-full");
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {!online && (
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-[3px] border border-sync-pending-border bg-sync-pending-bg",
+            CELL,
+          )}
+        >
+          <span
+            className="size-2 shrink-0 rounded-full bg-sync-pending-fg"
+            aria-hidden
+          />
+          <span className="font-mono text-[length:var(--density-font-body)] font-semibold text-sync-pending-fg">
+            {tOffline("badge.offline", { count: counts.pending })}
+          </span>
+        </div>
+      )}
+
+      {/* Parcel picker — board 1f chip grid. Same setParcelId state the
+          previous <select> drove; only the control surface changed. */}
+      <div className="flex flex-col gap-2">
+        <span className={MICRO_LABEL}>{t("parcel")}</span>
+        <div
+          role="group"
+          aria-label={t("parcel")}
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+        >
+          <button
+            type="button"
+            aria-pressed={parcelId === ""}
+            onClick={() => {
+              setParcelId("");
+              setCropCycleId("");
+            }}
+            className={chipClass(parcelId === "", "min-h-[var(--density-row-h)] px-[var(--density-cell-px)]")}
+          >
+            {t("parcelNone")}
+          </button>
+          {parcels.map((parcel) => (
+            <button
+              key={parcel.id}
+              type="button"
+              aria-pressed={parcelId === parcel.id}
+              onClick={() => {
+                setParcelId(parcel.id);
+                setCropCycleId("");
+              }}
+              className={chipClass(
+                parcelId === parcel.id,
+                "min-h-[var(--density-row-h)] px-[var(--density-cell-px)]",
+              )}
+            >
+              {parcel.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Activity-type picker — board 1f chip wrap. */}
+      <div className="flex flex-col gap-2">
+        <span className={MICRO_LABEL}>{t("type")}</span>
+        <div
+          role="group"
+          aria-label={t("type")}
+          className="flex flex-wrap gap-2"
+        >
+          {activityTypes.map((type) => (
+            <button
+              key={type.id}
+              type="button"
+              aria-pressed={activityTypeId === type.id}
+              onClick={() => setActivityTypeId(type.id)}
+              className={chipClass(
+                activityTypeId === type.id,
+                "h-[var(--density-control-h)] px-[var(--density-cell-px)]",
+              )}
+            >
+              {type.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="activityTypeId">{t("type")}</Label>
-          <select
-            id="activityTypeId"
-            value={activityTypeId}
-            onChange={(e) => setActivityTypeId(e.target.value)}
-            required
-            className={selectClass}
-          >
-            {activityTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="date">{t("date")}</Label>
+          <Label htmlFor="date" className={MICRO_LABEL}>
+            {t("date")}
+          </Label>
           <Input
             id="date"
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required
+            className={cn(CONTROL, "w-full")}
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="parcelId">{t("parcel")}</Label>
-          <select
-            id="parcelId"
-            value={parcelId}
-            onChange={(e) => {
-              setParcelId(e.target.value);
-              setCropCycleId("");
-            }}
-            className={selectClass}
-          >
-            <option value="">{t("parcelNone")}</option>
-            {parcels.map((parcel) => (
-              <option key={parcel.id} value={parcel.id}>
-                {parcel.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="cropCycleId">{t("cycle")}</Label>
+          <Label htmlFor="cropCycleId" className={MICRO_LABEL}>
+            {t("cycle")}
+          </Label>
           <select
             id="cropCycleId"
             value={cropCycleId}
@@ -222,7 +303,9 @@ export function ActivityForm({
         </div>
         {costCenters.length > 0 && (
           <div className="flex flex-col gap-2">
-            <Label htmlFor="costCenterId">{t("costCenter")}</Label>
+            <Label htmlFor="costCenterId" className={MICRO_LABEL}>
+              {t("costCenter")}
+            </Label>
             <select
               id="costCenterId"
               value={costCenterId}
@@ -239,256 +322,266 @@ export function ActivityForm({
           </div>
         )}
         <div className="flex flex-col gap-2 sm:col-span-2">
-          <Label htmlFor="description">{t("description")}</Label>
+          <Label htmlFor="description" className={MICRO_LABEL}>
+            {t("description")}
+          </Label>
           <Input
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            className={cn(CONTROL, "w-full")}
           />
         </div>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">{t("inputs.title")}</CardTitle>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setInputs((lines) => [
-                ...lines,
-                {
-                  key: keyCounter++,
-                  productId: products[0]?.id ?? "",
-                  quantity: "",
-                  unitCost: "",
-                },
-              ])
-            }
-          >
-            {t("inputs.add")}
-          </Button>
-        </CardHeader>
+      {/* Insumos — bordered rows with mono numerals, board 1f treatment. */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className={MICRO_LABEL}>{t("inputs.title")}</span>
+          <span className="font-mono tabular text-[length:var(--density-font-label)] text-muted-foreground">
+            {t("totals.inputs")} {fmt(totals.inputCost)}
+          </span>
+        </div>
         {inputs.length > 0 && (
-          <CardContent className="flex flex-col gap-3">
+          <div className="flex flex-col rounded-[3px] border border-border">
             {inputs.map((line, index) => (
-              <div key={line.key} className="flex flex-wrap items-end gap-2">
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{t("inputs.product")}</Label>
-                  <select
-                    value={line.productId}
-                    onChange={(e) =>
-                      setInputs((lines) =>
-                        lines.map((l, i) =>
-                          i === index ? { ...l, productId: e.target.value } : l,
-                        ),
-                      )
-                    }
-                    className={`${selectClass} w-48`}
-                  >
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{t("inputs.quantity")}</Label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    value={line.quantity}
-                    onChange={(e) =>
-                      setInputs((lines) =>
-                        lines.map((l, i) =>
-                          i === index ? { ...l, quantity: e.target.value } : l,
-                        ),
-                      )
-                    }
-                    className="w-28"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{t("inputs.unitCost")}</Label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    value={line.unitCost}
-                    onChange={(e) =>
-                      setInputs((lines) =>
-                        lines.map((l, i) =>
-                          i === index ? { ...l, unitCost: e.target.value } : l,
-                        ),
-                      )
-                    }
-                    className="w-28"
-                  />
-                </div>
-                <span className="pb-2 text-sm text-muted-foreground">
-                  = {fmt(totals.inputTotals[index] ?? "0")}
-                </span>
-                <Button
+              <div
+                key={line.key}
+                className={cn(
+                  "grid grid-cols-[1fr_5.5rem_6.5rem_auto] items-center gap-2 border-b border-border last:border-b-0",
+                  CELL,
+                )}
+              >
+                <select
+                  aria-label={t("inputs.product")}
+                  value={line.productId}
+                  onChange={(e) =>
+                    setInputs((lines) =>
+                      lines.map((l, i) =>
+                        i === index ? { ...l, productId: e.target.value } : l,
+                      ),
+                    )
+                  }
+                  className={cn(
+                    ROW_FIELD,
+                    "w-full border-r border-border pr-2",
+                  )}
+                >
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  aria-label={t("inputs.quantity")}
+                  type="number"
+                  step="0.0001"
+                  min="0"
+                  value={line.quantity}
+                  onChange={(e) =>
+                    setInputs((lines) =>
+                      lines.map((l, i) =>
+                        i === index ? { ...l, quantity: e.target.value } : l,
+                      ),
+                    )
+                  }
+                  className={cn(
+                    ROW_FIELD,
+                    "w-full text-right font-mono tabular",
+                  )}
+                />
+                <input
+                  aria-label={t("inputs.unitCost")}
+                  type="number"
+                  step="0.0001"
+                  min="0"
+                  value={line.unitCost}
+                  onChange={(e) =>
+                    setInputs((lines) =>
+                      lines.map((l, i) =>
+                        i === index ? { ...l, unitCost: e.target.value } : l,
+                      ),
+                    )
+                  }
+                  className={cn(
+                    ROW_FIELD,
+                    "w-full text-right font-mono tabular",
+                  )}
+                />
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
                   onClick={() =>
                     setInputs((lines) => lines.filter((_, i) => i !== index))
                   }
+                  className="font-mono text-[length:var(--density-font-label)] text-muted-foreground underline-offset-2 hover:underline"
                 >
                   {t("inputs.remove")}
-                </Button>
+                </button>
               </div>
             ))}
-          </CardContent>
+          </div>
         )}
-      </Card>
+        <button
+          type="button"
+          onClick={() =>
+            setInputs((lines) => [
+              ...lines,
+              {
+                key: keyCounter++,
+                productId: products[0]?.id ?? "",
+                quantity: "",
+                unitCost: "",
+              },
+            ])
+          }
+          className="flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-dashed border-border text-[length:var(--density-font-body)] text-muted-foreground hover:bg-muted"
+        >
+          {t("inputs.add")}
+        </button>
+      </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">{t("labor.title")}</CardTitle>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setLabor((lines) => [
-                ...lines,
-                {
-                  key: keyCounter++,
-                  workerName: "",
-                  workersCount: "1",
-                  hours: "",
-                  rateType: "daily",
-                  rate: "",
-                },
-              ])
-            }
-          >
-            {t("labor.add")}
-          </Button>
-        </CardHeader>
+      {/* Mano de obra — same bordered-row treatment. */}
+      <div className="flex flex-col gap-2">
+        <span className={MICRO_LABEL}>{t("labor.title")}</span>
         {labor.length > 0 && (
-          <CardContent className="flex flex-col gap-3">
+          <div className="flex flex-col rounded-[3px] border border-border">
             {labor.map((line, index) => (
-              <div key={line.key} className="flex flex-wrap items-end gap-2">
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{t("labor.workerName")}</Label>
-                  <Input
-                    value={line.workerName}
-                    onChange={(e) =>
-                      setLabor((lines) =>
-                        lines.map((l, i) =>
-                          i === index
-                            ? { ...l, workerName: e.target.value }
-                            : l,
-                        ),
-                      )
-                    }
-                    className="w-44"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{t("labor.workersCount")}</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={line.workersCount}
-                    onChange={(e) =>
-                      setLabor((lines) =>
-                        lines.map((l, i) =>
-                          i === index
-                            ? { ...l, workersCount: e.target.value }
-                            : l,
-                        ),
-                      )
-                    }
-                    className="w-20"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{t("labor.rateType")}</Label>
-                  <select
-                    value={line.rateType}
-                    onChange={(e) =>
-                      setLabor((lines) =>
-                        lines.map((l, i) =>
-                          i === index
-                            ? {
-                                ...l,
-                                rateType: e.target.value as "daily" | "hourly",
-                              }
-                            : l,
-                        ),
-                      )
-                    }
-                    className={selectClass}
-                  >
-                    <option value="daily">{t("labor.daily")}</option>
-                    <option value="hourly">{t("labor.hourly")}</option>
-                  </select>
-                </div>
-                {line.rateType === "hourly" && (
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">{t("labor.hours")}</Label>
-                    <Input
-                      type="number"
-                      step="0.25"
-                      min="0"
-                      value={line.hours}
-                      onChange={(e) =>
-                        setLabor((lines) =>
-                          lines.map((l, i) =>
-                            i === index ? { ...l, hours: e.target.value } : l,
-                          ),
-                        )
-                      }
-                      className="w-24"
-                    />
-                  </div>
+              <div
+                key={line.key}
+                className={cn(
+                  "flex flex-wrap items-center gap-2 border-b border-border last:border-b-0",
+                  CELL,
                 )}
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{t("labor.rate")}</Label>
-                  <Input
+              >
+                <input
+                  aria-label={t("labor.workerName")}
+                  value={line.workerName}
+                  onChange={(e) =>
+                    setLabor((lines) =>
+                      lines.map((l, i) =>
+                        i === index
+                          ? { ...l, workerName: e.target.value }
+                          : l,
+                      ),
+                    )
+                  }
+                  className={cn(CONTROL, "w-40 flex-1")}
+                  placeholder={t("labor.workerName")}
+                />
+                <input
+                  aria-label={t("labor.workersCount")}
+                  type="number"
+                  min="1"
+                  value={line.workersCount}
+                  onChange={(e) =>
+                    setLabor((lines) =>
+                      lines.map((l, i) =>
+                        i === index
+                          ? { ...l, workersCount: e.target.value }
+                          : l,
+                      ),
+                    )
+                  }
+                  className={cn(CONTROL, "w-16 text-right font-mono tabular")}
+                />
+                <select
+                  aria-label={t("labor.rateType")}
+                  value={line.rateType}
+                  onChange={(e) =>
+                    setLabor((lines) =>
+                      lines.map((l, i) =>
+                        i === index
+                          ? {
+                              ...l,
+                              rateType: e.target.value as "daily" | "hourly",
+                            }
+                          : l,
+                      ),
+                    )
+                  }
+                  className={CONTROL}
+                >
+                  <option value="daily">{t("labor.daily")}</option>
+                  <option value="hourly">{t("labor.hourly")}</option>
+                </select>
+                {line.rateType === "hourly" && (
+                  <input
+                    aria-label={t("labor.hours")}
                     type="number"
-                    step="0.01"
+                    step="0.25"
                     min="0"
-                    value={line.rate}
+                    value={line.hours}
                     onChange={(e) =>
                       setLabor((lines) =>
                         lines.map((l, i) =>
-                          i === index ? { ...l, rate: e.target.value } : l,
+                          i === index ? { ...l, hours: e.target.value } : l,
                         ),
                       )
                     }
-                    className="w-28"
+                    className={cn(
+                      CONTROL,
+                      "w-20 text-right font-mono tabular",
+                    )}
                   />
-                </div>
-                <span className="pb-2 text-sm text-muted-foreground">
-                  = {fmt(totals.laborAmounts[index] ?? "0")}
+                )}
+                <input
+                  aria-label={t("labor.rate")}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={line.rate}
+                  onChange={(e) =>
+                    setLabor((lines) =>
+                      lines.map((l, i) =>
+                        i === index ? { ...l, rate: e.target.value } : l,
+                      ),
+                    )
+                  }
+                  className={cn(CONTROL, "w-24 text-right font-mono tabular")}
+                />
+                <span className="ml-auto font-mono tabular text-[length:var(--density-font-body)]">
+                  {fmt(totals.laborAmounts[index] ?? "0")}
                 </span>
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
                   onClick={() =>
                     setLabor((lines) => lines.filter((_, i) => i !== index))
                   }
+                  className="font-mono text-[length:var(--density-font-label)] text-muted-foreground underline-offset-2 hover:underline"
                 >
                   {t("labor.remove")}
-                </Button>
+                </button>
               </div>
             ))}
-          </CardContent>
+          </div>
         )}
-      </Card>
+        <button
+          type="button"
+          onClick={() =>
+            setLabor((lines) => [
+              ...lines,
+              {
+                key: keyCounter++,
+                workerName: "",
+                workersCount: "1",
+                hours: "",
+                rateType: "daily",
+                rate: "",
+              },
+            ])
+          }
+          className="flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-dashed border-border text-[length:var(--density-font-body)] text-muted-foreground hover:bg-muted"
+        >
+          {t("labor.add")}
+        </button>
+      </div>
 
-      <div className="flex flex-wrap items-end gap-6">
+      <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="otherCost">{t("otherCost")}</Label>
+          <Label htmlFor="otherCost" className={MICRO_LABEL}>
+            {t("otherCost")}
+          </Label>
           <Input
             id="otherCost"
             type="number"
@@ -496,16 +589,18 @@ export function ActivityForm({
             min="0"
             value={otherCost}
             onChange={(e) => setOtherCost(e.target.value)}
-            className="w-32"
+            className={cn(CONTROL, "w-32 text-right font-mono tabular")}
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="currency">{t("currency")}</Label>
+          <Label htmlFor="currency" className={MICRO_LABEL}>
+            {t("currency")}
+          </Label>
           <select
             id="currency"
             value={selectedCurrency}
             onChange={(e) => setSelectedCurrency(e.target.value)}
-            className={selectClass}
+            className={CONTROL}
           >
             {currencies.map((code) => (
               <option key={code} value={code}>
@@ -515,24 +610,31 @@ export function ActivityForm({
             ))}
           </select>
         </div>
-        <div className="ml-auto flex flex-col items-end text-sm">
-          <span className="text-muted-foreground">
+        <div className="ml-auto flex flex-col items-end gap-1">
+          <span className="font-mono tabular text-[length:var(--density-font-label)] text-muted-foreground">
             {t("totals.inputs")}: {fmt(totals.inputCost)} · {t("totals.labor")}
             : {fmt(totals.laborCost)} · {t("totals.other")}:{" "}
             {fmt(totals.otherCost)}
           </span>
-          <span className="text-lg font-semibold">
-            {t("totals.total")}: {fmt(totals.totalCost)}
+          <span className="flex items-baseline gap-1.5">
+            <span className={MICRO_LABEL}>{t("totals.total")}</span>
+            <Metric
+              value={fmt(totals.totalCost)}
+              className="text-[length:calc(var(--density-font-body)*1.4)] font-semibold"
+            />
           </span>
         </div>
       </div>
 
-      {saveError && (
-        <p className="text-sm text-destructive">{tOffline("saveError")}</p>
-      )}
-      <Button type="submit" disabled={submitting} className="self-start">
+      {saveError && <Notice variant="error">{tOffline("saveError")}</Notice>}
+
+      <button
+        type="submit"
+        disabled={submitting}
+        className="h-[var(--density-control-h)] w-full rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto"
+      >
         {t("save")}
-      </Button>
+      </button>
     </form>
   );
 }

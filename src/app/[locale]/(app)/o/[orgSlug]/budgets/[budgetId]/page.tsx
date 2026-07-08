@@ -22,16 +22,17 @@ import {
   type MonthCategoryAmount,
 } from "@/lib/calc/variance";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status-chip";
+import { cn } from "@/lib/utils";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
+
+// Same density building blocks as the payroll/planning screens (globals.css
+// [data-mode="field"] retunes these for field mode).
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const CELL = "px-[var(--density-cell-px)] py-[var(--density-cell-py)]";
+const NUM_CELL = `tabular text-right font-mono text-[length:var(--density-font-body)] ${CELL}`;
 
 export default async function BudgetDetailPage({
   params,
@@ -106,7 +107,7 @@ export default async function BudgetDetailPage({
       <div className="flex flex-col gap-2">
         <Link
           href={`/o/${orgSlug}/budgets`}
-          className="w-fit text-sm text-muted-foreground hover:underline"
+          className="w-fit font-mono text-[11px] text-muted-foreground hover:underline"
         >
           ← {t("back")}
         </Link>
@@ -116,7 +117,7 @@ export default async function BudgetDetailPage({
               {budget.name}{" "}
               <span className="text-muted-foreground">({budget.year})</span>
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="tabular font-mono text-[11px] text-muted-foreground">
               {scopeLabel()} · {budget.currencyCode}
             </p>
           </div>
@@ -129,31 +130,62 @@ export default async function BudgetDetailPage({
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("lines.title")}</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-sm">
+      {/* Month × category budget lines — dense matrix, mono microlabel
+          headers, per-cell inline-save forms when editable. */}
+      <div className="flex flex-col rounded-[3px] border border-border">
+        <div className={cn(CELL, "border-b border-border")}>
+          <h2 className={MICRO_LABEL}>{t("lines.title")}</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-[length:var(--density-font-body)]">
             <thead>
-              <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                <th className="p-2">{t("lines.month")}</th>
+              <tr className="border-b border-border bg-muted/40">
+                <th
+                  className={cn(MICRO_LABEL, CELL, "text-left font-semibold")}
+                >
+                  {t("lines.month")}
+                </th>
                 {BUDGET_CATEGORIES.map((category) => (
-                  <th key={category} className="p-2 text-right">
+                  <th
+                    key={category}
+                    className={cn(
+                      MICRO_LABEL,
+                      CELL,
+                      "text-right font-semibold",
+                    )}
+                  >
                     {t(`categories.${category}`)}
                   </th>
                 ))}
-                <th className="p-2 text-right">{t("lines.totalMonth")}</th>
+                <th
+                  className={cn(
+                    MICRO_LABEL,
+                    CELL,
+                    "text-right font-semibold",
+                  )}
+                >
+                  {t("lines.totalMonth")}
+                </th>
               </tr>
             </thead>
             <tbody>
               {MONTHS.map((month) => (
-                <tr key={month} className="border-b last:border-b-0">
-                  <td className="p-2 font-medium">{t(`months.${month}`)}</td>
+                <tr
+                  key={month}
+                  className="border-b border-border last:border-b-0"
+                >
+                  <td
+                    className={cn(
+                      CELL,
+                      "font-mono text-[length:var(--density-font-body)] font-medium",
+                    )}
+                  >
+                    {t(`months.${month}`)}
+                  </td>
                   {BUDGET_CATEGORIES.map((category) => {
                     const amount = lineByKey.get(`${month}:${category}`) ?? "0";
                     return (
-                      <td key={category} className="p-2">
+                      <td key={category} className={canManage ? CELL : NUM_CELL}>
                         {canManage ? (
                           <form
                             action={upsertBudgetLineAction}
@@ -176,59 +208,105 @@ export default async function BudgetDetailPage({
                               name="amount"
                               defaultValue={amount}
                               inputMode="decimal"
-                              className="h-8 w-24 text-right"
+                              className="tabular h-[var(--density-control-h)] w-24 rounded-[3px] border border-border bg-transparent px-[var(--density-cell-px)] text-right font-mono text-[length:var(--density-font-body)] outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
-                            <Button type="submit" size="sm" variant="outline">
+                            <button
+                              type="submit"
+                              className="inline-flex h-[var(--density-control-h)] shrink-0 items-center justify-center rounded-[3px] border border-border px-1.5 font-mono text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            >
                               {t("lines.save")}
-                            </Button>
+                            </button>
                           </form>
                         ) : (
-                          <span className="block text-right">
-                            {money(amount)}
-                          </span>
+                          money(amount)
                         )}
                       </td>
                     );
                   })}
-                  <td className="p-2 text-right font-medium">
+                  <td className={cn(NUM_CELL, "font-semibold")}>
                     {money(totals.byMonth[month] ?? "0")}
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t font-semibold">
-                <td className="p-2">{t("lines.totalCategory")}</td>
+              <tr className="border-t border-border bg-muted/40 font-semibold">
+                <td className={CELL}>{t("lines.totalCategory")}</td>
                 {BUDGET_CATEGORIES.map((category) => (
-                  <td key={category} className="p-2 text-right">
+                  <td key={category} className={NUM_CELL}>
                     {money(totals.byCategory[category] ?? "0")}
                   </td>
                 ))}
-                <td className="p-2 text-right">{money(totals.grand)}</td>
+                <td className={cn(NUM_CELL, "font-bold")}>
+                  {money(totals.grand)}
+                </td>
               </tr>
             </tfoot>
           </table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("variance.title")}</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          {monthsWithData.length === 0 ? (
-            <p className="text-muted-foreground">{t("variance.empty")}</p>
-          ) : (
-            <>
-              <table className="w-full min-w-[640px] border-collapse text-sm">
+      {/* Budget vs. actual variance — mono numerals, fin-token coloring
+          (over budget = red, under budget = green; varianceClass inverts
+          the plain arithmetic sign per its doc comment above). */}
+      <div className="flex flex-col rounded-[3px] border border-border">
+        <div className={cn(CELL, "border-b border-border")}>
+          <h2 className={MICRO_LABEL}>{t("variance.title")}</h2>
+        </div>
+        {monthsWithData.length === 0 ? (
+          <p className={cn(CELL, "text-muted-foreground")}>
+            {t("variance.empty")}
+          </p>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-[length:var(--density-font-body)]">
                 <thead>
-                  <tr className="border-b text-left text-xs font-medium text-muted-foreground">
-                    <th className="p-2">{t("variance.month")}</th>
-                    <th className="p-2"></th>
-                    <th className="p-2 text-right">{t("variance.budget")}</th>
-                    <th className="p-2 text-right">{t("variance.actual")}</th>
-                    <th className="p-2 text-right">{t("variance.variance")}</th>
-                    <th className="p-2 text-right">
+                  <tr className="border-b border-border bg-muted/40">
+                    <th
+                      className={cn(
+                        MICRO_LABEL,
+                        CELL,
+                        "text-left font-semibold",
+                      )}
+                    >
+                      {t("variance.month")}
+                    </th>
+                    <th className={CELL} />
+                    <th
+                      className={cn(
+                        MICRO_LABEL,
+                        CELL,
+                        "text-right font-semibold",
+                      )}
+                    >
+                      {t("variance.budget")}
+                    </th>
+                    <th
+                      className={cn(
+                        MICRO_LABEL,
+                        CELL,
+                        "text-right font-semibold",
+                      )}
+                    >
+                      {t("variance.actual")}
+                    </th>
+                    <th
+                      className={cn(
+                        MICRO_LABEL,
+                        CELL,
+                        "text-right font-semibold",
+                      )}
+                    >
+                      {t("variance.variance")}
+                    </th>
+                    <th
+                      className={cn(
+                        MICRO_LABEL,
+                        CELL,
+                        "text-right font-semibold",
+                      )}
+                    >
                       {t("variance.variancePct")}
                     </th>
                   </tr>
@@ -242,29 +320,39 @@ export default async function BudgetDetailPage({
                       return (
                         <tr
                           key={`${month}:${category}`}
-                          className="border-b last:border-b-0"
+                          className="border-b border-border last:border-b-0"
                         >
-                          <td className="p-2 font-medium">
+                          <td
+                            className={cn(
+                              CELL,
+                              "font-mono text-[length:var(--density-font-body)] font-medium",
+                            )}
+                          >
                             {index === 0 ? t(`months.${month}`) : ""}
                           </td>
-                          <td className="p-2 text-muted-foreground">
+                          <td className={cn(CELL, "text-muted-foreground")}>
                             {t(`categories.${category}`)}
                           </td>
-                          <td className="p-2 text-right">
-                            {money(cell.budget)}
-                          </td>
-                          <td className="p-2 text-right">
-                            {money(cell.actual)}
-                          </td>
+                          <td className={NUM_CELL}>{money(cell.budget)}</td>
+                          <td className={NUM_CELL}>{money(cell.actual)}</td>
                           <td
-                            className={`p-2 text-right font-medium ${varianceClass(cell.variance)}`}
+                            className={cn(
+                              NUM_CELL,
+                              "font-semibold",
+                              varianceClass(cell.variance),
+                            )}
                           >
                             {money(cell.variance)}
                           </td>
                           <td
-                            className={`p-2 text-right ${varianceClass(cell.variance)}`}
+                            className={cn(
+                              NUM_CELL,
+                              varianceClass(cell.variance),
+                            )}
                           >
-                            {cell.variancePct === null ? "—" : `${cell.variancePct}%`}
+                            {cell.variancePct === null
+                              ? "—"
+                              : `${cell.variancePct}%`}
                           </td>
                         </tr>
                       );
@@ -272,68 +360,77 @@ export default async function BudgetDetailPage({
                   )}
                 </tbody>
               </table>
+            </div>
 
-              <div className="mt-4 border-t pt-4">
-                <p className="mb-2 text-xs font-medium text-muted-foreground">
-                  {t("variance.categoryTotals")}
-                </p>
-                <table className="w-full min-w-[640px] border-collapse text-sm">
-                  <tbody>
-                    {report.categoryTotals.map((catTotal) => (
-                      <tr
-                        key={catTotal.category}
-                        className="border-b last:border-b-0"
-                      >
-                        <td className="p-2 font-medium">
-                          {t(`categories.${catTotal.category}`)}
-                        </td>
-                        <td className="p-2 text-right">{money(catTotal.budget)}</td>
-                        <td className="p-2 text-right">{money(catTotal.actual)}</td>
-                        <td
-                          className={`p-2 text-right font-medium ${varianceClass(catTotal.variance)}`}
-                        >
-                          {money(catTotal.variance)}
-                        </td>
-                        <td
-                          className={`p-2 text-right ${varianceClass(catTotal.variance)}`}
-                        >
-                          {catTotal.variancePct === null
-                            ? "—"
-                            : `${catTotal.variancePct}%`}
-                        </td>
-                      </tr>
-                    ))}
-                    <tr className="font-semibold">
-                      <td className="p-2">{t("variance.grandTotals")}</td>
-                      <td className="p-2 text-right">
-                        {money(report.totalBudget)}
+            <div className="border-t border-border">
+              <p className={cn(CELL, MICRO_LABEL, "border-b border-border")}>
+                {t("variance.categoryTotals")}
+              </p>
+              <table className="w-full min-w-[680px] text-[length:var(--density-font-body)]">
+                <tbody>
+                  {report.categoryTotals.map((catTotal) => (
+                    <tr
+                      key={catTotal.category}
+                      className="border-b border-border last:border-b-0"
+                    >
+                      <td className={cn(CELL, "font-medium")}>
+                        {t(`categories.${catTotal.category}`)}
                       </td>
-                      <td className="p-2 text-right">
-                        {money(report.totalActual)}
+                      <td className={NUM_CELL}>{money(catTotal.budget)}</td>
+                      <td className={NUM_CELL}>{money(catTotal.actual)}</td>
+                      <td
+                        className={cn(
+                          NUM_CELL,
+                          "font-semibold",
+                          varianceClass(catTotal.variance),
+                        )}
+                      >
+                        {money(catTotal.variance)}
                       </td>
                       <td
-                        className={`p-2 text-right ${varianceClass(report.totalVariance)}`}
+                        className={cn(
+                          NUM_CELL,
+                          varianceClass(catTotal.variance),
+                        )}
                       >
-                        {money(report.totalVariance)}
+                        {catTotal.variancePct === null
+                          ? "—"
+                          : `${catTotal.variancePct}%`}
                       </td>
-                      <td className="p-2 text-right"></td>
                     </tr>
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                  <tr className="border-t border-border bg-muted/40 font-semibold">
+                    <td className={CELL}>{t("variance.grandTotals")}</td>
+                    <td className={NUM_CELL}>{money(report.totalBudget)}</td>
+                    <td className={NUM_CELL}>{money(report.totalActual)}</td>
+                    <td
+                      className={cn(
+                        NUM_CELL,
+                        "font-bold",
+                        varianceClass(report.totalVariance),
+                      )}
+                    >
+                      {money(report.totalVariance)}
+                    </td>
+                    <td className={CELL} />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
-              <p className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <span className="text-fin-positive">
-                  ● {t("variance.legendUnder")}
-                </span>
-                <span className="text-fin-negative">
-                  ● {t("variance.legendOver")}
-                </span>
-              </p>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-[var(--density-cell-px)] py-[var(--density-cell-py)]">
+              <span className="flex items-center gap-1.5 font-mono text-[11px] text-fin-positive">
+                <span aria-hidden className="size-[6px] shrink-0 bg-fin-positive" />
+                {t("variance.legendUnder")}
+              </span>
+              <span className="flex items-center gap-1.5 font-mono text-[11px] text-fin-negative">
+                <span aria-hidden className="size-[6px] shrink-0 bg-fin-negative" />
+                {t("variance.legendOver")}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

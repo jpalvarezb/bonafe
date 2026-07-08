@@ -5,14 +5,14 @@ import { importJobs } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
 import { importCsvAction } from "@/server/actions/importer";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
+import { cn } from "@/lib/utils";
+
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const CELL = "px-[var(--density-cell-px)] py-[var(--density-cell-py)]";
+const BTN =
+  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
 type RowError = { row: number; error: string };
 
@@ -43,11 +43,13 @@ export default async function ImportPage({
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       {(["products", "parcels"] as const).map((type) => (
-        <Card key={type}>
-          <CardHeader>
-            <CardTitle>{t(`${type}.title`)}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div key={type} className="border border-border">
+          <div className="px-3.5 py-2.5">
+            <span className="text-[13px] font-semibold">
+              {t(`${type}.title`)}
+            </span>
+          </div>
+          <div className="border-t border-border px-3.5 py-3">
             <form
               action={importCsvAction}
               className="flex flex-wrap items-center gap-3"
@@ -60,64 +62,77 @@ export default async function ImportPage({
                 name="file"
                 accept=".csv"
                 required
-                className="text-sm"
+                className="text-[length:var(--density-font-body)] focus-visible:outline-none"
               />
-              <Button type="submit">{t("upload")}</Button>
+              <button type="submit" className={BTN}>
+                {t("upload")}
+              </button>
             </form>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-[length:var(--density-font-label)] text-muted-foreground">
               {t(`${type}.hint`)}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("history.title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {jobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {t("history.empty")}
-            </p>
-          ) : (
-            <div className="divide-y">
-              {jobs.map((job) => {
-                const errors = (job.errorReport as RowError[]) ?? [];
-                return (
-                  <div key={job.id} className="flex flex-col gap-1 py-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="min-w-0 truncate font-medium">
-                        {job.fileName}
-                      </p>
-                      <span className="shrink-0 text-sm text-muted-foreground">
-                        {t(`status.${job.status}`)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {t(`types.${job.type}`)} ·{" "}
-                      {t("history.rows", {
-                        count: Number(job.rowsImported),
+      <div className="border border-border">
+        <div className="px-3.5 py-2.5">
+          <span className="text-[13px] font-semibold">
+            {t("history.title")}
+          </span>
+        </div>
+        {jobs.length === 0 ? (
+          <p
+            className={cn(
+              CELL,
+              "border-t border-border text-[length:var(--density-font-body)] text-muted-foreground",
+            )}
+          >
+            {t("history.empty")}
+          </p>
+        ) : (
+          <div className="border-t border-border">
+            {jobs.map((job) => {
+              const errors = (job.errorReport as RowError[]) ?? [];
+              return (
+                <div
+                  key={job.id}
+                  className={cn(
+                    CELL,
+                    "flex flex-col gap-1 border-b border-border last:border-b-0",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="min-w-0 truncate font-medium">
+                      {job.fileName}
+                    </p>
+                    <span className="shrink-0 font-mono text-[10.5px] text-muted-foreground">
+                      {t(`status.${job.status}`)}
+                    </span>
+                  </div>
+                  <p className={MICRO_LABEL}>
+                    {t(`types.${job.type}`)} ·{" "}
+                    {t("history.rows", {
+                      count: Number(job.rowsImported),
+                    })}
+                  </p>
+                  {errors.slice(0, 3).map((err) => (
+                    <p
+                      key={`${job.id}-${err.row}`}
+                      className="text-[length:var(--density-font-label)] text-destructive"
+                    >
+                      {t("history.rowError", {
+                        row: err.row,
+                        error: err.error,
                       })}
                     </p>
-                    {errors.slice(0, 3).map((err) => (
-                      <p
-                        key={`${job.id}-${err.row}`}
-                        className="text-sm text-destructive"
-                      >
-                        {t("history.rowError", {
-                          row: err.row,
-                          error: err.error,
-                        })}
-                      </p>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

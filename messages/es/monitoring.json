@@ -20,11 +20,19 @@
   "locationDenied": "No se pudo obtener la ubicación",
   "locationUnavailable": "Ubicación no disponible en este dispositivo",
   "locationTitle": "Ubicación: {lat}, {lng}",
+  "photos": "Fotos",
+  "photosPlaceholder": "Adjuntar fotos (próximamente)",
   "create": "Guardar registro",
   "delete": "Eliminar",
   "types": {
     "pest": "Plaga",
     "disease": "Enfermedad",
     "weed": "Maleza"
+  },
+  "gps": {
+    "north": "N",
+    "south": "S",
+    "east": "E",
+    "west": "O"
   }
 }

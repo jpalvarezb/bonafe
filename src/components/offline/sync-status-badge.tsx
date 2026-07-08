@@ -13,9 +13,17 @@ import {
 } from "@/components/ui/popover";
 import { SyncIssuesList } from "@/components/offline/sync-issues-list";
 
-function useOnlineStatus(): boolean {
+/** Shared by any surface that needs to react to connectivity changes (e.g.
+ * the field-capture offline banners) — not just this badge. */
+export function useOnlineStatus(): boolean {
   const [online, setOnline] = useState(() =>
-    typeof navigator !== "undefined" ? navigator.onLine : true,
+    // Node 21+ exposes a partial global `navigator` without `.onLine`, so a
+    // plain `typeof navigator !== "undefined"` check reads as "offline"
+    // during SSR and mismatches the browser's real value on hydration —
+    // gate on the property actually existing, not just the object.
+    typeof navigator !== "undefined" && "onLine" in navigator
+      ? navigator.onLine
+      : true,
   );
 
   useEffect(() => {
