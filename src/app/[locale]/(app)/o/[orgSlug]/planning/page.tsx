@@ -18,14 +18,16 @@ import { listParcels } from "@/server/services/parcels";
 import { listCycles } from "@/server/services/cycles";
 import { listActivityTypes } from "@/server/services/catalog";
 import { PlanningForm } from "@/components/planning/planning-form";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status-chip";
+import { cn } from "@/lib/utils";
+
+// Same density building blocks as the payroll/work-orders/dashboard screens
+// (globals.css [data-mode="field"] retunes these for field mode).
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const BTN =
+  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted";
+const CELL = "px-[var(--density-cell-px)] py-[var(--density-cell-py)]";
 
 // Calendar-cell mini badge is too small/dense for the standard StatusChip
 // shape (font-mono, larger padding) — this keeps the compact custom layout
@@ -34,6 +36,12 @@ const CALENDAR_CHIP_CLASS: Record<PlannedActivityStatus, string> = {
   planned: "bg-life-planned-bg text-life-planned-fg",
   converted: "bg-life-converted-bg text-life-converted-fg",
   cancelled: "bg-life-cancelled-bg text-life-cancelled-fg line-through",
+};
+
+const SUMMARY_COUNT_CLASS: Record<PlannedActivityStatus, string> = {
+  planned: "text-life-planned-fg",
+  converted: "text-life-converted-fg",
+  cancelled: "text-life-cancelled-fg",
 };
 
 // Monday-first week, labelled explicitly in messages/planning.json.
@@ -100,6 +108,9 @@ export default async function PlanningPage({
   const today = new Date();
   const year = clampYear(Number(sp.year), today.getUTCFullYear());
   const month = clampMonth(Number(sp.month), today.getUTCMonth() + 1);
+  const isCurrentMonth =
+    year === today.getUTCFullYear() && month === today.getUTCMonth() + 1;
+  const todayDate = today.getUTCDate();
 
   const [{ rows, counts }, parcels, cycles, activityTypes] =
     await Promise.all([
@@ -132,6 +143,7 @@ export default async function PlanningPage({
 
   // Only "planned" (not yet executed) items carry a meaningful pending
   // estimate — converted activities track real costs on the activity itself.
+  // Decimal throughout — money never floats.
   const totalEstimatedCost = rows
     .filter((row) => row.plan.status === "planned")
     .reduce((sum, row) => sum.plus(row.plan.estimatedCost), new Decimal(0));
@@ -157,88 +169,121 @@ export default async function PlanningPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link
-              href={`/o/${orgSlug}/planning?year=${prev.year}&month=${prev.month}`}
-            >
-              {t("prevMonth")}
-            </Link>
-          </Button>
-          <span className="min-w-32 text-center font-medium capitalize">
+          <Link
+            href={`/o/${orgSlug}/planning?year=${prev.year}&month=${prev.month}`}
+            className={BTN}
+          >
+            {t("prevMonth")}
+          </Link>
+          <span className="min-w-32 text-center font-mono text-[length:var(--density-font-body)] font-semibold capitalize">
             {monthLabel}
           </span>
-          <Button asChild variant="outline" size="sm">
-            <Link
-              href={`/o/${orgSlug}/planning?year=${next.year}&month=${next.month}`}
-            >
-              {t("nextMonth")}
-            </Link>
-          </Button>
+          <Link
+            href={`/o/${orgSlug}/planning?year=${next.year}&month=${next.month}`}
+            className={BTN}
+          >
+            {t("nextMonth")}
+          </Link>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("summary.title")}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <p>
-            <span className="text-muted-foreground">
-              {t("summary.items")}:{" "}
-            </span>
-            <span className="font-medium">{rows.length}</span>
-          </p>
-          <p>
-            <span className="text-muted-foreground">
-              {t("summary.estimatedCost")}:{" "}
-            </span>
-            <span className="font-medium">
-              {formatCost(totalEstimatedCost.toFixed(4))}
-            </span>
-          </p>
-          <p>
-            <span className="text-muted-foreground">
-              {t("status.planned")}:{" "}
-            </span>
-            <span className="font-medium">{counts.planned}</span>
-          </p>
-          <p>
-            <span className="text-muted-foreground">
-              {t("status.converted")}:{" "}
-            </span>
-            <span className="font-medium">{counts.converted}</span>
-          </p>
-          <p>
-            <span className="text-muted-foreground">
-              {t("status.cancelled")}:{" "}
-            </span>
-            <span className="font-medium">{counts.cancelled}</span>
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-2 sm:p-4">
-          <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-muted-foreground">
-            {WEEKDAY_KEYS.map((key) => (
-              <div key={key} className="py-1">
-                {t(`weekdays.${key}`)}
-              </div>
-            ))}
+      {/* Month summary — same KPI-strip idiom as the dashboard panel: mono
+          microlabel + mono numeral per cell. */}
+      <div className="grid grid-cols-2 border border-border sm:grid-cols-3 lg:grid-cols-5">
+        <div
+          className={cn(
+            CELL,
+            "border-b border-border sm:border-r sm:border-b-0",
+          )}
+        >
+          <div className={MICRO_LABEL}>{t("summary.items")}</div>
+          <div className="tabular mt-0.5 font-mono text-[18px] font-semibold">
+            {rows.length}
           </div>
-          <div className="grid grid-cols-7 gap-1">
-            {cells.map((day, i) => (
+        </div>
+        <div
+          className={cn(
+            CELL,
+            "border-b border-border sm:border-r sm:border-b-0",
+          )}
+        >
+          <div className={MICRO_LABEL}>{t("summary.estimatedCost")}</div>
+          <div className="tabular mt-0.5 font-mono text-[18px] font-semibold">
+            {formatCost(totalEstimatedCost.toFixed(4))}
+          </div>
+        </div>
+        <div
+          className={cn(
+            CELL,
+            "border-b border-border sm:border-b sm:border-r lg:border-b-0",
+          )}
+        >
+          <div className={MICRO_LABEL}>{t("status.planned")}</div>
+          <div
+            className={cn(
+              "tabular mt-0.5 font-mono text-[18px] font-semibold",
+              SUMMARY_COUNT_CLASS.planned,
+            )}
+          >
+            {counts.planned}
+          </div>
+        </div>
+        <div
+          className={cn(
+            CELL,
+            "border-border sm:border-b sm:border-r lg:border-b-0 lg:border-r",
+          )}
+        >
+          <div className={MICRO_LABEL}>{t("status.converted")}</div>
+          <div
+            className={cn(
+              "tabular mt-0.5 font-mono text-[18px] font-semibold",
+              SUMMARY_COUNT_CLASS.converted,
+            )}
+          >
+            {counts.converted}
+          </div>
+        </div>
+        <div className={cn(CELL, "border-border")}>
+          <div className={MICRO_LABEL}>{t("status.cancelled")}</div>
+          <div
+            className={cn(
+              "tabular mt-0.5 font-mono text-[18px] font-semibold",
+              SUMMARY_COUNT_CLASS.cancelled,
+            )}
+          >
+            {counts.cancelled}
+          </div>
+        </div>
+      </div>
+
+      {/* Month grid — 1px-bordered day cells, mono day numbers, today
+          subtly marked with the accent-link token. */}
+      <div className="rounded-[3px] border border-border p-2 sm:p-3">
+        <div className="grid grid-cols-7 gap-1">
+          {WEEKDAY_KEYS.map((key) => (
+            <div key={key} className={cn(MICRO_LABEL, "py-1 text-center")}>
+              {t(`weekdays.${key}`)}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((day, i) => {
+            const isToday = isCurrentMonth && day === todayDate;
+            return (
               <div
                 key={i}
-                className={
-                  day === null
-                    ? "min-h-20 rounded-md"
-                    : "min-h-20 rounded-md border p-1"
-                }
+                className={cn(
+                  "min-h-20 rounded-[3px]",
+                  day !== null && "border border-border p-1",
+                  isToday && "border-accent-link bg-accent-link/5",
+                )}
               >
                 {day !== null && (
                   <>
-                    <p className="text-xs text-muted-foreground">{day}</p>
+                    <p className="tabular font-mono text-[10px] text-muted-foreground">
+                      {String(day).padStart(2, "0")}
+                    </p>
                     <div className="mt-1 flex flex-col gap-1">
                       {(rowsByDay.get(day) ?? []).map((row) => (
                         <span
@@ -246,11 +291,12 @@ export default async function PlanningPage({
                           title={`${row.typeName}${
                             row.parcelName ? " · " + row.parcelName : ""
                           }`}
-                          className={`truncate rounded px-1 py-0.5 text-[10px] font-medium ${
+                          className={cn(
+                            "truncate rounded-[3px] px-1 py-0.5 font-mono text-[9.5px] font-medium",
                             CALENDAR_CHIP_CLASS[
                               row.plan.status as PlannedActivityStatus
-                            ]
-                          }`}
+                            ],
+                          )}
                         >
                           {row.typeName}
                           {row.parcelName
@@ -262,112 +308,148 @@ export default async function PlanningPage({
                   </>
                 )}
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            );
+          })}
+        </div>
+      </div>
 
       {rows.length === 0 ? (
-        <p className="text-muted-foreground">{t("empty")}</p>
+        <p className="text-[length:var(--density-font-body)] text-muted-foreground">
+          {t("empty")}
+        </p>
       ) : (
-        <Card>
-          <CardContent className="overflow-x-auto p-0">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="px-4 py-2 font-medium">{t("table.date")}</th>
-                  <th className="px-4 py-2 font-medium">{t("table.type")}</th>
-                  <th className="px-4 py-2 font-medium">
-                    {t("table.parcel")}
-                  </th>
-                  <th className="px-4 py-2 font-medium">
-                    {t("table.cycle")}
-                  </th>
-                  <th className="px-4 py-2 font-medium">
-                    {t("table.estimatedCost")}
-                  </th>
-                  <th className="px-4 py-2 font-medium">
-                    {t("table.status")}
-                  </th>
-                  <th className="px-4 py-2" />
+        <div className="overflow-x-auto rounded-[3px] border border-border">
+          <table className="w-full min-w-[760px] text-[length:var(--density-font-body)]">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th
+                  className={cn(MICRO_LABEL, CELL, "text-left font-semibold")}
+                >
+                  {t("table.date")}
+                </th>
+                <th
+                  className={cn(MICRO_LABEL, CELL, "text-left font-semibold")}
+                >
+                  {t("table.type")}
+                </th>
+                <th
+                  className={cn(MICRO_LABEL, CELL, "text-left font-semibold")}
+                >
+                  {t("table.parcel")}
+                </th>
+                <th
+                  className={cn(MICRO_LABEL, CELL, "text-left font-semibold")}
+                >
+                  {t("table.cycle")}
+                </th>
+                <th
+                  className={cn(
+                    MICRO_LABEL,
+                    CELL,
+                    "text-right font-semibold",
+                  )}
+                >
+                  {t("table.estimatedCost")}
+                </th>
+                <th
+                  className={cn(MICRO_LABEL, CELL, "text-left font-semibold")}
+                >
+                  {t("table.status")}
+                </th>
+                <th className={CELL} />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({ plan: item, typeName, parcelName, cycleName }) => (
+                <tr
+                  key={item.id}
+                  className="border-b border-border transition-colors last:border-b-0 hover:bg-muted/40"
+                >
+                  <td
+                    className={cn(
+                      CELL,
+                      "tabular font-mono text-muted-foreground",
+                    )}
+                  >
+                    {item.plannedDate}
+                  </td>
+                  <td className={CELL}>{typeName}</td>
+                  <td className={CELL}>{parcelName ?? "—"}</td>
+                  <td className={CELL}>{cycleName ?? "—"}</td>
+                  <td
+                    className={cn(CELL, "tabular text-right font-mono")}
+                  >
+                    {formatCost(item.estimatedCost)}
+                  </td>
+                  <td className={CELL}>
+                    <StatusChip
+                      family="life"
+                      state={item.status as PlannedActivityStatus}
+                      className={
+                        item.status === "cancelled"
+                          ? "line-through"
+                          : undefined
+                      }
+                    >
+                      {t(`status.${item.status}`)}
+                    </StatusChip>
+                  </td>
+                  <td className={cn(CELL, "text-right")}>
+                    <div className="flex justify-end gap-2">
+                      {canManage && item.status === "planned" && (
+                        <form action={convertPlannedActivityAction}>
+                          <input
+                            type="hidden"
+                            name="locale"
+                            value={locale}
+                          />
+                          <input
+                            type="hidden"
+                            name="orgSlug"
+                            value={orgSlug}
+                          />
+                          <input type="hidden" name="id" value={item.id} />
+                          <button type="submit" className={BTN}>
+                            {t("convert")}
+                          </button>
+                        </form>
+                      )}
+                      {canManage && item.status === "planned" && (
+                        <form action={cancelPlannedActivityAction}>
+                          <input
+                            type="hidden"
+                            name="locale"
+                            value={locale}
+                          />
+                          <input
+                            type="hidden"
+                            name="orgSlug"
+                            value={orgSlug}
+                          />
+                          <input type="hidden" name="id" value={item.id} />
+                          <button
+                            type="submit"
+                            className="inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium text-muted-foreground transition-colors hover:bg-muted"
+                          >
+                            {t("cancel")}
+                          </button>
+                        </form>
+                      )}
+                      {item.status === "converted" && (
+                        <Link
+                          href={`/o/${orgSlug}/activities`}
+                          className="inline-flex h-[var(--density-control-h)] items-center px-[var(--density-cell-px)] text-[length:var(--density-font-body)] text-accent-link hover:underline"
+                        >
+                          {t("viewActivity")}
+                        </Link>
+                      )}
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y">
-                {rows.map(({ plan: item, typeName, parcelName, cycleName }) => (
-                  <tr key={item.id}>
-                    <td className="px-4 py-2">{item.plannedDate}</td>
-                    <td className="px-4 py-2">{typeName}</td>
-                    <td className="px-4 py-2">{parcelName ?? "—"}</td>
-                    <td className="px-4 py-2">{cycleName ?? "—"}</td>
-                    <td className="px-4 py-2">
-                      {formatCost(item.estimatedCost)}
-                    </td>
-                    <td className="px-4 py-2">
-                      <StatusChip
-                        family="life"
-                        state={item.status as PlannedActivityStatus}
-                        className={
-                          item.status === "cancelled"
-                            ? "line-through"
-                            : undefined
-                        }
-                      >
-                        {t(`status.${item.status}`)}
-                      </StatusChip>
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      <div className="flex justify-end gap-2">
-                        {canManage && item.status === "planned" && (
-                          <form action={convertPlannedActivityAction}>
-                            <input
-                              type="hidden"
-                              name="locale"
-                              value={locale}
-                            />
-                            <input
-                              type="hidden"
-                              name="orgSlug"
-                              value={orgSlug}
-                            />
-                            <input type="hidden" name="id" value={item.id} />
-                            <Button variant="outline" size="sm" type="submit">
-                              {t("convert")}
-                            </Button>
-                          </form>
-                        )}
-                        {canManage && item.status === "planned" && (
-                          <form action={cancelPlannedActivityAction}>
-                            <input
-                              type="hidden"
-                              name="locale"
-                              value={locale}
-                            />
-                            <input
-                              type="hidden"
-                              name="orgSlug"
-                              value={orgSlug}
-                            />
-                            <input type="hidden" name="id" value={item.id} />
-                            <Button variant="ghost" size="sm" type="submit">
-                              {t("cancel")}
-                            </Button>
-                          </form>
-                        )}
-                        {item.status === "converted" && (
-                          <Button asChild variant="ghost" size="sm">
-                            <Link href={`/o/${orgSlug}/activities`}>
-                              {t("viewActivity")}
-                            </Link>
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {canManage && activityTypes.length > 0 && (
