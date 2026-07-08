@@ -30,7 +30,9 @@
     "crops": "Cultivos",
     "members": "Miembros",
     "settings": "Configuración",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "locked": "Bloqueado",
+    "lockedTooltip": "Disponible desde el plan {tier}"
   },
   "language": {
     "label": "Idioma",
@@ -58,5 +60,10 @@
   "shell": {
     "welcome": "Bienvenido, {name}",
     "emptyState": "Tu espacio de trabajo está listo. Pronto podrás crear tu organización y fincas."
+  },
+  "error": {
+    "title": "Algo salió mal",
+    "description": "Ocurrió un error inesperado. Puedes intentarlo de nuevo.",
+    "retry": "Reintentar"
   }
 }

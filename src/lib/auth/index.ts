@@ -4,6 +4,7 @@ import { nextCookies } from "better-auth/next-js";
 import { organization } from "better-auth/plugins";
 import { db } from "../db";
 import * as schema from "../db/schema";
+import { routing } from "../../i18n/routing";
 import { ac, roles } from "./permissions";
 
 export const auth = betterAuth({
@@ -38,10 +39,18 @@ export const auth = betterAuth({
       roles,
       creatorRole: "owner",
       async sendInvitationEmail(data) {
-        // TODO(phase 2): send via SMTP (mailpit locally). For now, log the link.
+        // TODO(phase 2): send via SMTP (mailpit locally). For now, log the
+        // link. The invitee has no account yet (no `user` row, no
+        // `user.locale`), so the inviter's own current locale is the best
+        // available signal for which locale the accept page should open
+        // in — data.inviter.user carries the same additionalFields
+        // (including `locale`) as the session user.
+        const locale =
+          (data.inviter.user as { locale?: string }).locale ??
+          routing.defaultLocale;
         console.log(
           `[invite] ${data.email} -> ${data.organization.name}: ` +
-            `${process.env.BETTER_AUTH_URL}/es/invite/${data.id}`,
+            `${process.env.BETTER_AUTH_URL}/${locale}/invite/${data.id}`,
         );
       },
     }),

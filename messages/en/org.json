@@ -17,12 +17,14 @@
     "send": "Send invitation",
     "pending": "Pending invitations",
     "copyLink": "Copy link",
+    "copied": "Copied",
     "invited": "Invitation created",
     "error": "Could not send the invitation",
     "errors": {
       "duplicatePending": "There is already a pending invitation for that email.",
       "unknown": "Could not send the invitation"
-    }
+    },
+    "copyManual": "Copy the link manually:"
   },
   "roles": {
     "owner": "Owner",

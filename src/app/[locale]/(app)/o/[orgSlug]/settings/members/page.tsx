@@ -8,6 +8,7 @@ import { ORG_ROLES } from "@/lib/auth/permissions";
 import { inviteMemberAction } from "@/server/actions/members";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CopyInviteLinkButton } from "@/components/org/copy-invite-link-button";
 import {
   Card,
   CardContent,
@@ -119,19 +120,26 @@ export default async function MembersPage({
                   {t("members.pending")}
                 </h3>
                 <ul className="flex flex-col gap-2">
-                  {pendingInvites.map((inv) => (
-                    <li
-                      key={inv.id}
-                      className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                    >
-                      <span>
-                        {inv.email} · {t(`roles.${inv.role ?? "field_supervisor"}`)}
-                      </span>
-                      <code className="text-xs text-muted-foreground">
-                        /{locale}/invite/{inv.id}
-                      </code>
-                    </li>
-                  ))}
+                  {pendingInvites.map((inv) => {
+                    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/${locale}/invite/${inv.id}`;
+                    return (
+                      <li
+                        key={inv.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                      >
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span>
+                            {inv.email} ·{" "}
+                            {t(`roles.${inv.role ?? "field_supervisor"}`)}
+                          </span>
+                          <code className="truncate text-xs text-muted-foreground">
+                            {inviteUrl}
+                          </code>
+                        </div>
+                        <CopyInviteLinkButton url={inviteUrl} />
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}

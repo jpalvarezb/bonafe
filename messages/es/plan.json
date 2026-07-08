@@ -33,7 +33,8 @@
     "sales": "Procesamiento y ventas",
     "machinery": "Maquinaria",
     "budgets": "Presupuestos",
-    "warehouses": "Multi-bodega"
+    "warehouses": "Multi-bodega",
+    "planning": "Planificación"
   },
   "general": {
     "title": "Configuración",

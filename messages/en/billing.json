@@ -1,6 +1,7 @@
 {
   "changeTo": "Switch to {plan}",
   "manageBilling": "Manage billing",
+  "noPermission": "Only the owner or an admin can manage the organization's billing.",
   "upgraded": {
     "title": "Payment started",
     "description": "Your plan will update as soon as Stripe confirms the payment. This can take a few seconds."

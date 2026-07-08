@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { requireOrgContext } from "@/lib/tenancy";
+import { can } from "@/lib/authz";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -20,11 +21,16 @@ export default async function GeneralSettingsPage({
     { key: "timezone", value: ctx.org.timezone },
   ] as const;
 
+  // settings/import returns a blank page (`return null`) for roles lacking
+  // catalog:manage (see settings/import/page.tsx) — don't link to a dead end.
+  const canImport = can(ctx.role, "catalog", "manage");
   const links = [
     { key: "members", href: `/o/${orgSlug}/settings/members` },
     { key: "plan", href: `/o/${orgSlug}/settings/plan` },
     { key: "currencies", href: `/o/${orgSlug}/settings/currencies` },
-    { key: "import", href: `/o/${orgSlug}/settings/import` },
+    ...(canImport
+      ? [{ key: "import", href: `/o/${orgSlug}/settings/import` } as const]
+      : []),
     { key: "audit", href: `/o/${orgSlug}/settings/audit` },
   ] as const;
 

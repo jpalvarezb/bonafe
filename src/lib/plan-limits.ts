@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { count, eq } from "drizzle-orm";
 import { db } from "./db";
 import { withOrgRls } from "./db/rls";
@@ -80,8 +81,12 @@ export type OrgPlan = {
   limits: PlanLimits;
 };
 
-/** Orgs without a subscription row are treated as a Cosecha trial (dev/demo). */
-export async function getOrgPlan(orgId: string): Promise<OrgPlan> {
+/** Orgs without a subscription row are treated as a Cosecha trial (dev/demo).
+ * Wrapped in React cache(): the org layout now fetches the plan for the nav
+ * on every request, and gated pages fetch it again — dedupe per request. */
+export const getOrgPlan = cache(async function getOrgPlan(
+  orgId: string,
+): Promise<OrgPlan> {
   const rows = await withOrgRls(orgId, (tx) =>
     tx
       .select({
@@ -112,7 +117,7 @@ export async function getOrgPlan(orgId: string): Promise<OrgPlan> {
     status: row.status,
     limits: row.limits as PlanLimits,
   };
-}
+});
 
 /**
  * Feature gate for Tier 2/3 modules ("labor", "payroll", "inventory",
@@ -120,6 +125,26 @@ export async function getOrgPlan(orgId: string): Promise<OrgPlan> {
  */
 export function hasFeature(plan: OrgPlan, feature: string): boolean {
   return plan.limits.features.includes(feature);
+}
+
+/**
+ * Feature -> display name of the lowest tier that includes it
+ * (PLAN_DEFINITIONS is ordered semilla/cultivo/cosecha, low to high, and
+ * each tier's feature list is a superset of the one below it). Pure/static
+ * — no org context needed. Plan names ("Semilla"/"Cultivo"/"Cosecha") are
+ * proper nouns rendered as-is elsewhere (see settings/plan/page.tsx), not
+ * translated. Used by the org layout to tell SidebarNav which tier unlocks
+ * a locked item without the client bundle importing this db-touching
+ * module directly.
+ */
+export function getFeatureTierMap(): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const def of PLAN_DEFINITIONS) {
+    for (const feature of def.limits.features) {
+      if (!(feature in map)) map[feature] = def.name;
+    }
+  }
+  return map;
 }
 
 export class FeatureNotInPlanError extends Error {

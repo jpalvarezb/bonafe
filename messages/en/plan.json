@@ -33,7 +33,8 @@
     "sales": "Processing and sales",
     "machinery": "Machinery",
     "budgets": "Budgets",
-    "warehouses": "Multi-warehouse"
+    "warehouses": "Multi-warehouse",
+    "planning": "Planning"
   },
   "general": {
     "title": "Settings",

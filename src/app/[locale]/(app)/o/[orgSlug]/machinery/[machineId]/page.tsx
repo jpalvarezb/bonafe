@@ -90,21 +90,23 @@ export default async function MachineDetailPage({
         )}
       </div>
 
-      <MachineForm
-        locale={locale}
-        orgSlug={orgSlug}
-        machine={{
-          id: machine.id,
-          name: machine.name,
-          code: machine.code,
-          category: machine.category,
-          brand: machine.brand,
-          model: machine.model,
-          year: machine.year,
-          hourlyCost: machine.hourlyCost,
-          notes: machine.notes,
-        }}
-      />
+      {canManage && (
+        <MachineForm
+          locale={locale}
+          orgSlug={orgSlug}
+          machine={{
+            id: machine.id,
+            name: machine.name,
+            code: machine.code,
+            category: machine.category,
+            brand: machine.brand,
+            model: machine.model,
+            year: machine.year,
+            hourlyCost: machine.hourlyCost,
+            notes: machine.notes,
+          }}
+        />
+      )}
 
       <h2 className="text-xl font-semibold">{t("logs.title")}</h2>
 

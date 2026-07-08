@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { withOrgRls } from "@/lib/db/rls";
 import { farms, invitation, member, orgSubscriptions } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
+import { can } from "@/lib/authz";
 import { getOrgPlan, PLAN_DEFINITIONS } from "@/lib/plan-limits";
 import { isStripeConfigured } from "@/lib/stripe";
 import {
@@ -33,6 +34,7 @@ export default async function PlanPage({
 
   const plan = await getOrgPlan(ctx.org.id);
   const stripeEnabled = isStripeConfigured();
+  const canManageBilling = can(ctx.role, "settings", "manage");
 
   // member/invitation carry no RLS (see src/lib/db/schema/tenancy.ts); farms
   // and org_subscriptions do — all four run under one withOrgRls so the GUC
@@ -125,7 +127,7 @@ export default async function PlanPage({
             {t("usage.farms")}: {farmCount} /{" "}
             {plan.limits.maxFarms ?? t("unlimited")}
           </p>
-          {stripeEnabled && hasStripeCustomer && (
+          {stripeEnabled && hasStripeCustomer && canManageBilling && (
             <form action={createPortalSessionAction} className="mt-2">
               <input type="hidden" name="locale" value={locale} />
               <input type="hidden" name="orgSlug" value={orgSlug} />
@@ -133,6 +135,11 @@ export default async function PlanPage({
                 {tBilling("manageBilling")}
               </Button>
             </form>
+          )}
+          {stripeEnabled && hasStripeCustomer && !canManageBilling && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {tBilling("noPermission")}
+            </p>
           )}
         </CardContent>
       </Card>
@@ -179,7 +186,7 @@ export default async function PlanPage({
                     <li key={feature}>· {t(`features.${feature}`)}</li>
                   ))}
                 </ul>
-                {!isCurrent && stripeEnabled && (
+                {!isCurrent && stripeEnabled && canManageBilling && (
                   <form action={createCheckoutSessionAction} className="mt-2">
                     <input type="hidden" name="locale" value={locale} />
                     <input type="hidden" name="orgSlug" value={orgSlug} />
@@ -188,6 +195,11 @@ export default async function PlanPage({
                       {tBilling("changeTo", { plan: def.name })}
                     </Button>
                   </form>
+                )}
+                {!isCurrent && stripeEnabled && !canManageBilling && (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {tBilling("noPermission")}
+                  </p>
                 )}
                 {!isCurrent && !stripeEnabled && (
                   <Button disabled variant="outline" className="mt-2">

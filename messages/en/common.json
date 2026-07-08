@@ -30,7 +30,9 @@
     "crops": "Crops",
     "members": "Members",
     "settings": "Settings",
-    "logout": "Log out"
+    "logout": "Log out",
+    "locked": "Locked",
+    "lockedTooltip": "Available from the {tier} plan"
   },
   "language": {
     "label": "Language",
@@ -58,5 +60,10 @@
   "shell": {
     "welcome": "Welcome, {name}",
     "emptyState": "Your workspace is ready. Soon you'll be able to create your organization and farms."
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. You can try again.",
+    "retry": "Retry"
   }
 }

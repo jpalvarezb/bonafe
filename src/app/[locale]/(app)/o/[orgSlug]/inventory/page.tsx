@@ -2,6 +2,7 @@ import { getFormatter, getTranslations, setRequestLocale } from "next-intl/serve
 import { redirect } from "next/navigation";
 import Decimal from "decimal.js";
 import { requireOrgContext } from "@/lib/tenancy";
+import { can } from "@/lib/authz";
 import { getOrgPlan, hasFeature } from "@/lib/plan-limits";
 import {
   ensureDefaultWarehouse,
@@ -27,6 +28,10 @@ export default async function InventoryPage({
 
   const t = await getTranslations("inventory");
   const format = await getFormatter();
+  // recordAdjustmentAction -> recordAdjustment requires inventory:manage
+  // (src/server/services/inventory.ts); mirrors the warehouses page idiom
+  // of hiding the create form for roles that can't submit it.
+  const canManage = can(ctx.role, "inventory", "manage");
 
   // Guarantee at least one warehouse exists so the adjustment form has an option.
   await ensureDefaultWarehouse(ctx);
@@ -123,12 +128,14 @@ export default async function InventoryPage({
         </CardContent>
       </Card>
 
-      <AdjustmentForm
-        locale={locale}
-        orgSlug={orgSlug}
-        products={products.map((p) => ({ id: p.id, name: p.name }))}
-        warehouses={warehouses.map((w) => ({ id: w.id, name: w.name }))}
-      />
+      {canManage && (
+        <AdjustmentForm
+          locale={locale}
+          orgSlug={orgSlug}
+          products={products.map((p) => ({ id: p.id, name: p.name }))}
+          warehouses={warehouses.map((w) => ({ id: w.id, name: w.name }))}
+        />
+      )}
     </div>
   );
 }

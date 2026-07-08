@@ -17,12 +17,14 @@
     "send": "Enviar invitación",
     "pending": "Invitaciones pendientes",
     "copyLink": "Copiar enlace",
+    "copied": "Copiado",
     "invited": "Invitación creada",
     "error": "No se pudo enviar la invitación",
     "errors": {
       "duplicatePending": "Ya hay una invitación pendiente para ese correo.",
       "unknown": "No se pudo enviar la invitación"
-    }
+    },
+    "copyManual": "Copia el enlace manualmente:"
   },
   "roles": {
     "owner": "Propietario",
