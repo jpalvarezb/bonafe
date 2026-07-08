@@ -43,10 +43,11 @@ export type NavItem = {
 };
 
 /**
- * An always-expanded, labeled group. `icon` is only rendered when the whole
+ * A labeled, collapsible group. `icon` is only rendered when the whole
  * section collapses into a single locked row (every item gated + locked) —
- * see sidebar-nav.tsx. Pure data (no accordion/open state) by design: IA
- * Phase 1 groups are permanent sections, not collapsibles.
+ * see sidebar-nav.tsx. Pure data by design: expand/collapse is session UI
+ * state owned by sidebar-nav.tsx (default collapsed, auto-expands the
+ * section holding the active route), not modeled here.
  */
 export type NavSection = {
   readonly key: string;
