@@ -100,7 +100,7 @@ export default async function BudgetsPage({
                     <input type="hidden" name="id" value={budget.id} />
                     <button
                       type="submit"
-                      className="inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium text-muted-foreground transition-colors hover:bg-muted"
+                      className="inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
                       {t("delete")}
                     </button>
@@ -189,7 +189,7 @@ export default async function BudgetsPage({
             </div>
             <button
               type="submit"
-              className="h-[var(--density-control-h)] self-end justify-self-start rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90"
+              className="h-[var(--density-control-h)] self-end justify-self-start rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               {t("create")}
             </button>

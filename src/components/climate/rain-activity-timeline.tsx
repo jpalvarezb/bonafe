@@ -4,13 +4,10 @@ import {
   activitiesForTimeline,
   cycleRainfallAccumulation,
 } from "@/server/reports/climate";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { RainActivityChart } from "./rain-activity-chart";
+
+const MICRO_LABEL =
+  "font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
 
 /** Every calendar day in [from, to] inclusive, as YYYY-MM-DD strings. */
 function dateRange(from: string, to: string): string[] {
@@ -44,21 +41,19 @@ export async function RainActivityTimeline({
   }));
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("timelineTitle")}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <div className="border border-border">
+      <div className="px-3.5 py-2.5">
+        <span className="text-[13px] font-semibold">{t("timelineTitle")}</span>
+      </div>
+      <div className="flex flex-col gap-4 border-t border-border px-3.5 py-3">
         <div className="flex flex-wrap items-end gap-6">
           <div>
-            <p className="text-sm text-muted-foreground">
-              {t("accumulatedTotal")}
-            </p>
-            <p className="text-3xl font-semibold">
+            <p className={MICRO_LABEL}>{t("accumulatedTotal")}</p>
+            <p className="tabular mt-0.5 font-mono text-[22px] font-semibold">
               {accumulation.totalMm} mm
             </p>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="font-mono text-[11px] text-muted-foreground">
             {t("accumulatedRange", {
               from: accumulation.from,
               to: accumulation.to,
@@ -68,14 +63,14 @@ export async function RainActivityTimeline({
         </div>
 
         {accumulation.days === 0 ? (
-          <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+          <div className="rounded-[3px] border border-border bg-muted/40 p-4 text-[length:var(--density-font-body)] text-muted-foreground">
             <p>{t("timelineEmpty")}</p>
             <p>{t("timelineEmptyHint")}</p>
           </div>
         ) : (
           <RainActivityChart days={days} activities={cycleActivities} />
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

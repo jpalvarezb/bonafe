@@ -204,7 +204,7 @@ export default async function PayrollPeriodDetailPage({
               <input type="hidden" name="periodId" value={period.id} />
               <button
                 type="submit"
-                className="h-[var(--density-control-h)] rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted"
+                className="h-[var(--density-control-h)] rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
               >
                 {entries.length === 0 ? t("generate") : t("regenerate")}
               </button>
@@ -216,7 +216,7 @@ export default async function PayrollPeriodDetailPage({
                 <input type="hidden" name="periodId" value={period.id} />
                 <button
                   type="submit"
-                  className="h-[var(--density-control-h)] rounded-[3px] bg-foreground px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90"
+                  className="h-[var(--density-control-h)] rounded-[3px] bg-foreground px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   {t("close")}
                 </button>
@@ -383,7 +383,7 @@ export default async function PayrollPeriodDetailPage({
                       <span className="pr-[var(--density-cell-px)]">
                         <button
                           type="submit"
-                          className="h-[var(--density-control-h)] rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted"
+                          className="h-[var(--density-control-h)] rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                         >
                           {t("entries.save")}
                         </button>

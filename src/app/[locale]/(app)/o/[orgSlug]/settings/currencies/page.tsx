@@ -7,16 +7,20 @@ import {
   deleteExchangeRateAction,
   upsertExchangeRateAction,
 } from "@/server/actions/exchange-rates";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
+import { cn } from "@/lib/utils";
+
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const CELL = "px-[var(--density-cell-px)] py-[var(--density-cell-py)]";
+const CONTROL =
+  "h-[var(--density-control-h)] w-full rounded-[3px] border border-border bg-transparent px-[var(--density-cell-px)] text-[length:var(--density-font-body)] outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const BTN =
+  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+const BTN_GHOST =
+  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] px-2 font-mono text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
 export default async function CurrenciesPage({
   params,
@@ -33,77 +37,87 @@ export default async function CurrenciesPage({
     (c) => c.code !== ctx.org.baseCurrencyCode,
   );
 
-  const selectClass =
-    "border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs";
-
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <SettingsTabs orgSlug={orgSlug} role={ctx.role} active="currencies" />
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
-      <Card>
-        <CardContent className="flex items-center justify-between py-4">
-          <span className="text-sm text-muted-foreground">
-            {t("baseCurrency")}
-          </span>
-          <span className="text-lg font-semibold">
-            {ctx.org.baseCurrencyCode}
-          </span>
-        </CardContent>
-      </Card>
+      <div
+        className={cn(
+          CELL,
+          "flex items-center justify-between border border-border",
+        )}
+      >
+        <span className={MICRO_LABEL}>{t("baseCurrency")}</span>
+        <span className="tabular font-mono text-[18px] font-semibold">
+          {ctx.org.baseCurrencyCode}
+        </span>
+      </div>
 
-      <Card>
-        <CardContent className="divide-y">
-          {rates.length === 0 ? (
-            <p className="py-4 text-muted-foreground">{t("empty")}</p>
-          ) : (
-            rates.map((rate) => (
-              <div
-                key={rate.id}
-                className="flex items-center justify-between py-3"
-              >
-                <div>
-                  <p className="font-medium">{rate.currencyCode}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {t("rate")}: {rate.rateToBase} · {t("validFrom")}:{" "}
-                    {rate.validDate}
-                  </p>
-                </div>
-                {canManage && (
-                  <form action={deleteExchangeRateAction}>
-                    <input type="hidden" name="locale" value={locale} />
-                    <input type="hidden" name="orgSlug" value={orgSlug} />
-                    <input type="hidden" name="id" value={rate.id} />
-                    <Button variant="ghost" size="sm" type="submit">
-                      {t("delete")}
-                    </Button>
-                  </form>
-                )}
+      <div className="border border-border">
+        {rates.length === 0 ? (
+          <p
+            className={cn(
+              CELL,
+              "text-[length:var(--density-font-body)] text-muted-foreground",
+            )}
+          >
+            {t("empty")}
+          </p>
+        ) : (
+          rates.map((rate) => (
+            <div
+              key={rate.id}
+              className={cn(
+                CELL,
+                "flex items-center justify-between border-b border-border last:border-b-0",
+              )}
+            >
+              <div>
+                <p className="font-mono text-[length:var(--density-font-body)] font-medium">
+                  {rate.currencyCode}
+                </p>
+                <p className="tabular font-mono text-[10.5px] text-muted-foreground">
+                  {t("rate")}: {rate.rateToBase} · {t("validFrom")}:{" "}
+                  {rate.validDate}
+                </p>
               </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+              {canManage && (
+                <form action={deleteExchangeRateAction}>
+                  <input type="hidden" name="locale" value={locale} />
+                  <input type="hidden" name="orgSlug" value={orgSlug} />
+                  <input type="hidden" name="id" value={rate.id} />
+                  <button type="submit" className={BTN_GHOST}>
+                    {t("delete")}
+                  </button>
+                </form>
+              )}
+            </div>
+          ))
+        )}
+      </div>
 
       {canManage && otherCurrencies.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("addRate")}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="border border-border">
+          <div className="px-3.5 py-2.5">
+            <span className="text-[13px] font-semibold">{t("addRate")}</span>
+          </div>
+          <div className="border-t border-border px-3.5 py-3">
             <form
               action={upsertExchangeRateAction}
               className="grid gap-4 sm:grid-cols-3"
             >
               <input type="hidden" name="locale" value={locale} />
               <input type="hidden" name="orgSlug" value={orgSlug} />
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="currencyCode">{t("currency")}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="currencyCode" className={MICRO_LABEL}>
+                  {t("currency")}
+                </Label>
                 <select
                   id="currencyCode"
                   name="currencyCode"
                   required
-                  className={selectClass}
+                  className={CONTROL}
                 >
                   {otherCurrencies.map((currency) => (
                     <option key={currency.code} value={currency.code}>
@@ -112,8 +126,10 @@ export default async function CurrenciesPage({
                   ))}
                 </select>
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="rateToBase">{t("rate")}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="rateToBase" className={MICRO_LABEL}>
+                  {t("rate")}
+                </Label>
                 <Input
                   id="rateToBase"
                   name="rateToBase"
@@ -121,27 +137,34 @@ export default async function CurrenciesPage({
                   step="0.00000001"
                   min="0"
                   required
+                  className={cn(CONTROL, "tabular font-mono")}
                 />
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="validDate">{t("validFrom")}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="validDate" className={MICRO_LABEL}>
+                  {t("validFrom")}
+                </Label>
                 <Input
                   id="validDate"
                   name="validDate"
                   type="date"
                   required
                   defaultValue={today}
+                  className={CONTROL}
                 />
               </div>
-              <p className="text-sm text-muted-foreground sm:col-span-3">
+              <p className="text-[length:var(--density-font-label)] text-muted-foreground sm:col-span-3">
                 {t("hint")}
               </p>
-              <Button type="submit" className="self-start sm:col-span-3">
+              <button
+                type="submit"
+                className={cn(BTN, "self-start sm:col-span-3")}
+              >
                 {t("addRate")}
-              </Button>
+              </button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   );

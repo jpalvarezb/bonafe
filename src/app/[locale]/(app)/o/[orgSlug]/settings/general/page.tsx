@@ -2,9 +2,14 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
+import { cn } from "@/lib/utils";
+
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const CELL = "px-[var(--density-cell-px)] py-[var(--density-cell-py)]";
+const BTN =
+  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 
 export default async function GeneralSettingsPage({
   params,
@@ -40,31 +45,30 @@ export default async function GeneralSettingsPage({
       <SettingsTabs orgSlug={orgSlug} role={ctx.role} active="general" />
       <h1 className="text-2xl font-semibold">{t("general.title")}</h1>
 
-      <Card>
-        <CardContent className="divide-y">
-          {rows.map((row) => (
-            <div
-              key={row.key}
-              className="flex items-center justify-between py-3"
-            >
-              <span className="text-sm text-muted-foreground">
-                {t(`general.${row.key}`)}
-              </span>
-              <span className="text-sm font-medium">{row.value}</span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="border border-border">
+        {rows.map((row) => (
+          <div
+            key={row.key}
+            className={cn(
+              CELL,
+              "flex items-center justify-between border-b border-border last:border-b-0",
+            )}
+          >
+            <span className={MICRO_LABEL}>{t(`general.${row.key}`)}</span>
+            <span className="text-[length:var(--density-font-body)] font-medium">
+              {row.value}
+            </span>
+          </div>
+        ))}
+      </div>
 
-      <Card>
-        <CardContent className="flex flex-wrap gap-2">
-          {links.map((link) => (
-            <Button key={link.key} asChild variant="outline">
-              <Link href={link.href}>{t(`general.links.${link.key}`)}</Link>
-            </Button>
-          ))}
-        </CardContent>
-      </Card>
+      <div className={cn(CELL, "flex flex-wrap gap-2 border border-border")}>
+        {links.map((link) => (
+          <Link key={link.key} href={link.href} className={BTN}>
+            {t(`general.links.${link.key}`)}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

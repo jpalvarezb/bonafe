@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 const MICRO_LABEL =
   "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
 const BTN =
-  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted";
+  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
 const CELL = "px-[var(--density-cell-px)] py-[var(--density-cell-py)]";
 
 // Calendar-cell mini badge is too small/dense for the standard StatusChip
@@ -429,7 +429,7 @@ export default async function PlanningPage({
                           <input type="hidden" name="id" value={item.id} />
                           <button
                             type="submit"
-                            className="inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium text-muted-foreground transition-colors hover:bg-muted"
+                            className="inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium text-muted-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                           >
                             {t("cancel")}
                           </button>

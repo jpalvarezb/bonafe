@@ -10,19 +10,27 @@ import {
 } from "@/server/actions/climate";
 import { ingestClimateAction } from "@/server/actions/climate-ingest";
 import { ClimateCharts } from "@/components/climate/climate-charts";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
+import { cn } from "@/lib/utils";
 
-const selectClass =
-  "border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs";
+// Same density building blocks as payroll/planning/work-orders/budgets
+// (globals.css [data-mode="field"] retunes these for field-mode capture —
+// climate readings, like attendance, are often logged from the field).
+const MICRO_LABEL =
+  "font-mono text-[length:var(--density-font-label)] font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const CONTROL =
+  "h-[var(--density-control-h)] w-full rounded-[3px] border border-border bg-transparent px-[var(--density-cell-px)] text-[length:var(--density-font-body)] outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const BTN_PRIMARY =
+  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] bg-foreground px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+const BTN_GHOST =
+  "inline-flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] px-2 font-mono text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none";
+const CELL = "px-[var(--density-cell-px)] py-[var(--density-cell-py)]";
+
+// Board-order: fecha / lluvia / t.min / t.max / humedad / fuente / acción.
+const READINGS_COLS =
+  "grid-cols-[96px_84px_84px_84px_84px_104px_60px]";
 
 const INGEST_ERROR_KEYS = [
   "farmNotFound",
@@ -99,9 +107,7 @@ export default async function ClimatePage({
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
       {ingestErrorKey && (
-        <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {t(`ingest.errors.${ingestErrorKey}`)}
-        </p>
+        <Notice variant="error">{t(`ingest.errors.${ingestErrorKey}`)}</Notice>
       )}
 
       {ingestedCount !== null && !ingestErrorKey && (
@@ -111,17 +117,21 @@ export default async function ClimatePage({
         </Notice>
       )}
 
+      {/* Farm switcher — bordered mono pill control, same idiom as the map
+          cockpit's farm picker (map-cockpit.tsx). Preserves the ?farm=
+          param-driven switching untouched. */}
       {farmsList.length > 1 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1 rounded-[3px] border border-border p-1">
           {farmsList.map((farm) => (
             <Link
               key={farm.id}
               href={`/o/${orgSlug}/climate?farm=${farm.id}`}
-              className={
+              className={cn(
+                "rounded-[3px] px-2 py-1 font-mono text-[11px] font-medium transition-colors",
                 farm.id === activeFarmId
-                  ? "rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground"
-                  : "rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/70"
-              }
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
             >
               {farm.name}
             </Link>
@@ -129,11 +139,11 @@ export default async function ClimatePage({
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("charts")}</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="border border-border">
+        <div className="px-3.5 py-2.5">
+          <span className="text-[13px] font-semibold">{t("charts")}</span>
+        </div>
+        <div className="border-t border-border px-3.5 py-3">
           <ClimateCharts
             readings={readings.map((reading) => ({
               date: reading.date,
@@ -142,29 +152,33 @@ export default async function ClimatePage({
               tempMaxC: reading.tempMaxC,
             }))}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {canCreate && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("ingest.title")}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="border border-border">
+          <div className="px-3.5 py-2.5">
+            <span className="text-[13px] font-semibold">
+              {t("ingest.title")}
+            </span>
+          </div>
+          <div className="border-t border-border px-3.5 py-3">
             <form
               action={ingestClimateAction}
               className="grid gap-4 sm:grid-cols-2"
             >
               <input type="hidden" name="locale" value={locale} />
               <input type="hidden" name="orgSlug" value={orgSlug} />
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ingestFarmId">{t("ingest.farm")}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ingestFarmId" className={MICRO_LABEL}>
+                  {t("ingest.farm")}
+                </Label>
                 <select
                   id="ingestFarmId"
                   name="farmId"
                   required
                   defaultValue={activeFarmId}
-                  className={selectClass}
+                  className={CONTROL}
                 >
                   {farmsList.map((farm) => (
                     <option key={farm.id} value={farm.id}>
@@ -173,14 +187,16 @@ export default async function ClimatePage({
                   ))}
                 </select>
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ingestProvider">{t("ingest.provider")}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ingestProvider" className={MICRO_LABEL}>
+                  {t("ingest.provider")}
+                </Label>
                 <select
                   id="ingestProvider"
                   name="provider"
                   required
                   defaultValue="open_meteo"
-                  className={selectClass}
+                  className={CONTROL}
                 >
                   <option value="open_meteo">
                     {t("ingest.providerOpenMeteo")}
@@ -188,40 +204,51 @@ export default async function ClimatePage({
                   <option value="chirps">{t("ingest.providerChirps")}</option>
                 </select>
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ingestFrom">{t("ingest.from")}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ingestFrom" className={MICRO_LABEL}>
+                  {t("ingest.from")}
+                </Label>
                 <Input
                   id="ingestFrom"
                   name="from"
                   type="date"
                   required
                   defaultValue={thirtyDaysAgo}
+                  className={CONTROL}
                 />
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="ingestTo">{t("ingest.to")}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="ingestTo" className={MICRO_LABEL}>
+                  {t("ingest.to")}
+                </Label>
                 <Input
                   id="ingestTo"
                   name="to"
                   type="date"
                   required
                   defaultValue={today}
+                  className={CONTROL}
                 />
               </div>
-              <Button type="submit" className="self-end justify-self-start">
+              <button
+                type="submit"
+                className={cn(BTN_PRIMARY, "self-end justify-self-start")}
+              >
                 {t("ingest.submit")}
-              </Button>
+              </button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {canCreate && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("newReading")}</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="border border-border">
+          <div className="px-3.5 py-2.5">
+            <span className="text-[13px] font-semibold">
+              {t("newReading")}
+            </span>
+          </div>
+          <div className="border-t border-border px-3.5 py-3">
             <form
               action={upsertClimateAction}
               className="grid gap-4 sm:grid-cols-2"
@@ -229,36 +256,60 @@ export default async function ClimatePage({
               <input type="hidden" name="locale" value={locale} />
               <input type="hidden" name="orgSlug" value={orgSlug} />
               <input type="hidden" name="farmId" value={activeFarmId} />
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="date">{t("date")}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="date" className={MICRO_LABEL}>
+                  {t("date")}
+                </Label>
                 <Input
                   id="date"
                   name="date"
                   type="date"
                   required
                   defaultValue={today}
+                  className={CONTROL}
                 />
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="rainfallMm">{t("rainfall")}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="rainfallMm" className={MICRO_LABEL}>
+                  {t("rainfall")}
+                </Label>
                 <Input
                   id="rainfallMm"
                   name="rainfallMm"
                   type="number"
                   step="0.01"
                   min="0"
+                  className={cn(CONTROL, "tabular font-mono")}
                 />
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="tempMinC">{t("tempMinC")}</Label>
-                <Input id="tempMinC" name="tempMinC" type="number" step="0.01" />
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="tempMinC" className={MICRO_LABEL}>
+                  {t("tempMinC")}
+                </Label>
+                <Input
+                  id="tempMinC"
+                  name="tempMinC"
+                  type="number"
+                  step="0.01"
+                  className={cn(CONTROL, "tabular font-mono")}
+                />
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="tempMaxC">{t("tempMaxC")}</Label>
-                <Input id="tempMaxC" name="tempMaxC" type="number" step="0.01" />
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="tempMaxC" className={MICRO_LABEL}>
+                  {t("tempMaxC")}
+                </Label>
+                <Input
+                  id="tempMaxC"
+                  name="tempMaxC"
+                  type="number"
+                  step="0.01"
+                  className={cn(CONTROL, "tabular font-mono")}
+                />
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="humidityPct">{t("humidity")}</Label>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="humidityPct" className={MICRO_LABEL}>
+                  {t("humidity")}
+                </Label>
                 <Input
                   id="humidityPct"
                   name="humidityPct"
@@ -266,63 +317,124 @@ export default async function ClimatePage({
                   step="0.01"
                   min="0"
                   max="100"
+                  className={cn(CONTROL, "tabular font-mono")}
                 />
               </div>
-              <Button type="submit" className="self-end justify-self-start">
+              <button
+                type="submit"
+                className={cn(BTN_PRIMARY, "self-end justify-self-start")}
+              >
                 {t("save")}
-              </Button>
+              </button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("recent")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {latestReadings.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("empty")}</p>
-          ) : (
-            <div className="divide-y">
+      <div className="border border-border">
+        <div className="flex items-baseline justify-between gap-2 px-3.5 py-2.5">
+          <span className="text-[13px] font-semibold">{t("recent")}</span>
+          <span className="font-mono text-[10.5px] text-muted-foreground">
+            {latestReadings.length}
+          </span>
+        </div>
+        {latestReadings.length === 0 ? (
+          <p className="border-t border-border px-3.5 py-3 text-[length:var(--density-font-body)] text-muted-foreground">
+            {t("empty")}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="min-w-[620px]">
+              <div
+                className={cn(
+                  "grid border-t border-b border-border bg-muted/40",
+                  READINGS_COLS,
+                )}
+              >
+                <div className={cn(CELL, "py-1.5", MICRO_LABEL)}>
+                  {t("date")}
+                </div>
+                <div className={cn(CELL, "py-1.5 text-right", MICRO_LABEL)}>
+                  {t("rainfall")}
+                </div>
+                <div className={cn(CELL, "py-1.5 text-right", MICRO_LABEL)}>
+                  {t("tempMinC")}
+                </div>
+                <div className={cn(CELL, "py-1.5 text-right", MICRO_LABEL)}>
+                  {t("tempMaxC")}
+                </div>
+                <div className={cn(CELL, "py-1.5 text-right", MICRO_LABEL)}>
+                  {t("humidity")}
+                </div>
+                <div className={cn(CELL, "py-1.5", MICRO_LABEL)}>
+                  {t("source")}
+                </div>
+                <div className={CELL} />
+              </div>
               {latestReadings.map((reading) => (
                 <div
                   key={reading.id}
-                  className="flex items-center justify-between gap-4 py-3"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium">
-                      {reading.date}{" "}
-                      <span className="font-normal text-muted-foreground">
-                        ·{" "}
-                        {t(
-                          SOURCE_LABEL_KEYS[reading.source] ?? "sourceManual",
-                        )}
-                      </span>
-                    </p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {t("rainfall")}: {reading.rainfallMm ?? "—"} ·{" "}
-                      {t("tempMinC")}: {reading.tempMinC ?? "—"} ·{" "}
-                      {t("tempMaxC")}: {reading.tempMaxC ?? "—"} ·{" "}
-                      {t("humidity")}: {reading.humidityPct ?? "—"}
-                    </p>
-                  </div>
-                  {canDelete && (
-                    <form action={deleteClimateAction} className="shrink-0">
-                      <input type="hidden" name="locale" value={locale} />
-                      <input type="hidden" name="orgSlug" value={orgSlug} />
-                      <input type="hidden" name="id" value={reading.id} />
-                      <Button variant="ghost" size="sm" type="submit">
-                        {t("delete")}
-                      </Button>
-                    </form>
+                  className={cn(
+                    "grid items-center border-b border-border transition-colors last:border-b-0 hover:bg-muted/40",
+                    READINGS_COLS,
                   )}
+                >
+                  <div
+                    className={cn(
+                      CELL,
+                      "tabular font-mono text-[11px] text-muted-foreground",
+                    )}
+                  >
+                    {reading.date}
+                  </div>
+                  <div className={cn(CELL, "tabular text-right font-mono text-[length:var(--density-font-body)]")}>
+                    {reading.rainfallMm ?? "—"}
+                  </div>
+                  <div
+                    className={cn(
+                      CELL,
+                      "tabular text-right font-mono text-[length:var(--density-font-body)] text-muted-foreground",
+                    )}
+                  >
+                    {reading.tempMinC ?? "—"}
+                  </div>
+                  <div
+                    className={cn(
+                      CELL,
+                      "tabular text-right font-mono text-[length:var(--density-font-body)] text-muted-foreground",
+                    )}
+                  >
+                    {reading.tempMaxC ?? "—"}
+                  </div>
+                  <div
+                    className={cn(
+                      CELL,
+                      "tabular text-right font-mono text-[length:var(--density-font-body)] text-muted-foreground",
+                    )}
+                  >
+                    {reading.humidityPct ?? "—"}
+                  </div>
+                  <div className={cn(CELL, "font-mono text-[10px] text-muted-foreground")}>
+                    {t(SOURCE_LABEL_KEYS[reading.source] ?? "sourceManual")}
+                  </div>
+                  <div className={cn(CELL, "text-right")}>
+                    {canDelete && (
+                      <form action={deleteClimateAction}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="orgSlug" value={orgSlug} />
+                        <input type="hidden" name="id" value={reading.id} />
+                        <button type="submit" className={BTN_GHOST}>
+                          {t("delete")}
+                        </button>
+                      </form>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

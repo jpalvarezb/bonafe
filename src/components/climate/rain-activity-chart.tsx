@@ -37,21 +37,27 @@ export function RainActivityChart({
     activityLabel: activityByDate.get(day.date)?.join(", ") ?? null,
   }));
 
+  const axisTick = {
+    fontSize: 10,
+    fontFamily: "var(--font-mono)",
+    fill: "var(--muted-foreground)",
+  };
+
   return (
     <div className="flex flex-col gap-2">
       <ResponsiveContainer width="100%" height={288}>
         <ComposedChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" fontSize={12} />
-          <YAxis fontSize={12} allowDecimals={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+          <XAxis dataKey="date" tick={axisTick} stroke="var(--border)" />
+          <YAxis tick={axisTick} stroke="var(--border)" allowDecimals={false} />
           <Tooltip
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload as (typeof data)[number];
               return (
-                <div className="rounded-md border bg-background p-2 text-xs shadow-sm">
-                  <p className="font-medium">{label}</p>
-                  <p>
+                <div className="rounded-[3px] border border-border bg-background p-2 font-mono text-[11px]">
+                  <p className="font-semibold">{label}</p>
+                  <p className="tabular">
                     {t("rainfall")}: {point.rainfallMm} mm
                   </p>
                   {point.activityLabel && (
@@ -66,7 +72,8 @@ export function RainActivityChart({
           <Bar
             dataKey="rainfallMm"
             name={t("rainfall")}
-            fill="#3b82f6"
+            fill="var(--accent-link)"
+            fillOpacity={0.5}
             radius={[2, 2, 0, 0]}
           />
           {[...activityByDate.keys()].map((date) => (
@@ -75,15 +82,15 @@ export function RainActivityChart({
               x={date}
               y={0}
               r={5}
-              fill="#ef4444"
-              stroke="#fff"
+              fill="var(--foreground)"
+              stroke="var(--background)"
               strokeWidth={1}
             />
           ))}
         </ComposedChart>
       </ResponsiveContainer>
       {activityByDate.size > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="font-mono text-[11px] text-muted-foreground">
           ● {t("timelineActivityHint")}
         </p>
       )}

@@ -22,6 +22,7 @@
   "accumulatedTotal": "Cycle rainfall accumulation",
   "accumulatedRange": "{from} to {to}",
   "accumulatedDays": "{days} days with data",
+  "axisMax": "max {value}",
   "source": "Source",
   "sourceManual": "Manual",
   "sourceOpenMeteo": "Open-Meteo",

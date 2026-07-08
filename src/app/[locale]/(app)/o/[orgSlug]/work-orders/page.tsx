@@ -176,7 +176,7 @@ export default async function WorkOrdersPage({
                           <button
                             type="submit"
                             className={cn(
-                              "h-[var(--density-control-h)] rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted",
+                              "h-[var(--density-control-h)] rounded-[3px] border border-border px-[var(--density-cell-px)] text-[length:var(--density-font-body)] font-medium transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
                               next === "cancelled" && "text-muted-foreground",
                             )}
                           >
@@ -435,7 +435,7 @@ export default async function WorkOrdersPage({
             </div>
             <button
               type="submit"
-              className="h-[var(--density-control-h)] self-end justify-self-start rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90"
+              className="h-[var(--density-control-h)] self-end justify-self-start rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             >
               {t("create")}
             </button>

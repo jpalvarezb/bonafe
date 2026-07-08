@@ -22,6 +22,7 @@
   "accumulatedTotal": "Lluvia acumulada del ciclo",
   "accumulatedRange": "Del {from} al {to}",
   "accumulatedDays": "{days} días con registro",
+  "axisMax": "máx {value}",
   "source": "Fuente",
   "sourceManual": "Manual",
   "sourceOpenMeteo": "Open-Meteo",

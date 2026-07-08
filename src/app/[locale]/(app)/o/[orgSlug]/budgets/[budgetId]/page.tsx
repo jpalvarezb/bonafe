@@ -212,7 +212,7 @@ export default async function BudgetDetailPage({
                             />
                             <button
                               type="submit"
-                              className="inline-flex h-[var(--density-control-h)] shrink-0 items-center justify-center rounded-[3px] border border-border px-1.5 font-mono text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                              className="inline-flex h-[var(--density-control-h)] shrink-0 items-center justify-center rounded-[3px] border border-border px-1.5 font-mono text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             >
                               {t("lines.save")}
                             </button>
