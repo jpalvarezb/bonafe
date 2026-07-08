@@ -9,5 +9,54 @@
   "costByMonth": "Cost by month",
   "costPerHa": "Cost/ha",
   "recentActivities": "Recent activities",
-  "noData": "No data yet. Log activities to see costs."
+  "noData": "No data yet. Log activities to see costs.",
+  "panel": {
+    "kpi": {
+      "income": "Income",
+      "incomeSub": "{count} cycles with sales",
+      "costs": "Costs",
+      "costsSub": "{count} cycles (all)",
+      "margin": "Margin",
+      "marginNoData": "No sales",
+      "costHa": "Cost / ha",
+      "costHaSub": "{area} ha with costs",
+      "jornales": "Workdays this period",
+      "jornalesSub": "{count} active workers"
+    },
+    "costByParcel": {
+      "title": "Cost by parcel",
+      "parcel": "Parcel",
+      "areaHa": "ha",
+      "total": "Total",
+      "costHa": "Cost/ha",
+      "totalRow": "Total",
+      "note": "Crop, inputs, labor, and other cost columns are omitted: no existing report exposes that per-parcel breakdown yet. This table totals activity costs grouped by parcel, while the Costs KPI totals per-cycle costs (including processing), so the two can differ."
+    },
+    "activities": {
+      "title": "Recent activities",
+      "date": "Date",
+      "activity": "Activity",
+      "parcel": "Parcel",
+      "cost": "Cost",
+      "empty": "No activities logged yet.",
+      "note": "\"Recorded by\" is omitted: no existing report joins the activity author's name."
+    },
+    "sync": {
+      "title": "Pending sync"
+    },
+    "rainfall": {
+      "title": "Rainfall — last 30 days",
+      "unit": "mm/day",
+      "accumulated": "Accumulated rainfall (30 days)",
+      "daysWithData": "{days} of {window} days with data",
+      "max": "max {value}",
+      "empty": "This organization has no farms yet.",
+      "noReadings": "No rainfall readings in this period."
+    },
+    "openWorkOrders": {
+      "title": "Open work orders",
+      "viewAll": "All →",
+      "empty": "No open work orders."
+    }
+  }
 }
