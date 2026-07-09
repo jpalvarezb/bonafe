@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { ChevronRight, Lock } from "lucide-react";
+import { ChevronRight, Lock, type LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -46,8 +46,12 @@ export function SidebarNav(props: {
   readonly featureTiers: Readonly<Record<string, string>>;
   /** Called after a nav Link is clicked — the mobile drawer uses this to close itself on navigation. */
   readonly onNavigate?: () => void;
+  /** When true, renders the icon-only rail (SidebarShell's collapsed width) instead of the full tree. */
+  readonly collapsed?: boolean;
+  /** Called when a rail link that would normally open a section is clicked, so SidebarShell can re-expand. */
+  readonly onExpand?: () => void;
 }) {
-  const { orgSlug, features, featureTiers, onNavigate } = props;
+  const { orgSlug, features, featureTiers, onNavigate, collapsed = false, onExpand } = props;
   const t = useTranslations("common.nav");
   const pathname = usePathname();
 
@@ -132,6 +136,112 @@ export function SidebarNav(props: {
 
   const settingsHref = `/o/${orgSlug}/${NAV_PINNED_BOTTOM.href}`;
   const settingsActive = pathname.startsWith(`/o/${orgSlug}/settings`);
+
+  if (collapsed) {
+    const railLink = ({
+      key,
+      href,
+      icon: Icon,
+      label,
+      active,
+      muted,
+      onClick,
+    }: {
+      key: string;
+      href: string;
+      icon: LucideIcon;
+      label: string;
+      active: boolean;
+      muted?: boolean;
+      onClick?: () => void;
+    }) => {
+      return (
+        <Link
+          key={key}
+          href={href}
+          onClick={onClick}
+          title={label}
+          aria-label={label}
+          className={cn(
+            "mx-auto flex size-9 items-center justify-center rounded-[3px] p-2 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+            active
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+            muted && "opacity-60",
+          )}
+        >
+          <Icon className="size-4 shrink-0" />
+        </Link>
+      );
+    };
+
+    const dashboardHref = `/o/${orgSlug}/${NAV_PINNED_TOP.href}`;
+    const dashboardActive = pathname.startsWith(dashboardHref);
+
+    return (
+      <nav className="flex h-full flex-col items-center gap-2 p-2">
+        <div className="flex w-full flex-col gap-1">
+          {railLink({
+            key: NAV_PINNED_TOP.key,
+            href: dashboardHref,
+            icon: NAV_PINNED_TOP.icon,
+            label: t(NAV_PINNED_TOP.key),
+            active: dashboardActive,
+            onClick: onNavigate,
+          })}
+        </div>
+
+        <div className="flex w-full flex-col gap-1">
+          {NAV_SECTIONS.map((section) => {
+            if (isSectionCollapsed(section, features)) {
+              const tier = lowestUnlockTier(section.items, featureTiers);
+              const tooltip = tier
+                ? t("lockedTooltip", { tier })
+                : t("locked");
+              return railLink({
+                key: section.key,
+                href: `/o/${orgSlug}/settings/plan`,
+                icon: section.icon,
+                label: tooltip,
+                active: false,
+                muted: true,
+                onClick: onNavigate,
+              });
+            }
+
+            const target =
+              section.items.find(
+                (item) =>
+                  !(item.feature != null && !features.includes(item.feature)),
+              ) ?? section.items[0];
+
+            return railLink({
+              key: section.key,
+              href: `/o/${orgSlug}/${target.href}`,
+              icon: section.icon,
+              label: t(section.labelKey),
+              active: sectionHasActiveRoute(section),
+              onClick: () => {
+                onExpand?.();
+                onNavigate?.();
+              },
+            });
+          })}
+        </div>
+
+        <div className="mt-auto flex w-full flex-col gap-1 border-t border-border pt-2">
+          {railLink({
+            key: NAV_PINNED_BOTTOM.key,
+            href: settingsHref,
+            icon: NAV_PINNED_BOTTOM.icon,
+            label: t(NAV_PINNED_BOTTOM.key),
+            active: settingsActive,
+            onClick: onNavigate,
+          })}
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="flex h-full flex-col gap-4 p-2">

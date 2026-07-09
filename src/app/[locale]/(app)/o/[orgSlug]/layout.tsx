@@ -1,9 +1,11 @@
+import { cookies } from "next/headers";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { requireOrgContext } from "@/lib/tenancy";
 import { getOrgPlan, getFeatureTierMap } from "@/lib/plan-limits";
 import { listFarmNames } from "@/server/services/farms";
-import { SidebarNav } from "@/components/app-shell/sidebar-nav";
+import { SidebarShell } from "@/components/app-shell/sidebar-shell";
+import { SIDEBAR_COLLAPSED_COOKIE } from "@/components/app-shell/sidebar-cookie";
 import { FarmSwitcher } from "@/components/app-shell/farm-switcher";
 import { MobileNavDrawer } from "@/components/app-shell/mobile-nav-drawer";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -26,6 +28,9 @@ export default async function OrgLayout({
   const plan = await getOrgPlan(ctx.org.id);
   const farms = await listFarmNames(ctx.org.id);
   const featureTiers = getFeatureTierMap();
+  const cookieStore = await cookies();
+  const sidebarCollapsed =
+    cookieStore.get(SIDEBAR_COLLAPSED_COOKIE)?.value === "1";
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -52,14 +57,13 @@ export default async function OrgLayout({
         </div>
       </header>
       <div className="flex flex-1">
-        <aside className="hidden w-56 shrink-0 border-r md:block">
-          <SidebarNav
-            orgSlug={orgSlug}
-            role={ctx.role}
-            features={plan.limits.features}
-            featureTiers={featureTiers}
-          />
-        </aside>
+        <SidebarShell
+          orgSlug={orgSlug}
+          role={ctx.role}
+          features={plan.limits.features}
+          featureTiers={featureTiers}
+          defaultCollapsed={sidebarCollapsed}
+        />
         <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
     </div>

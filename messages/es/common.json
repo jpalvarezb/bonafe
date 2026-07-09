@@ -36,6 +36,8 @@
     "openMenu": "Abrir menú de navegación",
     "closeMenu": "Cerrar menú",
     "menuTitle": "Navegación",
+    "collapseSidebar": "Colapsar menú",
+    "expandSidebar": "Expandir menú",
     "sections": {
       "campo": "Campo",
       "terreno": "Terreno",
