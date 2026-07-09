@@ -18,9 +18,16 @@ import { listMonitoring } from "@/server/services/monitoring";
 import { listWorkOrders } from "@/server/services/work-orders";
 import { listActivities } from "@/server/services/activities";
 import { parcelCentroids } from "@/server/services/geo";
+import { listPlannedActivities } from "@/server/services/planning";
+import { laborByWorkerReport } from "@/server/services/payroll";
+import { listAttendanceRange } from "@/server/services/attendance";
+import { getOrgPlan, hasFeature } from "@/lib/plan-limits";
 
 const MONITORING_WINDOW_DAYS = 60;
 const OPEN_WORK_ORDER_STATUSES = new Set(["draft", "assigned", "in_progress"]);
+const PLANNING_WINDOW_DAYS = 14;
+const PLANNING_ITEM_LIMIT = 6;
+const LABOR_TOP_WORKER_LIMIT = 4;
 
 export type CockpitCycle = {
   id: string;
@@ -97,6 +104,36 @@ export type CockpitKpi = {
   costPerHa: string | null;
 };
 
+export type CockpitPlanningItem = {
+  id: string;
+  date: string;
+  typeName: string;
+  parcelName: string | null;
+};
+
+export type CockpitPlanning = {
+  windowDays: number;
+  upcoming: CockpitPlanningItem[];
+};
+
+export type CockpitLaborDay = {
+  date: string;
+  status: "present" | "half_day" | "absent" | "sick" | "leave" | null;
+};
+
+export type CockpitLaborWorker = {
+  workerId: string;
+  workerName: string;
+  daysWorked: string;
+  days: CockpitLaborDay[];
+};
+
+export type CockpitLabor = {
+  quincenaFrom: string;
+  quincenaTo: string;
+  topWorkers: CockpitLaborWorker[];
+};
+
 export type CockpitData = {
   farmId: string;
   farmName: string;
@@ -104,6 +141,13 @@ export type CockpitData = {
   monitoringPins: CockpitMonitoringPin[];
   workOrders: CockpitWorkOrderMarker[];
   kpi: CockpitKpi;
+  /** null when the org's plan doesn't include the "planning" feature — the
+   * planning service calls are skipped entirely in that case, not just
+   * hidden client-side. */
+  planning: CockpitPlanning | null;
+  /** null when the org's plan doesn't include the "labor" feature — same
+   * skip-entirely gating as `planning`. */
+  labor: CockpitLabor | null;
 };
 
 function isoDaysAgo(days: number): string {
@@ -112,21 +156,166 @@ function isoDaysAgo(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+// Byte-identical copy of quincenaRange() from src/server/reports/panel.ts —
+// no shared date lib exists in this repo, so per-file duplication is the
+// established precedent (see panel.ts's own copy of isoDaysAgo/isoDate).
+/** Current fortnight (1st–15th or 16th–end of month), UTC-based. */
+function quincenaRange(today = new Date()): { from: string; to: string } {
+  const year = today.getUTCFullYear();
+  const month = today.getUTCMonth();
+  const day = today.getUTCDate();
+  if (day <= 15) {
+    return { from: `${year}-${pad2(month + 1)}-01`, to: `${year}-${pad2(month + 1)}-15` };
+  }
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  return {
+    from: `${year}-${pad2(month + 1)}-16`,
+    to: `${year}-${pad2(month + 1)}-${pad2(lastDay)}`,
+  };
+}
+
+/** Every calendar day in [from, to] (inclusive), as ISO date strings. Walked
+ * in UTC ms steps so the list never gains/loses a day to DST — quincenas are
+ * at most 16 days so no cap is needed (contrast payroll's period page, which
+ * caps at 62 for arbitrary custom ranges). */
+function quincenaDayList(from: string, to: string): string[] {
+  const days: string[] = [];
+  const start = Date.parse(`${from}T00:00:00Z`);
+  const end = Date.parse(`${to}T00:00:00Z`);
+  for (let ts = start; ts <= end; ts += 86_400_000) {
+    days.push(new Date(ts).toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+/**
+ * Calendar-month tuples (year, month) covering [today, today+windowDays] —
+ * 1 tuple normally, 2 when the window crosses a month boundary (including a
+ * December -> January year rollover, since `setUTCDate` normalizes month
+ * and year overflow for us). Pure/exported so it can be unit-tested without
+ * a database.
+ */
+export function planningWindowMonths(
+  today: Date,
+): { year: number; month: number }[] {
+  const start = { year: today.getUTCFullYear(), month: today.getUTCMonth() + 1 };
+  const end = new Date(today);
+  end.setUTCDate(end.getUTCDate() + PLANNING_WINDOW_DAYS);
+  const endTuple = { year: end.getUTCFullYear(), month: end.getUTCMonth() + 1 };
+  if (start.year === endTuple.year && start.month === endTuple.month) {
+    return [start];
+  }
+  return [start, endTuple];
+}
+
+/** Upcoming planned activities in [today, today+PLANNING_WINDOW_DAYS], across
+ * the 1-2 calendar months the window spans (own top-level withOrgRls calls,
+ * fanned out via Promise.all — see listPlannedActivities). */
+async function loadCockpitPlanning(ctx: OrgContext): Promise<CockpitPlanning> {
+  // Single `now` snapshot for both the ISO window bounds and the month
+  // tuples below, so a call straddling a UTC midnight tick can't disagree
+  // with itself (same isoDaysAgo/setUTCDate UTC convention as the rest of
+  // this file).
+  const now = new Date();
+  const todayISO = now.toISOString().slice(0, 10);
+  const windowEnd = new Date(now);
+  windowEnd.setUTCDate(windowEnd.getUTCDate() + PLANNING_WINDOW_DAYS);
+  const endISO = windowEnd.toISOString().slice(0, 10);
+  const months = planningWindowMonths(now);
+
+  const monthResults = await Promise.all(
+    months.map((tuple) => listPlannedActivities(ctx, tuple)),
+  );
+
+  const upcoming: CockpitPlanningItem[] = monthResults
+    .flatMap((result) => result.rows)
+    .filter(
+      (row) =>
+        row.plan.status === "planned" &&
+        row.plan.plannedDate >= todayISO &&
+        row.plan.plannedDate <= endISO,
+    )
+    // localeCompare returns 0 on same-day ties so the stable sort preserves
+    // the (plannedDate, createdAt) order the service already emitted.
+    .sort((a, b) => a.plan.plannedDate.localeCompare(b.plan.plannedDate))
+    .slice(0, PLANNING_ITEM_LIMIT)
+    .map((row) => ({
+      id: row.plan.id,
+      date: row.plan.plannedDate,
+      typeName: row.typeName,
+      parcelName: row.parcelName,
+    }));
+
+  return { windowDays: PLANNING_WINDOW_DAYS, upcoming };
+}
+
+/** Top workers by days worked in the current quincena, with a per-day
+ * attendance strip (board-1i "DÍAS MARCADOS" treatment). Two of its own
+ * top-level withOrgRls calls, run in parallel via Promise.all. */
+async function loadCockpitLabor(ctx: OrgContext): Promise<CockpitLabor> {
+  const quincena = quincenaRange();
+
+  const [workerRows, attendanceRows] = await Promise.all([
+    laborByWorkerReport(ctx, quincena),
+    listAttendanceRange(ctx, quincena),
+  ]);
+
+  const statusByWorkerDay = new Map<string, CockpitLaborDay["status"]>();
+  for (const row of attendanceRows) {
+    statusByWorkerDay.set(
+      `${row.record.workerId}|${row.record.date}`,
+      row.record.status as CockpitLaborDay["status"],
+    );
+  }
+
+  const days = quincenaDayList(quincena.from, quincena.to);
+  const topWorkers: CockpitLaborWorker[] = [...workerRows]
+    .sort((a, b) => Number(b.daysWorked) - Number(a.daysWorked))
+    .slice(0, LABOR_TOP_WORKER_LIMIT)
+    .map((worker) => ({
+      workerId: worker.workerId,
+      workerName: worker.workerName,
+      daysWorked: worker.daysWorked,
+      days: days.map((date) => ({
+        date,
+        status: statusByWorkerDay.get(`${worker.workerId}|${date}`) ?? null,
+      })),
+    }));
+
+  return { quincenaFrom: quincena.from, quincenaTo: quincena.to, topWorkers };
+}
+
 /**
  * Assembles every data slice the map cockpit needs for one farm. Each slice
- * is its own top-level `withOrgRls` call (never nested) — the first wave
- * runs in parallel via Promise.all, and a second wave (per-parcel recent
- * activities + per-cycle rainfall) runs after the first wave resolves,
- * because it needs the farm's parcel/cycle ids. Bounded by the farm's
- * parcel count (typically <=10 for the demo org), same shape as
- * cycleRainfallAccumulation's own per-farm daily query.
+ * is its own top-level `withOrgRls` call (never nested) — the farm/parcel/
+ * cycle/cost/monitoring/work-order/centroid wave runs in parallel via
+ * Promise.all alongside the feature-gated planning and labor waves (they
+ * need none of that wave's ids), all inside one outer Promise.all. A further
+ * second wave (per-parcel recent activities + per-cycle rainfall) runs after
+ * the first wave resolves, because it needs the farm's parcel/cycle ids.
+ * Bounded by the farm's parcel count (typically <=10 for the demo org), same
+ * shape as cycleRainfallAccumulation's own per-farm daily query.
  */
 export async function cockpitData(
   ctx: OrgContext,
   farmId: string,
 ): Promise<CockpitData> {
-  const [farmRow, parcelRows, cycleRows, costRows, profitabilityRows, monitoringRows, workOrderRows, centroids] =
-    await Promise.all([
+  // Feature gate first (cheap, React cache()d): when a feature is absent,
+  // its whole service-call wave below is skipped, not just hidden.
+  const plan = await getOrgPlan(ctx.org.id);
+  const planningEnabled = hasFeature(plan, "planning");
+  const laborEnabled = hasFeature(plan, "labor");
+
+  const [
+    [farmRow, parcelRows, cycleRows, costRows, profitabilityRows, monitoringRows, workOrderRows, centroids],
+    planning,
+    labor,
+  ] = await Promise.all([
+    Promise.all([
       withOrgRls(ctx.org.id, (tx) =>
         tx
           .select({ id: farms.id, name: farms.name })
@@ -180,7 +369,15 @@ export async function cockpitData(
       listMonitoring(ctx),
       listWorkOrders(ctx),
       parcelCentroids(ctx, farmId),
-    ]);
+    ]),
+    // Secondary rail widgets must never take down the map: a transient
+    // failure here degrades to a hidden widget (null), unlike the core wave
+    // above which stays fail-fast.
+    planningEnabled
+      ? loadCockpitPlanning(ctx).catch(() => null)
+      : Promise.resolve(null),
+    laborEnabled ? loadCockpitLabor(ctx).catch(() => null) : Promise.resolve(null),
+  ]);
 
   const farm = farmRow[0];
   if (!farm) throw new Error("farm not found");
@@ -367,5 +564,7 @@ export async function cockpitData(
     monitoringPins,
     workOrders,
     kpi,
+    planning,
+    labor,
   };
 }

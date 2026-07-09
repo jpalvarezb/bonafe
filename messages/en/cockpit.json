@@ -53,7 +53,19 @@
     "farmParcels": "Parcels",
     "farmArea": "Total area",
     "farmActiveCycles": "Active cycles",
-    "syncQueue": "Sync queue"
+    "syncQueue": "Sync queue",
+    "planning": {
+      "title": "Planning calendar",
+      "empty": "No upcoming planned activities",
+      "viewAll": "View planning"
+    },
+    "labor": {
+      "title": "Labor",
+      "empty": "No attendance this quincena",
+      "noRecord": "No record",
+      "stripLabel": "Marked days for {name}",
+      "viewAll": "View labor report"
+    }
   },
   "farmPicker": {
     "label": "Farm"

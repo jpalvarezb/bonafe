@@ -570,7 +570,9 @@ export function MapCockpit({ data, orgSlug, currencyCode, farms }: Props) {
               {kpiScope.marginPct != null ? (
                 <Metric value={`${kpiScope.marginPct}%`} signed />
               ) : (
-                <span className="text-muted-foreground">{t("rail.noMargin")}</span>
+                <span title={t("rail.noMargin")} className="text-muted-foreground">
+                  —
+                </span>
               )}
             </div>
           </div>
@@ -578,17 +580,23 @@ export function MapCockpit({ data, orgSlug, currencyCode, farms }: Props) {
             <div className="font-mono text-[8.5px] tracking-wide text-muted-foreground uppercase">
               {t("kpi.costHa")}
             </div>
-            <MoneyValue
-              amount={kpiScope.costHa ?? 0}
-              currency={currencyCode}
-              className="mt-0.5 text-[15px] font-semibold"
-            />
+            {kpiScope.costHa != null ? (
+              <MoneyValue
+                amount={kpiScope.costHa}
+                currency={currencyCode}
+                className="mt-0.5 text-[15px] font-semibold"
+              />
+            ) : (
+              <span className="mt-0.5 block text-[15px] font-semibold text-muted-foreground">
+                —
+              </span>
+            )}
           </div>
         </div>
       </div>
 
       {/* Right rail */}
-      <div className="absolute top-4 right-4 bottom-4">
+      <div className="absolute top-4 right-4 max-h-[calc(100%-2rem)]">
         <CockpitRail
           orgSlug={orgSlug}
           currencyCode={currencyCode}
@@ -597,6 +605,8 @@ export function MapCockpit({ data, orgSlug, currencyCode, farms }: Props) {
           totalAreaHa={totalAreaHa}
           activeCyclesCount={activeCyclesCount}
           selected={selectedParcel}
+          planning={data.planning}
+          labor={data.labor}
         />
       </div>
 

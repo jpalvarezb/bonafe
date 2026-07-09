@@ -3,11 +3,17 @@
 import type { ReactNode } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import type { CockpitParcel } from "@/server/reports/cockpit";
+import type {
+  CockpitLabor,
+  CockpitParcel,
+  CockpitPlanning,
+} from "@/server/reports/cockpit";
 import { Metric } from "@/components/ui/metric";
 import { SyncIssuesList } from "@/components/offline/sync-issues-list";
 import { PendingEntries } from "@/components/offline/pending-entries";
 import { MoneyValue } from "./money-value";
+import { PlanningWidget } from "./planning-widget";
+import { LaborWidget } from "./labor-widget";
 
 type Props = {
   readonly orgSlug: string;
@@ -17,11 +23,16 @@ type Props = {
   readonly totalAreaHa: number;
   readonly activeCyclesCount: number;
   readonly selected: CockpitParcel | null;
+  readonly planning: CockpitPlanning | null;
+  readonly labor: CockpitLabor | null;
 };
 
+/** Structurally-null area -> bare "—" (no unit); the unit is folded into
+ * the formatted value itself so call sites never append a trailing " ha"
+ * literal that would double up next to the dash. */
 function fmtHa(value: string | number | null): string {
   if (value == null) return "—";
-  return Number(value).toFixed(2);
+  return `${Number(value).toFixed(2)} ha`;
 }
 
 function Field({
@@ -51,12 +62,14 @@ export function CockpitRail({
   totalAreaHa,
   activeCyclesCount,
   selected,
+  planning,
+  labor,
 }: Props) {
   const t = useTranslations("cockpit");
   const format = useFormatter();
 
   return (
-    <div className="flex h-full w-[340px] flex-col overflow-hidden border border-border bg-background/95">
+    <div className="flex max-h-full w-[340px] flex-col overflow-y-auto border border-border bg-background/95">
       {selected ? (
         <>
           <div className="border-b border-border px-3.5 py-2.5">
@@ -75,10 +88,14 @@ export function CockpitRail({
 
           <div className="grid grid-cols-2 border-b border-border">
             <Field label={t("rail.crop")}>
-              {selected.primaryCycle?.cropName ?? t("rail.noCycle")}
+              {selected.primaryCycle?.cropName ?? (
+                <span title={t("rail.noCycle")} className="text-muted-foreground">
+                  —
+                </span>
+              )}
             </Field>
             <Field label={t("rail.area")}>
-              <span className="font-mono tabular">{fmtHa(selected.areaHa)} ha</span>
+              <span className="font-mono tabular">{fmtHa(selected.areaHa)}</span>
             </Field>
             <Field label={t("rail.cycle")}>
               {selected.primaryCycle ? (
@@ -89,20 +106,32 @@ export function CockpitRail({
                   {selected.primaryCycle.name}
                 </Link>
               ) : (
-                t("rail.noCycle")
+                <span title={t("rail.noCycle")} className="text-muted-foreground">
+                  —
+                </span>
               )}
             </Field>
             <Field label={t("rail.stage")}>
-              {selected.primaryCycle?.stageName ?? t("legend.noStage")}
+              {selected.primaryCycle?.stageName ?? (
+                <span title={t("legend.noStage")} className="text-muted-foreground">
+                  —
+                </span>
+              )}
             </Field>
             <Field label={t("rail.costHa")}>
-              <MoneyValue amount={selected.costPerHa ?? 0} currency={currencyCode} />
+              {selected.costPerHa != null ? (
+                <MoneyValue amount={selected.costPerHa} currency={currencyCode} />
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
             </Field>
             <Field label={t("rail.margin")}>
               {selected.margin?.marginPct != null ? (
                 <Metric value={`${selected.margin.marginPct}%`} signed />
               ) : (
-                <span className="text-muted-foreground">{t("rail.noMargin")}</span>
+                <span title={t("rail.noMargin")} className="text-muted-foreground">
+                  —
+                </span>
               )}
             </Field>
           </div>
@@ -110,7 +139,7 @@ export function CockpitRail({
           <div className="flex items-center justify-between border-b border-border px-3.5 py-2">
             <span className="text-[12px] text-muted-foreground">{t("rail.rainfall")}</span>
             <span className="font-mono text-[13px] font-semibold tabular">
-              {selected.rainfall ? Number(selected.rainfall.totalMm).toFixed(1) : "—"} mm
+              {selected.rainfall ? `${Number(selected.rainfall.totalMm).toFixed(1)} mm` : "—"}
             </span>
           </div>
 
@@ -173,7 +202,10 @@ export function CockpitRail({
         </div>
       )}
 
-      <div className="mt-auto border-t border-border">
+      {planning && <PlanningWidget orgSlug={orgSlug} planning={planning} />}
+      {labor && <LaborWidget orgSlug={orgSlug} labor={labor} />}
+
+      <div className="border-t border-border">
         <div className="flex items-center gap-2 px-3.5 pt-2.5 pb-1.5">
           <span className="font-mono text-[9.5px] tracking-wide text-muted-foreground uppercase">
             {t("rail.syncQueue")}
