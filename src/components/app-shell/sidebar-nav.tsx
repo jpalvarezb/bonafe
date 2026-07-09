@@ -223,7 +223,6 @@ export function SidebarNav(props: {
             active: dashboardActive,
             onClick: onNavigate,
           })}
-          {collapseToggle}
         </div>
 
         <div className="flex w-full flex-col gap-1">
@@ -265,6 +264,7 @@ export function SidebarNav(props: {
         </div>
 
         <div className="mt-auto flex w-full flex-col gap-1 border-t border-border pt-2">
+          {collapseToggle}
           {railLink({
             key: NAV_PINNED_BOTTOM.key,
             href: settingsHref,
