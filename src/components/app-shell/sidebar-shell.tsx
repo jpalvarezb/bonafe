@@ -1,9 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { OrgRole } from "@/lib/auth/permissions";
 import { SidebarNav } from "./sidebar-nav";
@@ -26,7 +23,6 @@ export function SidebarShell(props: {
   readonly defaultCollapsed: boolean;
 }) {
   const { orgSlug, role, features, featureTiers, defaultCollapsed } = props;
-  const t = useTranslations("common.nav");
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
   function toggle() {
@@ -40,9 +36,6 @@ export function SidebarShell(props: {
     setCollapsed(false);
     persistCollapsed(false);
   }
-
-  const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
-  const toggleLabel = collapsed ? t("expandSidebar") : t("collapseSidebar");
 
   return (
     <aside
@@ -59,21 +52,8 @@ export function SidebarShell(props: {
           featureTiers={featureTiers}
           collapsed={collapsed}
           onExpand={expand}
+          onToggleCollapse={toggle}
         />
-      </div>
-      <div className="border-t border-border p-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={toggle}
-          aria-expanded={!collapsed}
-          aria-label={toggleLabel}
-          title={toggleLabel}
-          className="mx-auto flex"
-        >
-          <ToggleIcon />
-        </Button>
       </div>
     </aside>
   );

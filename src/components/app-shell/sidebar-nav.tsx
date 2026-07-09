@@ -1,7 +1,13 @@
 "use client";
 
 import { useId, useState } from "react";
-import { ChevronRight, Lock, type LucideIcon } from "lucide-react";
+import {
+  ChevronRight,
+  Lock,
+  PanelLeftClose,
+  PanelLeftOpen,
+  type LucideIcon,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -50,8 +56,18 @@ export function SidebarNav(props: {
   readonly collapsed?: boolean;
   /** Called when a rail link that would normally open a section is clicked, so SidebarShell can re-expand. */
   readonly onExpand?: () => void;
+  /** When set, renders the collapse/expand toggle next to the pinned Dashboard row (desktop shell only — the mobile drawer omits it). */
+  readonly onToggleCollapse?: () => void;
 }) {
-  const { orgSlug, features, featureTiers, onNavigate, collapsed = false, onExpand } = props;
+  const {
+    orgSlug,
+    features,
+    featureTiers,
+    onNavigate,
+    collapsed = false,
+    onExpand,
+    onToggleCollapse,
+  } = props;
   const t = useTranslations("common.nav");
   const pathname = usePathname();
 
@@ -137,6 +153,24 @@ export function SidebarNav(props: {
   const settingsHref = `/o/${orgSlug}/${NAV_PINNED_BOTTOM.href}`;
   const settingsActive = pathname.startsWith(`/o/${orgSlug}/settings`);
 
+  const toggleLabel = collapsed ? t("expandSidebar") : t("collapseSidebar");
+  const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
+  const collapseToggle = onToggleCollapse ? (
+    <button
+      type="button"
+      onClick={onToggleCollapse}
+      aria-expanded={!collapsed}
+      aria-label={toggleLabel}
+      title={toggleLabel}
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-[3px] text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        collapsed ? "mx-auto size-9" : "size-8",
+      )}
+    >
+      <ToggleIcon className="size-4 shrink-0" />
+    </button>
+  ) : null;
+
   if (collapsed) {
     const railLink = ({
       key,
@@ -189,6 +223,7 @@ export function SidebarNav(props: {
             active: dashboardActive,
             onClick: onNavigate,
           })}
+          {collapseToggle}
         </div>
 
         <div className="flex w-full flex-col gap-1">
@@ -245,7 +280,10 @@ export function SidebarNav(props: {
 
   return (
     <nav className="flex h-full flex-col gap-4 p-2">
-      <div className="flex flex-col gap-1">{renderItem(NAV_PINNED_TOP)}</div>
+      <div className="flex items-center gap-1">
+        <div className="min-w-0 flex-1">{renderItem(NAV_PINNED_TOP)}</div>
+        {collapseToggle}
+      </div>
 
       {NAV_SECTIONS.map((section) => {
         if (isSectionCollapsed(section, features)) {
