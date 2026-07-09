@@ -607,6 +607,7 @@ export function MapCockpit({ data, orgSlug, currencyCode, farms }: Props) {
           selected={selectedParcel}
           planning={data.planning}
           labor={data.labor}
+          farmRainfall={data.farmRainfall}
         />
       </div>
 

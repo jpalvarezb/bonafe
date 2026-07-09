@@ -43,6 +43,8 @@
     "costHa": "Cost/ha",
     "margin": "Margin",
     "rainfall": "Cycle accumulated rainfall",
+    "farmRainfall": "Accumulated rainfall · active cycles",
+    "farmRainfallHint": "Since the start of the farm's oldest active cycle",
     "recentActivities": "Recent activities",
     "noActivities": "No recent activities",
     "moreCycles": "+{count} active cycles",

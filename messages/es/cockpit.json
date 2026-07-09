@@ -43,6 +43,8 @@
     "costHa": "Costo/ha",
     "margin": "Margen",
     "rainfall": "Lluvia acumulada del ciclo",
+    "farmRainfall": "Lluvia acumulada · ciclos activos",
+    "farmRainfallHint": "Desde el inicio del ciclo activo más antiguo de la finca",
     "recentActivities": "Actividades recientes",
     "noActivities": "Sin actividades recientes",
     "moreCycles": "+{count} ciclos activos",

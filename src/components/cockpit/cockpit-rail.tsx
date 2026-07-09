@@ -6,6 +6,7 @@ import { Link } from "@/i18n/navigation";
 import type {
   CockpitLabor,
   CockpitParcel,
+  CockpitParcelRainfall,
   CockpitPlanning,
 } from "@/server/reports/cockpit";
 import { Metric } from "@/components/ui/metric";
@@ -25,6 +26,8 @@ type Props = {
   readonly selected: CockpitParcel | null;
   readonly planning: CockpitPlanning | null;
   readonly labor: CockpitLabor | null;
+  /** Farm-total rainfall (earliest active cycle's accumulation) shown when no parcel is selected. */
+  readonly farmRainfall: CockpitParcelRainfall | null;
 };
 
 /** Structurally-null area -> bare "—" (no unit); the unit is folded into
@@ -64,6 +67,7 @@ export function CockpitRail({
   selected,
   planning,
   labor,
+  farmRainfall,
 }: Props) {
   const t = useTranslations("cockpit");
   const format = useFormatter();
@@ -199,6 +203,22 @@ export function CockpitRail({
             </div>
           </dl>
           <p className="mt-3 text-[12px] text-muted-foreground">{t("rail.noSelection")}</p>
+        </div>
+      )}
+
+      {!selected && (
+        <div className="flex items-center justify-between border-b border-border px-3.5 py-2">
+          <span
+            className="text-[12px] text-muted-foreground"
+            title={t("rail.farmRainfallHint")}
+          >
+            {t("rail.farmRainfall")}
+          </span>
+          <span className="font-mono text-[13px] font-semibold tabular">
+            {farmRainfall
+              ? `${Number(farmRainfall.totalMm).toFixed(1)} mm`
+              : "—"}
+          </span>
         </div>
       )}
 

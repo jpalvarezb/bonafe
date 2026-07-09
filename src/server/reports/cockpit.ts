@@ -148,6 +148,13 @@ export type CockpitData = {
   /** null when the org's plan doesn't include the "labor" feature — same
    * skip-entirely gating as `planning`. */
   labor: CockpitLabor | null;
+  /** Farm-total rainfall for the no-selection rail. Rainfall rows are
+   * farm-scoped and every active cycle's accumulation window ends today, so
+   * the union of active-cycle windows collapses to the earliest-started
+   * cycle's window — its accumulation IS the farm totality since active
+   * production began. Null when the farm has no active cycle (or no
+   * rainfall rows yet). */
+  farmRainfall: CockpitParcelRainfall | null;
 };
 
 function isoDaysAgo(days: number): string {
@@ -452,6 +459,36 @@ export async function cockpitData(
   const activitiesByParcelId = new Map(activitiesByParcel);
   const rainfallByCycleId = new Map(rainfallByCycle);
 
+  // See CockpitData.farmRainfall: earliest active cycle's window = the union
+  // of all active windows, so its accumulation is the farm total. Usually
+  // already fetched above (earliest is a primary cycle far more often than
+  // not); the fallback fetch covers a parcel whose newer cycle displaced it.
+  const earliestActiveCycle = cycleRows.reduce<(typeof cycleRows)[number] | null>(
+    (earliest, row) =>
+      earliest == null || row.startDate < earliest.startDate ? row : earliest,
+    null,
+  );
+  let farmRainfall: CockpitParcelRainfall | null = null;
+  if (earliestActiveCycle) {
+    const fetched = rainfallByCycleId.get(earliestActiveCycle.id);
+    if (fetched !== undefined) {
+      farmRainfall = fetched;
+    } else {
+      try {
+        const accumulation = await cycleRainfallAccumulation(
+          ctx,
+          earliestActiveCycle.id,
+        );
+        farmRainfall = {
+          totalMm: accumulation.totalMm,
+          days: accumulation.days,
+        };
+      } catch {
+        farmRainfall = null;
+      }
+    }
+  }
+
   const cockpitParcels: CockpitParcel[] = parcelRows.map((parcel) => {
     const cycles = cyclesByParcel.get(parcel.id) ?? [];
     const primaryCycle = cycles[0] ?? null;
@@ -566,5 +603,6 @@ export async function cockpitData(
     kpi,
     planning,
     labor,
+    farmRainfall,
   };
 }
