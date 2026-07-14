@@ -20,7 +20,8 @@
     "climate:ingest": "tsx --env-file=.env src/scripts/ingest-climate.ts",
     "fx:ingest": "tsx --env-file=.env src/scripts/ingest-exchange-rates.ts",
     "digest:send": "tsx --env-file=.env src/scripts/send-digest.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@serwist/next": "^9.5.11",

@@ -51,7 +51,8 @@ dev.
 | `pnpm db:seed` | deterministic demo seed (grows monotonically per phase) |
 | `pnpm climate:ingest` | cron entry point: satellite rainfall for all farms |
 | `pnpm fx:ingest` | cron entry point: open.er-api.com FX rates for all orgs |
-| `pnpm test` | Vitest unit tests (money/payroll/inventory/variance/profitability calc) |
+| `pnpm test` | Vitest unit tests (money/payroll/inventory/variance/profitability calc) — pure, DB-free |
+| `pnpm test:integration` | Vitest integration tests against a real, isolated Postgres database (RLS, `/api/sync`, Stripe webhook, money-loop reconciliation) |
 | `pnpm typecheck` | `tsc --noEmit` |
 
 ## Configuration
@@ -70,6 +71,50 @@ All env vars are documented in `.env.example`. Notable:
 - **Satellite rainfall** — Open-Meteo (keyless, default) and CHIRPS via
   ClimateSERV (experimental) providers write into `climate_readings` with
   per-source idempotent upserts. Schedule `pnpm climate:ingest` daily.
+
+## Testing
+
+- **`pnpm test`** (`vitest.config.ts`, `tests/unit/`) — pure calc/schema
+  logic, no network, no DB. Must stay fast; never add a DB-dependent test
+  here.
+- **`pnpm test:integration`** (`vitest.integration.config.ts`,
+  `tests/integration/`) — real Postgres, real RLS, real routes:
+  - `rls-isolation.test.ts` — runtime tenant isolation across
+    sales/piecework_entries/activities/inventory_movements/org_exchange_rates,
+    plus fail-closed (no `app.org_id`) and NOBYPASSRLS raw-query checks.
+    `pnpm db:verify-rls` only proves a policy *exists* (static
+    introspection); this suite proves it actually blocks a real
+    cross-org read/write at runtime.
+  - `sync-route.test.ts` — `/api/sync`'s `piecework.create` path: real
+    route → real service → real RLS → real `classifyRejection`, with only
+    `resolveOrgContext` mocked to a DB-backed `OrgContext` (session/auth
+    machinery is out of scope here).
+  - `stripe-webhook.test.ts` — the webhook state machine against genuinely
+    signed fixture events (`stripe.webhooks.generateTestHeaderString`); the
+    live Stripe API is never called (`STRIPE_WEBHOOK_SECRET` alone is
+    enough — see `.env.example`).
+  - `money-loop.test.ts` — seeds a cycle with attributed + unattributed
+    piecework and a chain-linked, FX-converted sale, and asserts
+    `cycleProfitabilityReport`/`orgUnattributedPieceworkCost` reconcile to
+    exact decimal strings.
+
+  It runs against an **isolated `<dbname>_test` database** on the same
+  Postgres instance as dev (`docker-compose`'s `:5433`) — never the dev
+  database/seed. The first run auto-creates and migrates it (reusing the
+  real Drizzle migrations, so RLS/roles match production exactly);
+  `tests/integration/support/global-setup.ts` is idempotent, so repeat
+  runs just pick up any new migrations. Requires `DATABASE_URL` and
+  `APP_DATABASE_URL` in `.env` (i.e. `pnpm db:set-app-password` has been
+  run at least once against the dev DB — the `agropeq_app` role's
+  password is cluster-wide, so the test database reuses it under a
+  different dbname). Override `TEST_DATABASE_URL`/`TEST_APP_DATABASE_URL`
+  directly if you want the test database to live somewhere else (e.g. CI).
+
+  Per-test isolation is by construction, not by wrapping each test in a
+  transaction: every test creates its own fresh `organization` row (and
+  everything under it), so tests never collide regardless of order, and
+  `support/fixtures.ts`'s `cleanupOrg` deletes it (cascading through every
+  org-scoped table's `ON DELETE CASCADE org_id` FK) once the test is done.
 
 ## Architecture
 

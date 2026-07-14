@@ -132,7 +132,11 @@ export async function createPieceworkEntry(
     if (!worker) throw new Error("worker not found");
 
     const [rate] = await tx
-      .select({ id: pieceRates.id, rate: pieceRates.rate })
+      .select({
+        id: pieceRates.id,
+        rate: pieceRates.rate,
+        active: pieceRates.active,
+      })
       .from(pieceRates)
       .where(
         and(
@@ -142,6 +146,7 @@ export async function createPieceworkEntry(
       )
       .limit(1);
     if (!rate) throw new Error("piece rate not found");
+    if (!rate.active) throw new Error("piece rate is inactive");
 
     if (input.cropCycleId) {
       const [cycle] = await tx

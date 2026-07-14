@@ -10,4 +10,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  test: {
+    // Pure/unit only — DB-free and fast. The DB-backed integration suite
+    // (tests/integration/) has its own project (vitest.integration.config.ts,
+    // run via `pnpm test:integration`) so it never gets picked up here by
+    // Vitest's default (much broader) test-file glob.
+    include: ["tests/unit/**/*.test.ts"],
+  },
 });
