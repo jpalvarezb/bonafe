@@ -279,7 +279,7 @@ export async function createActivityInTx(
         and(eq(activities.id, activityId), eq(activities.orgId, ctx.org.id)),
       );
     if (!existing) throw new Error("activity id conflict");
-    return existing;
+    return { activity: existing, created: false };
   }
 
   if (resolvedInputs.length > 0) {
@@ -336,7 +336,7 @@ export async function createActivityInTx(
     );
   }
 
-  return created;
+  return { activity: created, created: true };
 }
 
 export async function createActivity(ctx: OrgContext, input: ActivityInput) {

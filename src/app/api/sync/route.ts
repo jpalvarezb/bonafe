@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     try {
       if (item.kind === "activity.create") {
         const payload = activityCreatePayload.parse(item.payload);
-        await createActivity(ctx, {
+        const { created } = await createActivity(ctx, {
           id: payload.id,
           parcelId: payload.parcelId ?? null,
           cropCycleId: payload.cropCycleId ?? null,
@@ -104,11 +104,17 @@ export async function POST(request: Request) {
             quantity: line.quantity || undefined,
           })),
         });
-        // Replays return the existing row (ON CONFLICT DO NOTHING) — from the
-        // client's perspective applied and duplicate resolve identically.
-        results.push({ outboxId: item.outboxId, status: "applied" });
+        // Replays return the existing row (ON CONFLICT DO NOTHING): report
+        // 'duplicate' so the client can tell a first apply from a no-op replay.
+        results.push({
+          outboxId: item.outboxId,
+          status: created ? "applied" : "duplicate",
+        });
       } else if (item.kind === "attendance.upsert") {
         const payload = attendanceUpsertPayload.parse(item.payload);
+        // upsertAttendance is onConflictDoUpdate (last-write-wins): every
+        // replay genuinely re-applies the write, so there is no first-vs-
+        // replay distinction to report — always 'applied'.
         await upsertAttendance(ctx, {
           id: payload.id,
           workerId: payload.workerId,
@@ -122,7 +128,7 @@ export async function POST(request: Request) {
         results.push({ outboxId: item.outboxId, status: "applied" });
       } else if (item.kind === "harvest.create") {
         const payload = harvestCreatePayload.parse(item.payload);
-        await createHarvest(ctx, {
+        const { created } = await createHarvest(ctx, {
           id: payload.id,
           parcelId: payload.parcelId,
           cropCycleId: payload.cropCycleId ?? null,
@@ -134,10 +140,13 @@ export async function POST(request: Request) {
           notes: payload.notes ?? null,
           createdOffline: true,
         });
-        results.push({ outboxId: item.outboxId, status: "applied" });
+        results.push({
+          outboxId: item.outboxId,
+          status: created ? "applied" : "duplicate",
+        });
       } else if (item.kind === "piecework.create") {
         const payload = pieceworkEntryCreatePayload.parse(item.payload);
-        await createPieceworkEntry(ctx, {
+        const { created } = await createPieceworkEntry(ctx, {
           id: payload.id,
           workerId: payload.workerId,
           pieceRateId: payload.pieceRateId,
@@ -147,7 +156,10 @@ export async function POST(request: Request) {
           notes: payload.notes ?? null,
           createdOffline: true,
         });
-        results.push({ outboxId: item.outboxId, status: "applied" });
+        results.push({
+          outboxId: item.outboxId,
+          status: created ? "applied" : "duplicate",
+        });
       } else if (item.kind === "workorder.complete") {
         const payload = workOrderCompletePayload.parse(item.payload);
         const { workOrder, transitioned } = await completeWorkOrder(ctx, {
@@ -163,10 +175,15 @@ export async function POST(request: Request) {
             meta: { code: workOrder.code, to: "done" },
           });
         }
-        results.push({ outboxId: item.outboxId, status: "applied" });
+        // "done" is terminal, so a replayed completion is an idempotent
+        // no-op — report it as 'duplicate' rather than 'applied'.
+        results.push({
+          outboxId: item.outboxId,
+          status: transitioned ? "applied" : "duplicate",
+        });
       } else if (item.kind === "monitoring.create") {
         const payload = monitoringCreatePayload.parse(item.payload);
-        await createMonitoringRecord(ctx, {
+        const { created } = await createMonitoringRecord(ctx, {
           id: payload.id,
           parcelId: payload.parcelId,
           cropCycleId: payload.cropCycleId ?? null,
@@ -179,7 +196,10 @@ export async function POST(request: Request) {
           actionsTaken: payload.actionsTaken ?? null,
           location: payload.location ?? null,
         });
-        results.push({ outboxId: item.outboxId, status: "applied" });
+        results.push({
+          outboxId: item.outboxId,
+          status: created ? "applied" : "duplicate",
+        });
       } else {
         // Defensive: syncRequestSchema already restricts item.kind to a known
         // OUTBOX_KINDS key, so this is unreachable with a well-formed request.

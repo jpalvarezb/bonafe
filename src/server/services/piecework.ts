@@ -196,9 +196,9 @@ export async function createPieceworkEntry(
           ),
         );
       if (!existing) throw new Error("piecework entry id conflict");
-      return existing;
+      return { entry: existing, created: false };
     }
-    return created;
+    return { entry: created, created: true };
   });
 }
 

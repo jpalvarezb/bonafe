@@ -99,14 +99,12 @@ describe("POST /api/sync — piecework.create", () => {
     const secondBody = (await second.json()) as {
       results: { status: string }[];
     };
-    // Live finding: SyncItemResult (src/lib/offline/schemas.ts) declares a
-    // 'duplicate' status for exactly this replay case, but the route
-    // (src/app/api/sync/route.ts) always pushes 'applied', even on the
-    // ON CONFLICT DO NOTHING no-op path — a replay is indistinguishable
-    // from a first application from the client's point of view. The DB-level
-    // exactly-once guarantee below is intact; this only documents that the
-    // richer client-facing signal the type promises is never emitted.
-    expect(secondBody.results[0].status).toBe("applied");
+    // Replaying the byte-identical item (same client UUID) must be
+    // observable to the caller as a no-op, not a fresh insert: the row
+    // already existed on the ON CONFLICT DO NOTHING path, so the route
+    // should report 'duplicate' here while still guaranteeing exactly one
+    // row server-side (asserted below).
+    expect(secondBody.results[0].status).toBe("duplicate");
 
     const rows = await withOrgRls(orgA.id, (tx) =>
       tx.select().from(pieceworkEntries).where(eq(pieceworkEntries.id, rowId)),
