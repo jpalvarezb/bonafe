@@ -6,48 +6,37 @@ import { useRouter } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Notice } from "@/components/ui/notice";
-import { Metric } from "@/components/ui/metric";
 import { cn } from "@/lib/utils";
 import { enqueue, editOutboxEntry, flushOutbox } from "@/lib/offline/outbox";
 import { newId } from "@/lib/ids";
 
 type Option = { id: string; name: string };
-type CycleOption = Option & { parcelId: string };
+type RateOption = Option & { unit: string };
 
-type Unit = "kg" | "lb" | "qq" | "lata" | "saco";
-
-const UNITS: Unit[] = ["kg", "lb", "qq", "lata", "saco"];
-
-/** Mirrors harvestCreatePayload (src/lib/offline/schemas.ts). */
-export type HarvestPayload = {
+/** Mirrors pieceworkEntryCreatePayload (src/lib/offline/schemas.ts). */
+export type PieceworkEntryPayload = {
   id: string;
-  parcelId: string;
+  workerId: string;
+  pieceRateId: string;
   cropCycleId?: string;
-  workerId?: string;
   date: string;
   quantity: string;
-  unit: string;
-  qualityGrade?: string;
   notes?: string;
 };
 
 type Props = {
   readonly orgSlug: string;
-  readonly parcels: Option[];
-  readonly cycles: CycleOption[];
   readonly workers: Option[];
+  readonly rates: RateOption[];
+  readonly cycles: Option[];
   /** Edit-then-retry: prefills from a rejected outbox entry's payload. */
-  readonly initialPayload?: HarvestPayload;
+  readonly initialPayload?: PieceworkEntryPayload;
   /** Same outbox row/id — editOutboxEntry never mints a new UUID. */
   readonly editingOutboxId?: string;
   readonly onCancelEdit?: () => void;
 };
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-// Density-driven building blocks — see activity-form.tsx for the same
+// Density-driven building blocks — see harvest-form.tsx for the same
 // pattern; office mode gets 28/24px sizing, field mode gets 56/48px glove
 // targets from the same className strings (globals.css [data-mode="field"]).
 const MICRO_LABEL =
@@ -66,50 +55,43 @@ function chipClass(selected: boolean, extra?: string) {
   );
 }
 
-export function HarvestForm({
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function PieceworkEntryForm({
   orgSlug,
-  parcels,
-  cycles,
   workers,
+  rates,
+  cycles,
   initialPayload,
   editingOutboxId,
   onCancelEdit,
 }: Props) {
-  const t = useTranslations("harvests");
+  const t = useTranslations("piecework");
   const tOffline = useTranslations("offline");
   const tCommon = useTranslations("common");
   const router = useRouter();
   const isEditing = Boolean(editingOutboxId);
-  const [parcelId, setParcelId] = useState<string>(
-    initialPayload?.parcelId ?? parcels[0]?.id ?? "",
+  const [workerId, setWorkerId] = useState(
+    initialPayload?.workerId ?? workers[0]?.id ?? "",
   );
-  const [cropCycleId, setCropCycleId] = useState<string>(
+  const [pieceRateId, setPieceRateId] = useState(
+    initialPayload?.pieceRateId ?? rates[0]?.id ?? "",
+  );
+  const [cropCycleId, setCropCycleId] = useState(
     initialPayload?.cropCycleId ?? "",
-  );
-  const [workerId, setWorkerId] = useState<string>(
-    initialPayload?.workerId ?? "",
   );
   const [date, setDate] = useState(initialPayload?.date ?? today());
   const [quantity, setQuantity] = useState(initialPayload?.quantity ?? "");
-  const [unit, setUnit] = useState<Unit>((initialPayload?.unit as Unit) ?? "kg");
-  const [qualityGrade, setQualityGrade] = useState(
-    initialPayload?.qualityGrade ?? "",
-  );
   const [notes, setNotes] = useState(initialPayload?.notes ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
-  const parcelCycles = cycles.filter(
-    (c) => !parcelId || c.parcelId === parcelId,
-  );
-
   function resetForm() {
     setCropCycleId("");
-    setWorkerId("");
     setDate(today());
     setQuantity("");
-    setUnit("kg");
-    setQualityGrade("");
     setNotes("");
   }
 
@@ -118,21 +100,19 @@ export function HarvestForm({
     setSubmitting(true);
     setSaveError(false);
     try {
-      const payload: HarvestPayload = {
+      const payload: PieceworkEntryPayload = {
         id: initialPayload?.id ?? newId(),
-        parcelId,
+        workerId,
+        pieceRateId,
         cropCycleId: cropCycleId || undefined,
-        workerId: workerId || undefined,
         date,
         quantity,
-        unit,
-        qualityGrade: qualityGrade || undefined,
         notes: notes || undefined,
       };
       if (editingOutboxId) {
         await editOutboxEntry(editingOutboxId, payload);
       } else {
-        await enqueue(orgSlug, "harvest.create", payload);
+        await enqueue(orgSlug, "piecework.create", payload);
       }
       if (navigator.onLine) {
         await flushOutbox(orgSlug).catch(() => null);
@@ -146,7 +126,8 @@ export function HarvestForm({
         resetForm();
       }
     } catch {
-      // enqueue() zod-rejects invalid payloads before anything is stored.
+      // enqueue()/editOutboxEntry() zod-reject invalid payloads before
+      // anything is stored.
       setSaveError(true);
     } finally {
       setSubmitting(false);
@@ -157,48 +138,69 @@ export function HarvestForm({
     <div className="flex flex-col gap-2 rounded-[3px] border border-border">
       <div className="border-b border-border px-[var(--density-cell-px)] py-[var(--density-cell-py)]">
         <span className={MICRO_LABEL}>
-          {isEditing ? tOffline("issues.edit") : t("new")}
+          {isEditing ? tOffline("issues.edit") : t("entries.form.create")}
         </span>
       </div>
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-5 p-[var(--density-cell-px)]"
       >
-        {/* Parcel picker — board chip grid, same setParcelId state the
-            previous <select> drove. */}
+        {/* Worker picker — board chip grid. */}
         <div className="flex flex-col gap-2">
-          <span className={MICRO_LABEL}>{t("parcel")}</span>
+          <span className={MICRO_LABEL}>{t("entries.form.worker")}</span>
           <div
             role="group"
-            aria-label={t("parcel")}
+            aria-label={t("entries.form.worker")}
             className="grid grid-cols-2 gap-2 sm:grid-cols-3"
           >
-            {parcels.map((parcel) => (
+            {workers.map((worker) => (
               <button
-                key={parcel.id}
+                key={worker.id}
                 type="button"
-                aria-pressed={parcelId === parcel.id}
-                onClick={() => {
-                  setParcelId(parcel.id);
-                  setCropCycleId("");
-                }}
+                aria-pressed={workerId === worker.id}
+                onClick={() => setWorkerId(worker.id)}
                 className={chipClass(
-                  parcelId === parcel.id,
+                  workerId === worker.id,
                   "min-h-[var(--density-row-h)] px-[var(--density-cell-px)]",
                 )}
               >
-                {parcel.name}
+                {worker.name}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Cycle picker — same chip treatment, includes "no cycle". */}
+        {/* Rate picker — same chip treatment. */}
         <div className="flex flex-col gap-2">
-          <span className={MICRO_LABEL}>{t("cycle")}</span>
+          <span className={MICRO_LABEL}>{t("entries.form.rate")}</span>
           <div
             role="group"
-            aria-label={t("cycle")}
+            aria-label={t("entries.form.rate")}
+            className="flex flex-wrap gap-2"
+          >
+            {rates.map((rate) => (
+              <button
+                key={rate.id}
+                type="button"
+                aria-pressed={pieceRateId === rate.id}
+                onClick={() => setPieceRateId(rate.id)}
+                className={chipClass(
+                  pieceRateId === rate.id,
+                  "h-[var(--density-control-h)] px-[var(--density-cell-px)]",
+                )}
+              >
+                {rate.name} ({rate.unit})
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Cycle picker — includes "no cycle". */}
+        <div className="flex flex-col gap-2">
+          <span className={MICRO_LABEL}>{t("entries.form.cycle")}</span>
+          <div
+            role="group"
+            aria-label={t("entries.form.cycle")}
             className="flex flex-wrap gap-2"
           >
             <button
@@ -210,9 +212,9 @@ export function HarvestForm({
                 "h-[var(--density-control-h)] px-[var(--density-cell-px)]",
               )}
             >
-              {t("cycleNone")}
+              {t("entries.form.noCycle")}
             </button>
-            {parcelCycles.map((cycle) => (
+            {cycles.map((cycle) => (
               <button
                 key={cycle.id}
                 type="button"
@@ -229,70 +231,10 @@ export function HarvestForm({
           </div>
         </div>
 
-        {/* Big numeric entry — board treatment: large mono quantity input
-            with a live formatted total underneath. */}
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="quantity" className={MICRO_LABEL}>
-            {t("quantity")}
-          </Label>
-          <div className="flex items-center gap-2">
-            <input
-              id="quantity"
-              type="number"
-              min="0"
-              step="0.01"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              required
-              className={cn(
-                CONTROL,
-                "h-[var(--density-control-h)] w-full flex-1 text-right font-mono text-[length:calc(var(--density-font-body)*1.4)] font-semibold tabular",
-              )}
-            />
-            <select
-              aria-label={t("unit")}
-              value={unit}
-              onChange={(e) => setUnit(e.target.value as Unit)}
-              required
-              className={cn(CONTROL, "w-24")}
-            >
-              {UNITS.map((value) => (
-                <option key={value} value={value}>
-                  {t(`units.${value}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-          {quantity && (
-            <Metric
-              value={`${Number(quantity).toLocaleString(undefined, { maximumFractionDigits: 2 })} ${t(`units.${unit}`)}`}
-              className="text-[length:var(--density-font-body)] text-muted-foreground"
-            />
-          )}
-        </div>
-
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="workerId" className={MICRO_LABEL}>
-              {t("worker")}
-            </Label>
-            <select
-              id="workerId"
-              value={workerId}
-              onChange={(e) => setWorkerId(e.target.value)}
-              className={cn(CONTROL, "w-full")}
-            >
-              <option value="">{t("workerNone")}</option>
-              {workers.map((worker) => (
-                <option key={worker.id} value={worker.id}>
-                  {worker.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-2">
             <Label htmlFor="date" className={MICRO_LABEL}>
-              {t("date")}
+              {t("entries.form.date")}
             </Label>
             <Input
               id="date"
@@ -304,19 +246,26 @@ export function HarvestForm({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="qualityGrade" className={MICRO_LABEL}>
-              {t("qualityGrade")}
+            <Label htmlFor="quantity" className={MICRO_LABEL}>
+              {t("entries.form.quantity")}
             </Label>
-            <Input
-              id="qualityGrade"
-              value={qualityGrade}
-              onChange={(e) => setQualityGrade(e.target.value)}
-              className={cn(CONTROL, "w-full")}
+            <input
+              id="quantity"
+              type="number"
+              min="0"
+              step="0.01"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              required
+              className={cn(
+                CONTROL,
+                "w-full text-right font-mono tabular",
+              )}
             />
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 sm:col-span-2">
             <Label htmlFor="notes" className={MICRO_LABEL}>
-              {t("notes")}
+              {t("entries.form.notes")}
             </Label>
             <Input
               id="notes"
@@ -335,7 +284,7 @@ export function HarvestForm({
             disabled={submitting}
             className="h-[var(--density-control-h)] flex-1 rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:flex-none"
           >
-            {isEditing ? tOffline("issues.retry") : t("create")}
+            {isEditing ? tOffline("issues.retry") : t("entries.form.create")}
           </button>
           {isEditing && (
             <button

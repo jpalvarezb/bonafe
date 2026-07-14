@@ -8,6 +8,7 @@ import {
   type OutboxPayload,
   type SyncItemResult,
 } from "./schemas";
+import { retryEntry, editAndRetryEntry } from "./retry";
 
 const BATCH_SIZE = 25;
 
@@ -111,6 +112,7 @@ export async function flushOutbox(
         await offlineDb.outbox.update(result.outboxId, {
           status: "rejected",
           lastError: result.error ?? "rejected",
+          reasonCode: result.reasonCode,
         });
       }
     }
@@ -118,6 +120,50 @@ export async function flushOutbox(
   } finally {
     flushing = false;
   }
+}
+
+/**
+ * Retry a rejected entry as-is: 'rejected' -> 'pending', same row/id, error
+ * and reason cleared. The existing sync-provider flush loop (flushOutbox)
+ * picks it back up on its next pass — this never issues a parallel fetch.
+ * A no-op if the entry isn't currently 'rejected' (see retryEntry).
+ */
+export async function retryOutboxEntry(id: string): Promise<void> {
+  const entry = await offlineDb.outbox.get(id);
+  if (!entry) return;
+  const retried = retryEntry(entry);
+  await offlineDb.outbox.update(id, {
+    status: retried.status,
+    lastError: retried.lastError,
+    reasonCode: retried.reasonCode,
+  });
+}
+
+/**
+ * Edit a rejected entry's payload then retry it: validates the replacement
+ * payload against the entry's own kind schema, then transitions
+ * 'rejected' -> 'pending' in place — same outbox row/id, never a new one.
+ * A no-op if the entry isn't currently 'rejected' (see editAndRetryEntry).
+ */
+export async function editOutboxEntry(
+  id: string,
+  newPayload: unknown,
+): Promise<void> {
+  const entry = await offlineDb.outbox.get(id);
+  if (!entry) return;
+  OUTBOX_KINDS[entry.kind].parse(newPayload);
+  const edited = editAndRetryEntry(entry, newPayload);
+  await offlineDb.outbox.update(id, {
+    status: edited.status,
+    payload: edited.payload,
+    lastError: edited.lastError,
+    reasonCode: edited.reasonCode,
+  });
+}
+
+/** Explicit, terminal discard of a rejected entry. */
+export async function discardOutboxEntry(id: string): Promise<void> {
+  await offlineDb.outbox.delete(id);
 }
 
 export async function outboxCounts(orgSlug: string) {

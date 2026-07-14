@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { RejectionReasonCode } from "./retry";
 
 /**
  * Offline mutation payloads, shared by the client outbox and /api/sync.
@@ -129,12 +130,31 @@ export const workOrderCompletePayload = z.object({
   title: z.string().optional(),
 });
 
+/**
+ * Piecework capture. No `amount` field: createPieceworkEntry always
+ * computes the amount server-side from the pieceRate snapshot
+ * (new Decimal(quantity).mul(rate.rate)) — a client-supplied amount is
+ * never trusted, and z.object strips any smuggled `amount` on parse.
+ * `quantity` must be strictly greater than 0 (no piecework units
+ * captured otherwise), unlike harvestCreatePayload's quantity.
+ */
+export const pieceworkEntryCreatePayload = z.object({
+  id: uuid,
+  workerId: uuid,
+  pieceRateId: uuid,
+  cropCycleId: uuid.optional(),
+  date: z.string().min(10),
+  quantity: positiveNonZeroDecimal,
+  notes: z.string().optional(),
+});
+
 export const OUTBOX_KINDS = {
   "activity.create": activityCreatePayload,
   "monitoring.create": monitoringCreatePayload,
   "attendance.upsert": attendanceUpsertPayload,
   "harvest.create": harvestCreatePayload,
   "workorder.complete": workOrderCompletePayload,
+  "piecework.create": pieceworkEntryCreatePayload,
 } as const;
 
 export type OutboxKind = keyof typeof OUTBOX_KINDS;
@@ -160,4 +180,7 @@ export type SyncItemResult = {
   outboxId: string;
   status: "applied" | "duplicate" | "rejected";
   error?: string;
+  /** Machine-readable reason for a 'rejected' result, for localized display
+   * in the retry/review queue (src/components/offline/sync-issues-list.tsx). */
+  reasonCode?: RejectionReasonCode;
 };

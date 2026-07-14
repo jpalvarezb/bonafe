@@ -19,6 +19,8 @@ export type PieceRateInput = {
 };
 
 export type PieceworkEntryInput = {
+  /** Client-generated UUIDv7 for offline idempotency; server fills if absent. */
+  id?: string;
   workerId: string;
   pieceRateId: string;
   /** Optional crop-cycle attribution; feeds per-cycle profitability. */
@@ -26,6 +28,7 @@ export type PieceworkEntryInput = {
   date: string;
   quantity: string;
   notes?: string | null;
+  createdOffline?: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -156,10 +159,11 @@ export async function createPieceworkEntry(
 
     const amount = new Decimal(input.quantity).mul(rate.rate).toFixed(4);
 
+    const entryId = input.id ?? newId();
     const [created] = await tx
       .insert(pieceworkEntries)
       .values({
-        id: newId(),
+        id: entryId,
         orgId: ctx.org.id,
         workerId: input.workerId,
         pieceRateId: input.pieceRateId,
@@ -170,8 +174,25 @@ export async function createPieceworkEntry(
         amount,
         notes: input.notes ?? null,
         createdBy: ctx.user.id,
+        createdOffline: input.createdOffline ?? false,
       })
+      .onConflictDoNothing({ target: pieceworkEntries.id })
       .returning();
+
+    // Idempotent replay from the offline outbox: row already exists.
+    if (!created) {
+      const [existing] = await tx
+        .select()
+        .from(pieceworkEntries)
+        .where(
+          and(
+            eq(pieceworkEntries.id, entryId),
+            eq(pieceworkEntries.orgId, ctx.org.id),
+          ),
+        );
+      if (!existing) throw new Error("piecework entry id conflict");
+      return existing;
+    }
     return created;
   });
 }

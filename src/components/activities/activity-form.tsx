@@ -10,7 +10,7 @@ import { Notice } from "@/components/ui/notice";
 import { Metric } from "@/components/ui/metric";
 import { cn } from "@/lib/utils";
 import { computeActivityTotals } from "@/lib/calc/costs";
-import { enqueue, flushOutbox, outboxCounts } from "@/lib/offline/outbox";
+import { enqueue, editOutboxEntry, flushOutbox, outboxCounts } from "@/lib/offline/outbox";
 import { useOnlineStatus } from "@/components/offline/sync-status-badge";
 import { newId } from "@/lib/ids";
 
@@ -35,6 +35,29 @@ type LaborLineState = {
   rate: string;
 };
 
+/** Mirrors activityCreatePayload (src/lib/offline/schemas.ts). */
+export type ActivityPayload = {
+  id: string;
+  parcelId?: string;
+  cropCycleId?: string;
+  costCenterId?: string;
+  activityTypeId: string;
+  date: string;
+  description?: string;
+  otherCost?: string;
+  currencyCode?: string;
+  inputs: { productId: string; quantity: string; unitCost?: string }[];
+  labor: {
+    workerId?: string;
+    workerName?: string;
+    workersCount: number;
+    hours?: string;
+    quantity?: string;
+    rateType: "daily" | "hourly" | "piecework";
+    rate: string;
+  }[];
+};
+
 type Props = {
   readonly locale: string;
   readonly orgSlug: string;
@@ -49,6 +72,11 @@ type Props = {
   readonly unitCostByProduct: Record<string, string>;
   readonly currencyCode: string;
   readonly currencies: string[];
+  /** Edit-then-retry: prefills from a rejected outbox entry's payload. */
+  readonly initialPayload?: ActivityPayload;
+  /** Same outbox row/id — editOutboxEntry never mints a new UUID. */
+  readonly editingOutboxId?: string;
+  readonly onCancelEdit?: () => void;
 };
 
 let keyCounter = 1;
@@ -91,24 +119,61 @@ export function ActivityForm({
   unitCostByProduct,
   currencyCode,
   currencies,
+  initialPayload,
+  editingOutboxId,
+  onCancelEdit,
 }: Props) {
   const t = useTranslations("activities");
   const router = useRouter();
-  const [parcelId, setParcelId] = useState<string>("");
-  const [cropCycleId, setCropCycleId] = useState<string>("");
-  const [activityTypeId, setActivityTypeId] = useState<string>(
-    activityTypes[0]?.id ?? "",
+  const isEditing = Boolean(editingOutboxId);
+  const [parcelId, setParcelId] = useState<string>(
+    initialPayload?.parcelId ?? "",
   );
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [description, setDescription] = useState("");
-  const [otherCost, setOtherCost] = useState("");
-  const [costCenterId, setCostCenterId] = useState<string>("");
-  const [selectedCurrency, setSelectedCurrency] = useState(currencyCode);
-  const [inputs, setInputs] = useState<InputLineState[]>([]);
-  const [labor, setLabor] = useState<LaborLineState[]>([]);
+  const [cropCycleId, setCropCycleId] = useState<string>(
+    initialPayload?.cropCycleId ?? "",
+  );
+  const [activityTypeId, setActivityTypeId] = useState<string>(
+    initialPayload?.activityTypeId ?? activityTypes[0]?.id ?? "",
+  );
+  const [date, setDate] = useState(
+    initialPayload?.date ?? new Date().toISOString().slice(0, 10),
+  );
+  const [description, setDescription] = useState(
+    initialPayload?.description ?? "",
+  );
+  const [otherCost, setOtherCost] = useState(initialPayload?.otherCost ?? "");
+  const [costCenterId, setCostCenterId] = useState<string>(
+    initialPayload?.costCenterId ?? "",
+  );
+  const [selectedCurrency, setSelectedCurrency] = useState(
+    initialPayload?.currencyCode ?? currencyCode,
+  );
+  const [inputs, setInputs] = useState<InputLineState[]>(
+    () =>
+      initialPayload?.inputs.map((line) => ({
+        key: keyCounter++,
+        productId: line.productId,
+        quantity: line.quantity,
+        unitCost: line.unitCost ?? "",
+      })) ?? [],
+  );
+  const [labor, setLabor] = useState<LaborLineState[]>(
+    () =>
+      initialPayload?.labor.map((line) => ({
+        key: keyCounter++,
+        workerId: line.workerId ?? "",
+        workerName: line.workerName ?? "",
+        workersCount: String(line.workersCount),
+        hours: line.hours ?? "",
+        quantity: line.quantity ?? "",
+        rateType: line.rateType,
+        rate: line.rate,
+      })) ?? [],
+  );
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const tOffline = useTranslations("offline");
+  const tCommon = useTranslations("common");
   const online = useOnlineStatus();
   const counts = useLiveQuery(
     () => outboxCounts(orgSlug),
@@ -146,8 +211,8 @@ export function ActivityForm({
     event.preventDefault();
     setSubmitting(true);
     setSaveError(false);
-    const payload = {
-      id: newId(),
+    const payload: ActivityPayload = {
+      id: initialPayload?.id ?? newId(),
       parcelId: parcelId || undefined,
       cropCycleId: cropCycleId || undefined,
       costCenterId: costCenterId || undefined,
@@ -175,7 +240,19 @@ export function ActivityForm({
       })),
     };
     try {
-      await enqueue(orgSlug, "activity.create", payload);
+      if (editingOutboxId) {
+        await editOutboxEntry(editingOutboxId, payload);
+      } else {
+        await enqueue(orgSlug, "activity.create", payload);
+      }
+      if (editingOutboxId) {
+        if (navigator.onLine) {
+          await flushOutbox(orgSlug).catch(() => null);
+          router.refresh();
+        }
+        onCancelEdit?.();
+        return;
+      }
       if (navigator.onLine) {
         flushOutbox(orgSlug).catch(() => null);
         router.push(`/o/${orgSlug}/activities`);
@@ -703,13 +780,24 @@ export function ActivityForm({
 
       {saveError && <Notice variant="error">{tOffline("saveError")}</Notice>}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="h-[var(--density-control-h)] w-full rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto"
-      >
-        {t("save")}
-      </button>
+      <div className="flex gap-2 sm:self-start">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="h-[var(--density-control-h)] flex-1 rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:flex-none"
+        >
+          {isEditing ? tOffline("issues.retry") : t("save")}
+        </button>
+        {isEditing && (
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            className="h-[var(--density-control-h)] rounded-[3px] border border-border px-6 text-[length:var(--density-font-body)] font-medium text-foreground hover:bg-muted"
+          >
+            {tCommon("actions.cancel")}
+          </button>
+        )}
+      </div>
     </form>
   );
 }

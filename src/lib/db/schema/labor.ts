@@ -157,6 +157,7 @@ export const pieceworkEntries = pgTable(
     amount: money("amount").notNull().default("0"),
     notes: text("notes"),
     createdBy: text("created_by").references(() => user.id),
+    createdOffline: boolean("created_offline").notNull().default(false),
     ...timestamps,
   },
   (t) => [

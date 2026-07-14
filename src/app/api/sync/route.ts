@@ -6,6 +6,7 @@ import {
   attendanceUpsertPayload,
   harvestCreatePayload,
   monitoringCreatePayload,
+  pieceworkEntryCreatePayload,
   syncRequestSchema,
   workOrderCompletePayload,
   type SyncItemResult,
@@ -14,8 +15,10 @@ import { createActivity } from "@/server/services/activities";
 import { createMonitoringRecord } from "@/server/services/monitoring";
 import { upsertAttendance } from "@/server/services/attendance";
 import { createHarvest } from "@/server/services/harvests";
+import { createPieceworkEntry } from "@/server/services/piecework";
 import { completeWorkOrder } from "@/server/services/work-orders";
 import { audit } from "@/lib/audit";
+import { classifyRejection } from "@/lib/offline/retry";
 
 /**
  * Offline outbox ingest. Items are applied in order; each is idempotent by
@@ -132,6 +135,19 @@ export async function POST(request: Request) {
           createdOffline: true,
         });
         results.push({ outboxId: item.outboxId, status: "applied" });
+      } else if (item.kind === "piecework.create") {
+        const payload = pieceworkEntryCreatePayload.parse(item.payload);
+        await createPieceworkEntry(ctx, {
+          id: payload.id,
+          workerId: payload.workerId,
+          pieceRateId: payload.pieceRateId,
+          cropCycleId: payload.cropCycleId ?? null,
+          date: payload.date,
+          quantity: payload.quantity,
+          notes: payload.notes ?? null,
+          createdOffline: true,
+        });
+        results.push({ outboxId: item.outboxId, status: "applied" });
       } else if (item.kind === "workorder.complete") {
         const payload = workOrderCompletePayload.parse(item.payload);
         const { workOrder, transitioned } = await completeWorkOrder(ctx, {
@@ -148,7 +164,7 @@ export async function POST(request: Request) {
           });
         }
         results.push({ outboxId: item.outboxId, status: "applied" });
-      } else {
+      } else if (item.kind === "monitoring.create") {
         const payload = monitoringCreatePayload.parse(item.payload);
         await createMonitoringRecord(ctx, {
           id: payload.id,
@@ -164,12 +180,24 @@ export async function POST(request: Request) {
           location: payload.location ?? null,
         });
         results.push({ outboxId: item.outboxId, status: "applied" });
+      } else {
+        // Defensive: syncRequestSchema already restricts item.kind to a known
+        // OUTBOX_KINDS key, so this is unreachable with a well-formed request.
+        // Kept explicit (rather than falling through to monitoringCreatePayload)
+        // so an unrecognized kind never gets silently misparsed as monitoring.
+        results.push({
+          outboxId: item.outboxId,
+          status: "rejected",
+          error: `unrecognized kind: ${item.kind}`,
+          reasonCode: "validation",
+        });
       }
     } catch (error) {
       results.push({
         outboxId: item.outboxId,
         status: "rejected",
         error: error instanceof Error ? error.message : "unknown error",
+        reasonCode: classifyRejection(error),
       });
     }
   }

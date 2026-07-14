@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   activityCreatePayload,
   monitoringCreatePayload,
+  OUTBOX_KINDS,
+  pieceworkEntryCreatePayload,
   workOrderCompletePayload,
 } from "../../src/lib/offline/schemas";
 
@@ -301,5 +303,114 @@ describe("workOrderCompletePayload", () => {
         title: "Spray north block",
       }).success,
     ).toBe(true);
+  });
+});
+
+/**
+ * Piecework capture (offline outbox kind "piecework.create"). Mirrors
+ * createPieceworkEntry's org-ownership validation (worker/pieceRate/
+ * cropCycle) — the amount is NEVER accepted from the client: it is always
+ * computed server-side from the pieceRate snapshot at apply time.
+ */
+describe("pieceworkEntryCreatePayload", () => {
+  const base = {
+    id: "018f0000-0000-7000-8000-000000000101",
+    workerId: "018f0000-0000-7000-8000-000000000102",
+    pieceRateId: "018f0000-0000-7000-8000-000000000103",
+    date: "2026-07-13",
+    quantity: "125.5",
+    notes: "Row 4-7, clean picking",
+  };
+
+  it("accepts a hand-computed valid fixture with all fields", () => {
+    const result = pieceworkEntryCreatePayload.safeParse({
+      ...base,
+      cropCycleId: "018f0000-0000-7000-8000-000000000104",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an omitted cropCycleId (attribution is optional)", () => {
+    expect(pieceworkEntryCreatePayload.safeParse(base).success).toBe(true);
+  });
+
+  it("rejects a non-uuid id", () => {
+    expect(
+      pieceworkEntryCreatePayload.safeParse({ ...base, id: "not-a-uuid" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a non-uuid workerId", () => {
+    expect(
+      pieceworkEntryCreatePayload.safeParse({
+        ...base,
+        workerId: "not-a-uuid",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a non-uuid pieceRateId", () => {
+    expect(
+      pieceworkEntryCreatePayload.safeParse({
+        ...base,
+        pieceRateId: "not-a-uuid",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a non-uuid cropCycleId when provided", () => {
+    expect(
+      pieceworkEntryCreatePayload.safeParse({
+        ...base,
+        cropCycleId: "not-a-uuid",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a comma-decimal quantity ('12,5')", () => {
+    expect(
+      pieceworkEntryCreatePayload.safeParse({ ...base, quantity: "12,5" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a non-numeric quantity ('abc')", () => {
+    expect(
+      pieceworkEntryCreatePayload.safeParse({ ...base, quantity: "abc" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a negative quantity", () => {
+    expect(
+      pieceworkEntryCreatePayload.safeParse({ ...base, quantity: "-5" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects a zero quantity (no piecework units captured)", () => {
+    expect(
+      pieceworkEntryCreatePayload.safeParse({ ...base, quantity: "0" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("parsed output never carries an amount field (server-computed only)", () => {
+    const result = pieceworkEntryCreatePayload.safeParse({
+      ...base,
+      cropCycleId: "018f0000-0000-7000-8000-000000000104",
+      // Attempt to smuggle a client-supplied amount through.
+      amount: "999999.99",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data as Record<string, unknown>).amount).toBeUndefined();
+    }
+  });
+
+  it("registers under the 'piecework.create' outbox kind", () => {
+    expect(Object.keys(OUTBOX_KINDS)).toContain("piecework.create");
+    expect(OUTBOX_KINDS["piecework.create"]).toBe(pieceworkEntryCreatePayload);
   });
 });

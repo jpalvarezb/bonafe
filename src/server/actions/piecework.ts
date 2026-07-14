@@ -5,7 +5,6 @@ import { z } from "zod";
 import { requireOrgContext } from "@/lib/tenancy";
 import {
   createPieceRate,
-  createPieceworkEntry,
   deletePieceworkEntry,
   setPieceRateActive,
 } from "@/server/services/piecework";
@@ -16,11 +15,6 @@ const scope = z.object({ locale: z.string(), orgSlug: z.string() });
 // piecework money spec (columns themselves are numeric(14,4)).
 const moneyRegex = /^\d{1,12}(\.\d{1,8})?$/;
 const moneySchema = z.string().regex(moneyRegex);
-
-function str(formData: FormData, key: string): string | undefined {
-  const value = formData.get(key);
-  return typeof value === "string" && value !== "" ? value : undefined;
-}
 
 const pieceRateSchema = z.object({
   name: z.string().min(1).max(160),
@@ -52,33 +46,6 @@ export async function setPieceRateActiveAction(formData: FormData) {
   const pieceRateId = z.string().uuid().parse(formData.get("pieceRateId"));
   const active = formData.get("active") === "true";
   await setPieceRateActive(ctx, pieceRateId, active);
-  revalidatePath(`/${locale}/o/${orgSlug}/piecework`);
-}
-
-const pieceworkEntrySchema = z.object({
-  workerId: z.string().uuid(),
-  pieceRateId: z.string().uuid(),
-  cropCycleId: z.string().uuid().optional(),
-  date: z.string().min(10).max(10),
-  quantity: moneySchema,
-  notes: z.string().max(2000).optional(),
-});
-
-export async function createPieceworkEntryAction(formData: FormData) {
-  const { locale, orgSlug } = scope.parse({
-    locale: formData.get("locale"),
-    orgSlug: formData.get("orgSlug"),
-  });
-  const ctx = await requireOrgContext(locale, orgSlug);
-  const input = pieceworkEntrySchema.parse({
-    workerId: formData.get("workerId"),
-    pieceRateId: formData.get("pieceRateId"),
-    cropCycleId: str(formData, "cropCycleId"),
-    date: formData.get("date"),
-    quantity: formData.get("quantity"),
-    notes: str(formData, "notes"),
-  });
-  await createPieceworkEntry(ctx, input);
   revalidatePath(`/${locale}/o/${orgSlug}/piecework`);
 }
 
