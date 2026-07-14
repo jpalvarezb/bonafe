@@ -32,10 +32,13 @@
     "income": "Sales income",
     "activityCost": "Activity cost",
     "processingCost": "Processing cost",
+    "pieceworkCost": "Piecework",
     "profit": "Profit",
     "margin": "Margin",
     "profitPerHa": "Profit/ha",
     "costPerUnit": "Cost per unit",
-    "pieceworkFootnote": "Piecework ({amount}) is not attributed to individual cycles because piecework entries don't record a crop cycle; it is shown here as an org-level cost instead."
-  }
+    "pieceworkFootnote": "Unattributed piecework ({amount}) is shown as an org-level cost; entries recorded with a crop cycle are already included in their cycle's row."
+  },
+  "processingRun": "Processing run (optional)",
+  "noProcessingRun": "No processing run"
 }

@@ -58,6 +58,7 @@ export async function setPieceRateActiveAction(formData: FormData) {
 const pieceworkEntrySchema = z.object({
   workerId: z.string().uuid(),
   pieceRateId: z.string().uuid(),
+  cropCycleId: z.string().uuid().optional(),
   date: z.string().min(10).max(10),
   quantity: moneySchema,
   notes: z.string().max(2000).optional(),
@@ -72,6 +73,7 @@ export async function createPieceworkEntryAction(formData: FormData) {
   const input = pieceworkEntrySchema.parse({
     workerId: formData.get("workerId"),
     pieceRateId: formData.get("pieceRateId"),
+    cropCycleId: str(formData, "cropCycleId"),
     date: formData.get("date"),
     quantity: formData.get("quantity"),
     notes: str(formData, "notes"),

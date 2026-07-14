@@ -14,17 +14,22 @@
     "product": "Producto",
     "quantity": "Cantidad",
     "unitCost": "Costo unitario",
+    "unitCostHint": "Prellenado con el costo promedio (WAC) del inventario — editable",
     "add": "Agregar insumo",
     "remove": "Quitar"
   },
   "labor": {
     "title": "Mano de obra",
+    "worker": "Trabajador",
+    "workerNone": "Sin trabajador registrado",
     "workerName": "Descripción / cuadrilla",
     "workersCount": "Trabajadores",
     "hours": "Horas",
+    "quantity": "Cantidad",
     "rateType": "Tipo de tarifa",
     "daily": "Por día",
     "hourly": "Por hora",
+    "piecework": "Destajo",
     "rate": "Tarifa",
     "add": "Agregar mano de obra",
     "remove": "Quitar"

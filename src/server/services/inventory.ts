@@ -129,6 +129,7 @@ export type StockRow = {
   minStock: string | null;
   warehouseId: string;
   warehouseName: string;
+  isDefaultWarehouse: boolean;
   quantity: string;
   avgUnitCost: string;
   totalValue: string;
@@ -136,8 +137,14 @@ export type StockRow = {
 
 /** Weighted-average stock per (warehouse, product), folded over the signed ledger. */
 export async function getStockByProduct(ctx: OrgContext): Promise<StockRow[]> {
-  const rows = await withOrgRls(ctx.org.id, (tx) =>
-    tx
+  const { defaultWarehouseId, rows } = await withOrgRls(ctx.org.id, async (tx) => {
+    const [defaultWarehouse] = await tx
+      .select({ id: warehouses.id })
+      .from(warehouses)
+      .where(and(eq(warehouses.orgId, ctx.org.id), eq(warehouses.isDefault, true)))
+      .limit(1);
+
+    const movementRows = await tx
       .select({
         productId: inventoryMovements.productId,
         productName: products.name,
@@ -152,8 +159,10 @@ export async function getStockByProduct(ctx: OrgContext): Promise<StockRow[]> {
       .innerJoin(products, eq(inventoryMovements.productId, products.id))
       .innerJoin(warehouses, eq(inventoryMovements.warehouseId, warehouses.id))
       .where(eq(inventoryMovements.orgId, ctx.org.id))
-      .orderBy(asc(inventoryMovements.date), asc(inventoryMovements.createdAt)),
-  );
+      .orderBy(asc(inventoryMovements.date), asc(inventoryMovements.createdAt));
+
+    return { defaultWarehouseId: defaultWarehouse?.id ?? null, rows: movementRows };
+  });
 
   type Group = {
     productId: string;
@@ -194,6 +203,7 @@ export async function getStockByProduct(ctx: OrgContext): Promise<StockRow[]> {
         minStock: group.minStock,
         warehouseId: group.warehouseId,
         warehouseName: group.warehouseName,
+        isDefaultWarehouse: group.warehouseId === defaultWarehouseId,
         ...stock,
       };
     })

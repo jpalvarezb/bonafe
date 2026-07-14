@@ -14,6 +14,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { farms } from "./farms";
+import { cropCycles } from "./crops";
 import { user } from "./auth";
 import { id, orgId, orgIsolationPolicy, timestamps } from "./helpers";
 
@@ -144,6 +145,11 @@ export const pieceworkEntries = pgTable(
     pieceRateId: uuid("piece_rate_id")
       .notNull()
       .references(() => pieceRates.id),
+    // Optional attribution to a crop cycle so piecework labor flows into
+    // per-cycle profitability; unattributed entries stay an org-wide line.
+    cropCycleId: uuid("crop_cycle_id").references(() => cropCycles.id, {
+      onDelete: "set null",
+    }),
     date: date("date").notNull(),
     quantity: numeric("quantity", { precision: 14, scale: 4 }).notNull(),
     // Rate frozen at capture so later tariff edits don't rewrite history.
@@ -156,6 +162,7 @@ export const pieceworkEntries = pgTable(
   (t) => [
     index("piecework_org_worker_date_idx").on(t.orgId, t.workerId, t.date),
     index("piecework_org_date_idx").on(t.orgId, t.date),
+    index("piecework_entries_org_cycle_idx").on(t.orgId, t.cropCycleId),
     // Additional guard alongside the single-column pieceRateId FK above:
     // makes a cross-tenant piece-rate reference impossible at the DB level.
     foreignKey({

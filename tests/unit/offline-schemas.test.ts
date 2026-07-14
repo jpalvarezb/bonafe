@@ -48,6 +48,102 @@ describe("activityCreatePayload input quantity", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("accepts an omitted unitCost (server derives it from the default-warehouse WAC)", () => {
+    const result = activityCreatePayload.safeParse({
+      ...base,
+      inputs: [
+        {
+          productId: "018f0000-0000-7000-8000-000000000003",
+          quantity: "2",
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an empty-string unitCost", () => {
+    const result = activityCreatePayload.safeParse({
+      ...base,
+      inputs: [
+        {
+          productId: "018f0000-0000-7000-8000-000000000003",
+          quantity: "2",
+          unitCost: "",
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("activityCreatePayload labor lines", () => {
+  const base = {
+    id: "018f0000-0000-7000-8000-000000000001",
+    activityTypeId: "018f0000-0000-7000-8000-000000000002",
+    date: "2026-07-06",
+    inputs: [],
+  };
+
+  it("accepts a piecework line with a real worker link and quantity", () => {
+    const result = activityCreatePayload.safeParse({
+      ...base,
+      labor: [
+        {
+          workerId: "018f0000-0000-7000-8000-000000000007",
+          workersCount: 1,
+          rateType: "piecework",
+          quantity: "250",
+          rate: "0.85",
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a non-uuid workerId", () => {
+    const result = activityCreatePayload.safeParse({
+      ...base,
+      labor: [
+        {
+          workerId: "not-a-uuid",
+          workersCount: 1,
+          rateType: "daily",
+          rate: "200",
+        },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("makes workerId and quantity optional (free-text-only labor still works)", () => {
+    const result = activityCreatePayload.safeParse({
+      ...base,
+      labor: [
+        {
+          workerName: "Crew A",
+          workersCount: 3,
+          rateType: "daily",
+          rate: "200",
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a rateType outside daily/hourly/piecework", () => {
+    const result = activityCreatePayload.safeParse({
+      ...base,
+      labor: [
+        {
+          workersCount: 1,
+          rateType: "weekly",
+          rate: "200",
+        },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("monitoringCreatePayload incidencePct", () => {

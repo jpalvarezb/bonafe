@@ -1222,7 +1222,9 @@ async function seedStages() {
  * Processing + sale fixture on Café 2026-A: the 12 seeded harvests
  * (678 lata) grouped into one lot, processed to 1560 kg pergamino at a cost
  * of 250.00, sold at 3.20/kg = 4,992.00 — the profitability report
- * reconciles income − (activity costs + 250) for the cycle.
+ * reconciles income − (activity costs + 250 + 82.50 attributed piecework)
+ * for the cycle. The sale carries processingRunId, so its cycle is
+ * chain-derived (run → lot → cycle), not just manually tagged.
  */
 async function seedProcessingAndSale(orgId: string, createdBy: string) {
   await dbSystem
@@ -1273,6 +1275,8 @@ async function seedProcessingAndSale(orgId: string, createdBy: string) {
       id: P6_ID.sale,
       orgId,
       cropCycleId: ID.cycleCafeA,
+      // Chain-linked: the cycle above is derivable via run → lot → cycle.
+      processingRunId: P6_ID.run,
       date: "2026-07-02",
       buyerName: "Exportadora Atlantic",
       invoiceNumber: "V-00051",
@@ -1282,7 +1286,12 @@ async function seedProcessingAndSale(orgId: string, createdBy: string) {
       total: "4992.0000",
       createdBy,
     })
-    .onConflictDoNothing({ target: sales.id });
+    // Backfill only the phase-10 attribution column on pre-existing demo
+    // rows; every other field is left untouched (same values every run).
+    .onConflictDoUpdate({
+      target: sales.id,
+      set: { processingRunId: P6_ID.run },
+    });
   await dbSystem
     .insert(saleLines)
     .values({
@@ -1299,7 +1308,12 @@ async function seedProcessingAndSale(orgId: string, createdBy: string) {
   console.log("processing + sale ensured (678 lata → 1560 kg → 4,992.00)");
 }
 
-/** Piecework: José 40 lata, Rosa 35 lata @1.10; Ana 50 surcos @0.80. */
+/**
+ * Piecework: José 40 lata, Rosa 35 lata @1.10 — both corte entries are
+ * attributed to Café 2026-A (44.00 + 38.50 = 82.50 lands in that cycle's
+ * profitability row); Ana 50 surcos @0.80 stays unattributed (40.00 in the
+ * report's org-level footnote).
+ */
 async function seedPiecework(orgId: string, createdBy: string) {
   await dbSystem
     .insert(pieceRates)
@@ -1310,9 +1324,9 @@ async function seedPiecework(orgId: string, createdBy: string) {
     .onConflictDoNothing({ target: pieceRates.id });
 
   const entries = [
-    { id: "01900000-0000-7000-8000-00000000fb11", workerId: DEMO_WORKERS[2].id, rateId: P6_ID.rateCorte, date: "2026-06-20", qty: "40.0000", rate: "1.1000", amount: "44.0000" },
-    { id: "01900000-0000-7000-8000-00000000fb12", workerId: DEMO_WORKERS[3].id, rateId: P6_ID.rateCorte, date: "2026-06-21", qty: "35.0000", rate: "1.1000", amount: "38.5000" },
-    { id: "01900000-0000-7000-8000-00000000fb13", workerId: DEMO_WORKERS[5].id, rateId: P6_ID.rateChapoda, date: "2026-06-22", qty: "50.0000", rate: "0.8000", amount: "40.0000" },
+    { id: "01900000-0000-7000-8000-00000000fb11", workerId: DEMO_WORKERS[2].id, rateId: P6_ID.rateCorte, cycleId: ID.cycleCafeA, date: "2026-06-20", qty: "40.0000", rate: "1.1000", amount: "44.0000" },
+    { id: "01900000-0000-7000-8000-00000000fb12", workerId: DEMO_WORKERS[3].id, rateId: P6_ID.rateCorte, cycleId: ID.cycleCafeA, date: "2026-06-21", qty: "35.0000", rate: "1.1000", amount: "38.5000" },
+    { id: "01900000-0000-7000-8000-00000000fb13", workerId: DEMO_WORKERS[5].id, rateId: P6_ID.rateChapoda, cycleId: null, date: "2026-06-22", qty: "50.0000", rate: "0.8000", amount: "40.0000" },
   ];
   for (const entry of entries) {
     await dbSystem
@@ -1322,13 +1336,19 @@ async function seedPiecework(orgId: string, createdBy: string) {
         orgId,
         workerId: entry.workerId,
         pieceRateId: entry.rateId,
+        cropCycleId: entry.cycleId,
         date: entry.date,
         quantity: entry.qty,
         rateSnapshot: entry.rate,
         amount: entry.amount,
         createdBy,
       })
-      .onConflictDoNothing({ target: pieceworkEntries.id });
+      // Backfill only the phase-10 attribution column on pre-existing demo
+      // rows; every other field is left untouched (same values every run).
+      .onConflictDoUpdate({
+        target: pieceworkEntries.id,
+        set: { cropCycleId: entry.cycleId },
+      });
   }
   console.log("piecework ensured (2 rates, 3 entries)");
 }

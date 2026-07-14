@@ -9,6 +9,7 @@ import {
   listPieceRates,
   listPieceworkEntries,
 } from "@/server/services/piecework";
+import { listCycles } from "@/server/services/cycles";
 import {
   createPieceRateAction,
   createPieceworkEntryAction,
@@ -84,10 +85,11 @@ export default async function PieceworkPage({
     to: sp.to && isoDate.test(sp.to) ? sp.to : fallback.to,
   };
 
-  const [rates, activeWorkers, entries] = await Promise.all([
+  const [rates, activeWorkers, entries, cycles] = await Promise.all([
     listPieceRates(ctx),
     listActiveWorkersForPiecework(ctx),
     listPieceworkEntries(ctx, range),
+    listCycles(ctx),
   ]);
   const activeRates = rates.filter((rate) => rate.active);
 
@@ -285,6 +287,9 @@ export default async function PieceworkPage({
                       {t("entries.table.rate")}
                     </th>
                     <th className="px-4 py-2 font-medium">
+                      {t("entries.table.cycle")}
+                    </th>
+                    <th className="px-4 py-2 font-medium">
                       {t("entries.table.quantity")}
                     </th>
                     <th className="px-4 py-2 font-medium">
@@ -294,11 +299,14 @@ export default async function PieceworkPage({
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {entries.map(({ entry, workerName, rateName, unit }) => (
+                  {entries.map(({ entry, workerName, rateName, unit, cycleName }) => (
                     <tr key={entry.id}>
                       <td className="px-4 py-2">{entry.date}</td>
                       <td className="px-4 py-2">{workerName}</td>
                       <td className="px-4 py-2">{rateName}</td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {cycleName ?? "—"}
+                      </td>
                       <td className="px-4 py-2">
                         {entry.quantity} {unit}
                       </td>
@@ -395,6 +403,24 @@ export default async function PieceworkPage({
                     {activeRates.map((rate) => (
                       <option key={rate.id} value={rate.id}>
                         {rate.name} ({rate.unit})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="cropCycleId">
+                    {t("entries.form.cycle")}
+                  </Label>
+                  <select
+                    id="cropCycleId"
+                    name="cropCycleId"
+                    defaultValue=""
+                    className={selectClass}
+                  >
+                    <option value="">{t("entries.form.noCycle")}</option>
+                    {cycles.map(({ cycle }) => (
+                      <option key={cycle.id} value={cycle.id}>
+                        {cycle.name}
                       </option>
                     ))}
                   </select>

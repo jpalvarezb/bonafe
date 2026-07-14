@@ -26,10 +26,12 @@ type InputLineState = {
 
 type LaborLineState = {
   key: number;
+  workerId: string;
   workerName: string;
   workersCount: string;
   hours: string;
-  rateType: "daily" | "hourly";
+  quantity: string;
+  rateType: "daily" | "hourly" | "piecework";
   rate: string;
 };
 
@@ -41,6 +43,10 @@ type Props = {
   readonly activityTypes: Option[];
   readonly products: Option[];
   readonly costCenters: Option[];
+  readonly workers: Option[];
+  /** productId -> default-warehouse WAC (src/lib/calc/activity-costing.ts),
+   * used to prefill (still editable) each input line's unit cost. */
+  readonly unitCostByProduct: Record<string, string>;
   readonly currencyCode: string;
   readonly currencies: string[];
 };
@@ -81,6 +87,8 @@ export function ActivityForm({
   activityTypes,
   products,
   costCenters,
+  workers,
+  unitCostByProduct,
   currencyCode,
   currencies,
 }: Props) {
@@ -122,6 +130,7 @@ export function ActivityForm({
         labor: labor.map((line) => ({
           workersCount: Number(line.workersCount) || 0,
           hours: line.hours || 0,
+          quantity: line.quantity || 0,
           rateType: line.rateType,
           rate: line.rate || 0,
         })),
@@ -155,9 +164,12 @@ export function ActivityForm({
           unitCost: line.unitCost || "0",
         })),
       labor: labor.map((line) => ({
+        workerId: line.workerId || undefined,
         workerName: line.workerName || undefined,
         workersCount: Number(line.workersCount) || 1,
         hours: line.hours || undefined,
+        quantity:
+          line.rateType === "piecework" ? line.quantity || "0" : undefined,
         rateType: line.rateType,
         rate: line.rate || "0",
       })),
@@ -355,13 +367,21 @@ export function ActivityForm({
                 <select
                   aria-label={t("inputs.product")}
                   value={line.productId}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const productId = e.target.value;
                     setInputs((lines) =>
                       lines.map((l, i) =>
-                        i === index ? { ...l, productId: e.target.value } : l,
+                        i === index
+                          ? {
+                              ...l,
+                              productId,
+                              // Prefill from WAC; user can still edit it.
+                              unitCost: unitCostByProduct[productId] ?? l.unitCost,
+                            }
+                          : l,
                       ),
-                    )
-                  }
+                    );
+                  }}
                   className={cn(
                     ROW_FIELD,
                     "w-full border-r border-border pr-2",
@@ -393,6 +413,11 @@ export function ActivityForm({
                 />
                 <input
                   aria-label={t("inputs.unitCost")}
+                  title={
+                    unitCostByProduct[line.productId]
+                      ? t("inputs.unitCostHint")
+                      : undefined
+                  }
                   type="number"
                   step="0.0001"
                   min="0"
@@ -425,15 +450,18 @@ export function ActivityForm({
         <button
           type="button"
           onClick={() =>
-            setInputs((lines) => [
-              ...lines,
-              {
-                key: keyCounter++,
-                productId: products[0]?.id ?? "",
-                quantity: "",
-                unitCost: "",
-              },
-            ])
+            setInputs((lines) => {
+              const productId = products[0]?.id ?? "";
+              return [
+                ...lines,
+                {
+                  key: keyCounter++,
+                  productId,
+                  quantity: "",
+                  unitCost: unitCostByProduct[productId] ?? "",
+                },
+              ];
+            })
           }
           className="flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-dashed border-border text-[length:var(--density-font-body)] text-muted-foreground hover:bg-muted"
         >
@@ -454,6 +482,25 @@ export function ActivityForm({
                   CELL,
                 )}
               >
+                <select
+                  aria-label={t("labor.worker")}
+                  value={line.workerId}
+                  onChange={(e) =>
+                    setLabor((lines) =>
+                      lines.map((l, i) =>
+                        i === index ? { ...l, workerId: e.target.value } : l,
+                      ),
+                    )
+                  }
+                  className={cn(CONTROL, "w-40")}
+                >
+                  <option value="">{t("labor.workerNone")}</option>
+                  {workers.map((worker) => (
+                    <option key={worker.id} value={worker.id}>
+                      {worker.name}
+                    </option>
+                  ))}
+                </select>
                 <input
                   aria-label={t("labor.workerName")}
                   value={line.workerName}
@@ -494,7 +541,10 @@ export function ActivityForm({
                         i === index
                           ? {
                               ...l,
-                              rateType: e.target.value as "daily" | "hourly",
+                              rateType: e.target.value as
+                                | "daily"
+                                | "hourly"
+                                | "piecework",
                             }
                           : l,
                       ),
@@ -504,6 +554,7 @@ export function ActivityForm({
                 >
                   <option value="daily">{t("labor.daily")}</option>
                   <option value="hourly">{t("labor.hourly")}</option>
+                  <option value="piecework">{t("labor.piecework")}</option>
                 </select>
                 {line.rateType === "hourly" && (
                   <input
@@ -516,6 +567,28 @@ export function ActivityForm({
                       setLabor((lines) =>
                         lines.map((l, i) =>
                           i === index ? { ...l, hours: e.target.value } : l,
+                        ),
+                      )
+                    }
+                    className={cn(
+                      CONTROL,
+                      "w-20 text-right font-mono tabular",
+                    )}
+                  />
+                )}
+                {line.rateType === "piecework" && (
+                  <input
+                    aria-label={t("labor.quantity")}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={line.quantity}
+                    onChange={(e) =>
+                      setLabor((lines) =>
+                        lines.map((l, i) =>
+                          i === index
+                            ? { ...l, quantity: e.target.value }
+                            : l,
                         ),
                       )
                     }
@@ -563,9 +636,11 @@ export function ActivityForm({
               ...lines,
               {
                 key: keyCounter++,
+                workerId: "",
                 workerName: "",
                 workersCount: "1",
                 hours: "",
+                quantity: "",
                 rateType: "daily",
                 rate: "",
               },

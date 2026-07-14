@@ -43,6 +43,21 @@ describe("laborLineAmount", () => {
       laborLineAmount({ workersCount: 2, rateType: "hourly", rate: "40" }),
     ).toBe("0.0000");
   });
+
+  it("piecework: quantity × rate (matches createPieceworkEntry's quantity × rateSnapshot model)", () => {
+    // Real fixture: 250 units of piecework @ 0.85 per unit = 212.50, NOT
+    // workers × rate (which would wrongly give 1 × 0.85 = 0.85). LaborLine
+    // has no `quantity` field yet, so this does not even typecheck today —
+    // that is the point: piecework cannot be modeled until it's added.
+    expect(
+      laborLineAmount({
+        workersCount: 1,
+        rateType: "piecework",
+        rate: "0.85",
+        quantity: "250",
+      }),
+    ).toBe("212.5000");
+  });
 });
 
 describe("computeActivityTotals", () => {
@@ -72,6 +87,29 @@ describe("computeActivityTotals", () => {
   it("handles empty lines", () => {
     const totals = computeActivityTotals({ inputs: [], labor: [] });
     expect(totals.totalCost).toBe("0.0000");
+  });
+
+  it("mixes daily, hourly and piecework labor lines with real piecework math", () => {
+    // daily:     2 workers × 15.00           = 30.0000
+    // hourly:    1 worker × 4h × 3.50         = 14.0000
+    // piecework: 100 units × 0.85 per unit    = 85.0000
+    // laborCost = 30 + 14 + 85 = 129.0000
+    const totals = computeActivityTotals({
+      inputs: [],
+      labor: [
+        { workersCount: 2, rateType: "daily", rate: "15.00" },
+        { workersCount: 1, hours: "4", rateType: "hourly", rate: "3.50" },
+        { workersCount: 1, rateType: "piecework", rate: "0.85", quantity: "100" },
+      ],
+    });
+
+    expect(totals.laborAmounts).toEqual([
+      "30.0000",
+      "14.0000",
+      "85.0000",
+    ]);
+    expect(totals.laborCost).toBe("129.0000");
+    expect(totals.totalCost).toBe("129.0000");
   });
 });
 

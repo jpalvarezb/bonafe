@@ -90,10 +90,15 @@ export async function POST(request: Request) {
           otherCost: payload.otherCost,
           currencyCode: payload.currencyCode,
           createdOffline: true,
-          inputs: payload.inputs,
+          inputs: payload.inputs.map((line) => ({
+            ...line,
+            unitCost: line.unitCost || undefined,
+          })),
           labor: payload.labor.map((line) => ({
             ...line,
+            workerId: line.workerId || undefined,
             hours: line.hours || null,
+            quantity: line.quantity || undefined,
           })),
         });
         // Replays return the existing row (ON CONFLICT DO NOTHING) — from the

@@ -106,6 +106,12 @@ export const sales = pgTable(
     cropCycleId: uuid("crop_cycle_id").references(() => cropCycles.id, {
       onDelete: "set null",
     }),
+    // When set, the sale's crop cycle is derived through the processing run
+    // (→ harvest lot → cycle) instead of trusting the manual tag alone.
+    processingRunId: uuid("processing_run_id").references(
+      () => processingRuns.id,
+      { onDelete: "set null" },
+    ),
     date: date("date").notNull(),
     buyerName: text("buyer_name").notNull(),
     invoiceNumber: text("invoice_number"),
@@ -123,6 +129,7 @@ export const sales = pgTable(
   (t) => [
     index("sales_org_date_idx").on(t.orgId, t.date),
     index("sales_org_cycle_idx").on(t.orgId, t.cropCycleId),
+    index("sales_org_processing_run_idx").on(t.orgId, t.processingRunId),
     check("sales_currency_code_check", sql`char_length(${t.currencyCode}) = 3`),
     ...orgIsolationPolicy("sales"),
   ],

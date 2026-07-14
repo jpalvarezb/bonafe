@@ -50,15 +50,20 @@ export const activityCreatePayload = z.object({
     z.object({
       productId: uuid,
       quantity: positiveNonZeroDecimal,
-      unitCost: positiveDecimal,
+      // Empty/omitted: server derives it from the default warehouse's WAC
+      // (createActivityInTx) instead of requiring re-typed free text.
+      unitCost: optionalDecimal,
     }),
   ),
   labor: z.array(
     z.object({
+      workerId: uuid.optional(),
       workerName: z.string().optional(),
       workersCount: z.coerce.number().int().min(1),
       hours: optionalDecimal,
-      rateType: z.enum(["daily", "hourly"]),
+      /** Piecework units; only meaningful when rateType is "piecework". */
+      quantity: optionalDecimal,
+      rateType: z.enum(["daily", "hourly", "piecework"]),
       rate: positiveDecimal,
     }),
   ),

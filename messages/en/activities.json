@@ -14,17 +14,22 @@
     "product": "Product",
     "quantity": "Quantity",
     "unitCost": "Unit cost",
+    "unitCostHint": "Prefilled from the average cost (WAC) in inventory — still editable",
     "add": "Add input",
     "remove": "Remove"
   },
   "labor": {
     "title": "Labor",
+    "worker": "Worker",
+    "workerNone": "No registered worker",
     "workerName": "Description / crew",
     "workersCount": "Workers",
     "hours": "Hours",
+    "quantity": "Quantity",
     "rateType": "Rate type",
     "daily": "Per day",
     "hourly": "Per hour",
+    "piecework": "Piecework",
     "rate": "Rate",
     "add": "Add labor",
     "remove": "Remove"

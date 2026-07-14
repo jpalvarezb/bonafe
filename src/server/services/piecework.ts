@@ -1,7 +1,12 @@
 import { and, asc, between, desc, eq } from "drizzle-orm";
 import Decimal from "decimal.js";
 import { withOrgRls } from "@/lib/db/rls";
-import { pieceRates, pieceworkEntries, workers } from "@/lib/db/schema";
+import {
+  cropCycles,
+  pieceRates,
+  pieceworkEntries,
+  workers,
+} from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
 import { assertOrgFeature } from "@/lib/plan-limits";
@@ -16,6 +21,8 @@ export type PieceRateInput = {
 export type PieceworkEntryInput = {
   workerId: string;
   pieceRateId: string;
+  /** Optional crop-cycle attribution; feeds per-cycle profitability. */
+  cropCycleId?: string | null;
   date: string;
   quantity: string;
   notes?: string | null;
@@ -133,6 +140,20 @@ export async function createPieceworkEntry(
       .limit(1);
     if (!rate) throw new Error("piece rate not found");
 
+    if (input.cropCycleId) {
+      const [cycle] = await tx
+        .select({ id: cropCycles.id })
+        .from(cropCycles)
+        .where(
+          and(
+            eq(cropCycles.id, input.cropCycleId),
+            eq(cropCycles.orgId, ctx.org.id),
+          ),
+        )
+        .limit(1);
+      if (!cycle) throw new Error("crop cycle not found");
+    }
+
     const amount = new Decimal(input.quantity).mul(rate.rate).toFixed(4);
 
     const [created] = await tx
@@ -142,6 +163,7 @@ export async function createPieceworkEntry(
         orgId: ctx.org.id,
         workerId: input.workerId,
         pieceRateId: input.pieceRateId,
+        cropCycleId: input.cropCycleId ?? null,
         date: input.date,
         quantity: input.quantity,
         rateSnapshot: rate.rate,
@@ -166,10 +188,12 @@ export async function listPieceworkEntries(
         workerName: workers.name,
         rateName: pieceRates.name,
         unit: pieceRates.unit,
+        cycleName: cropCycles.name,
       })
       .from(pieceworkEntries)
       .innerJoin(workers, eq(pieceworkEntries.workerId, workers.id))
       .innerJoin(pieceRates, eq(pieceworkEntries.pieceRateId, pieceRates.id))
+      .leftJoin(cropCycles, eq(pieceworkEntries.cropCycleId, cropCycles.id))
       .where(
         and(
           eq(pieceworkEntries.orgId, ctx.org.id),

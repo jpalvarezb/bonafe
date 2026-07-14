@@ -37,7 +37,8 @@
       "worker": "Trabajador",
       "rate": "Tarifa",
       "quantity": "Cantidad",
-      "amount": "Monto"
+      "amount": "Monto",
+      "cycle": "Ciclo"
     },
     "form": {
       "worker": "Trabajador",
@@ -48,7 +49,9 @@
       "quantity": "Cantidad",
       "notes": "Notas",
       "create": "Registrar destajo",
-      "needsSetup": "Necesitas al menos un trabajador activo y una tarifa activa para registrar destajo."
+      "needsSetup": "Necesitas al menos un trabajador activo y una tarifa activa para registrar destajo.",
+      "cycle": "Ciclo de cultivo (opcional)",
+      "noCycle": "Sin ciclo"
     }
   }
 }
