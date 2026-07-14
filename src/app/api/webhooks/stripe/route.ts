@@ -194,7 +194,7 @@ async function handleSubscriptionChange(
   if (!status) return null; // status we don't map (incomplete/paused) — ignore
 
   const item = subscription.items.data[0];
-  const matchedPlanId = matchPlanIdFromPriceId(item?.price?.id);
+  const matchedPlanId = matchPlanIdFromPriceId(item?.price);
   const periodEnd =
     item?.current_period_end != null
       ? new Date(item.current_period_end * 1000)
@@ -253,13 +253,45 @@ function mapStripeStatus(
   }
 }
 
+/**
+ * Resolves a plan id from a Stripe subscription item's Price object.
+ * Three ways to match, in order:
+ *   1. Exact match against a STRIPE_PRICE_* env id — the static USD price
+ *      configured for each plan.
+ *   2. metadata.planId — set by getOrCreateLocalPrice (src/server/services/
+ *      stripe-prices.ts) on every dynamically created local-currency Price.
+ *      This is our own metadata on a Price object we created, not
+ *      caller-supplied event payload data, so it's trusted here (unlike
+ *      session.metadata.orgId elsewhere in this file, which is re-verified
+ *      against our DB before use).
+ *   3. lookup_key — same deterministic format (buildPriceLookupKey:
+ *      "agropeq_<planId>_<currency>_monthly"), a fallback in case metadata
+ *      is ever stripped from the event payload.
+ * Returns undefined (graceful fallback: keep the org's existing plan) when
+ * none match — e.g. an unrelated metered add-on price.
+ */
 function matchPlanIdFromPriceId(
-  priceId: string | undefined,
+  price: Stripe.Price | undefined,
 ): string | undefined {
-  if (!priceId) return undefined;
-  return (Object.keys(PLAN_PRICE_ENV) as BillablePlanId[]).find(
-    (planId) => getPlanPriceId(planId) === priceId,
+  if (!price) return undefined;
+
+  const byEnv = (Object.keys(PLAN_PRICE_ENV) as BillablePlanId[]).find(
+    (planId) => getPlanPriceId(planId) === price.id,
   );
+  if (byEnv) return byEnv;
+
+  const metaPlanId = price.metadata?.planId;
+  if (metaPlanId && isBillablePlanId(metaPlanId)) return metaPlanId;
+
+  const lookupKeyMatch = /^agropeq_([a-z0-9]+)_[a-z]{3}_monthly$/.exec(
+    price.lookup_key ?? "",
+  );
+  const lookupKeyPlanId = lookupKeyMatch?.[1];
+  if (lookupKeyPlanId && isBillablePlanId(lookupKeyPlanId)) {
+    return lookupKeyPlanId;
+  }
+
+  return undefined;
 }
 
 async function writeAudit(result: SubscriptionStateResult): Promise<void> {

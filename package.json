@@ -18,6 +18,7 @@
     "db:set-app-password": "tsx --env-file=.env src/scripts/set-app-password.ts",
     "db:verify-rls": "tsx --env-file=.env src/scripts/verify-rls.ts",
     "climate:ingest": "tsx --env-file=.env src/scripts/ingest-climate.ts",
+    "fx:ingest": "tsx --env-file=.env src/scripts/ingest-exchange-rates.ts",
     "test": "vitest run"
   },
   "dependencies": {

@@ -38,6 +38,7 @@ import {
   member,
   monitoringRecords,
   organization,
+  orgExchangeRates,
   orgSubscriptions,
   parcels,
   plannedActivities,
@@ -622,6 +623,70 @@ async function seedNeighborOrg() {
       areaHa: "12.0000",
     })
     .onConflictDoNothing({ target: farms.id });
+
+  // Feed-exercising demo rows: vecino-sa is NIO-base, so these rateToBase
+  // values are "multiply an amount in currency_code by this to get NIO"
+  // (same contract as computeRateToBase/latestRateToBaseInTx) — hand-picked
+  // numbers plausible for USD/EUR vs NIO, not pulled from a live feed, since
+  // this is demo/seed data rather than a real ingest run.
+  const fxRows: Array<{
+    id: string;
+    currencyCode: string;
+    rateToBase: string;
+    validDate: string;
+  }> = [
+    {
+      id: "01900000-0000-7000-8000-00000000f001",
+      currencyCode: "USD",
+      rateToBase: "36.60000000",
+      validDate: "2026-07-10",
+    },
+    {
+      id: "01900000-0000-7000-8000-00000000f002",
+      currencyCode: "USD",
+      rateToBase: "36.61000000",
+      validDate: "2026-07-11",
+    },
+    {
+      id: "01900000-0000-7000-8000-00000000f003",
+      currencyCode: "USD",
+      rateToBase: "36.62000000",
+      validDate: "2026-07-12",
+    },
+    {
+      id: "01900000-0000-7000-8000-00000000f004",
+      currencyCode: "EUR",
+      rateToBase: "39.71000000",
+      validDate: "2026-07-10",
+    },
+    {
+      id: "01900000-0000-7000-8000-00000000f005",
+      currencyCode: "EUR",
+      rateToBase: "39.80000000",
+      validDate: "2026-07-11",
+    },
+    {
+      id: "01900000-0000-7000-8000-00000000f006",
+      currencyCode: "EUR",
+      rateToBase: "39.85000000",
+      validDate: "2026-07-12",
+    },
+  ];
+  for (const row of fxRows) {
+    await dbSystem
+      .insert(orgExchangeRates)
+      .values({
+        id: row.id,
+        orgId: org.id,
+        currencyCode: row.currencyCode,
+        rateToBase: row.rateToBase,
+        validDate: row.validDate,
+        source: "open-er-api",
+        fetchedAt: new Date(`${row.validDate}T06:00:00Z`),
+      })
+      .onConflictDoNothing({ target: orgExchangeRates.id });
+  }
+  console.log("exchange rates ensured (vecino-sa: USD/EUR, 3 dates each)");
 }
 
 async function seedMonitoring(orgId: string, createdBy: string) {

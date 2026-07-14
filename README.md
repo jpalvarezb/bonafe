@@ -50,6 +50,7 @@ dev.
 | `pnpm db:verify-rls` | coverage guard: every org-scoped table has RLS enabled + a policy |
 | `pnpm db:seed` | deterministic demo seed (grows monotonically per phase) |
 | `pnpm climate:ingest` | cron entry point: satellite rainfall for all farms |
+| `pnpm fx:ingest` | cron entry point: open.er-api.com FX rates for all orgs |
 | `pnpm test` | Vitest unit tests (money/payroll/inventory/variance/profitability calc) |
 | `pnpm typecheck` | `tsc --noEmit` |
 
