@@ -62,6 +62,12 @@ export async function createProductAction(formData: FormData) {
       .parse(formData.get("category") ?? "other"),
     unit: str(formData, "unit"),
     activeIngredient: str(formData, "activeIngredient"),
+    minStock: str(formData, "minStock")
+      ? z
+          .string()
+          .regex(/^\d+(\.\d+)?$/)
+          .parse(str(formData, "minStock"))
+      : undefined,
   });
   revalidatePath(path);
 }

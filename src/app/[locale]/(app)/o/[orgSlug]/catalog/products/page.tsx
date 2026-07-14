@@ -134,6 +134,17 @@ export default async function ProductsPage({
                   className="w-40"
                 />
               </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="minStock">{t("minStock")}</Label>
+                <Input
+                  id="minStock"
+                  name="minStock"
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  className="w-28"
+                />
+              </div>
               <Button type="submit">{t("create")}</Button>
             </form>
           </CardContent>

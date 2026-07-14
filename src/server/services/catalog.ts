@@ -114,6 +114,10 @@ export type ProductInput = {
   category?: "fertilizer" | "agrochemical" | "seed" | "tool" | "fuel" | "other";
   unit?: string;
   activeIngredient?: string;
+  /** Optional decimal string reorder threshold (products.min_stock,
+   * numeric(14,4)) — compared against current stock on the inventory page
+   * and in the daily digest (src/lib/email/digest.ts). */
+  minStock?: string;
 };
 
 export async function listProducts(ctx: OrgContext) {
@@ -138,6 +142,7 @@ export async function createProduct(ctx: OrgContext, input: ProductInput) {
         category: input.category ?? "other",
         unit: input.unit ?? "unidad",
         activeIngredient: input.activeIngredient ?? null,
+        minStock: input.minStock ?? null,
       })
       .returning();
     return created;

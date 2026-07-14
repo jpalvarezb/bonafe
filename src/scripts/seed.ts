@@ -391,18 +391,29 @@ async function seedFarmData(orgId: string, ownerId: string) {
     ])
     .onConflictDoNothing({ target: cropCycles.id });
 
-  await dbSystem
-    .insert(products)
-    .values(
-      DEMO_PRODUCTS.map((product) => ({
+  for (const product of DEMO_PRODUCTS) {
+    // Urea 46% (f001) gets a reorder threshold above its seeded stock
+    // (20 qq + 10 qq purchased, net 30 qq across warehouses — see
+    // seedInventory below) so pnpm digest:send has a low-stock row to
+    // report against a freshly seeded org.
+    const minStock = product.id === DEMO_PRODUCTS[0].id ? "40.0000" : null;
+    await dbSystem
+      .insert(products)
+      .values({
         id: product.id,
         orgId,
         name: product.name,
         category: product.category,
         unit: product.unit,
-      })),
-    )
-    .onConflictDoNothing({ target: products.id });
+        minStock,
+      })
+      // Backfill only the phase-10 minStock column on pre-existing demo
+      // rows; every other field is left untouched (same values every run).
+      .onConflictDoUpdate({
+        target: products.id,
+        set: { minStock },
+      });
+  }
 
   await seedActivities(orgId, ownerId);
 }
