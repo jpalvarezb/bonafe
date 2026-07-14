@@ -121,28 +121,44 @@ const DEMO_PRODUCTS = [
   { id: "01900000-0000-7000-8000-00000000f008", name: "Foliar 20-20-20", category: "fertilizer", unit: "kg", cost: 5.5 },
 ] as const;
 
-/** Small square-ish polygon around a center point (deterministic). */
-function polygonAround(lng: number, lat: number, dLng: number, dLat: number) {
-  return {
-    type: "Polygon" as const,
-    coordinates: [
-      [
-        [lng - dLng, lat - dLat],
-        [lng + dLng, lat - dLat],
-        [lng + dLng, lat + dLat],
-        [lng - dLng, lat + dLat],
-        [lng - dLng, lat - dLat],
-      ],
-    ],
-  };
-}
-
 /** Deterministic LCG so activity data is stable across runs. */
 function makeRng(seed: number) {
   let state = seed;
   return () => {
     state = (state * 48271) % 2147483647;
     return state / 2147483647;
+  };
+}
+
+/**
+ * Irregular multi-sided polygon around a center point — a jittered ring of
+ * `vertexCount` points at varying radius/angle, deterministic per `seed`, so
+ * seeded parcels read as real surveyed lots instead of uniform rectangles.
+ */
+function polygonAround(
+  lng: number,
+  lat: number,
+  dLng: number,
+  dLat: number,
+  seed: number,
+  vertexCount = 9,
+) {
+  const rng = makeRng(seed);
+  const angleJitter = (Math.PI * 2) / vertexCount / 2;
+  const points: Array<[number, number]> = [];
+  for (let i = 0; i < vertexCount; i++) {
+    const baseAngle = (i / vertexCount) * Math.PI * 2;
+    const angle = baseAngle + (rng() * 2 - 1) * angleJitter;
+    const radius = 0.55 + rng() * 0.45;
+    points.push([
+      lng + dLng * radius * Math.cos(angle),
+      lat + dLat * radius * Math.sin(angle),
+    ]);
+  }
+  points.push(points[0]);
+  return {
+    type: "Polygon" as const,
+    coordinates: [points],
   };
 }
 
@@ -282,7 +298,7 @@ async function seedFarmData(orgId: string, ownerId: string) {
       farmId: ID.farmEsperanza,
       name: "Lote El Cedro",
       code: "A-01",
-      boundary: polygonAround(-85.92, 12.93, 0.0022, 0.0018),
+      boundary: polygonAround(-85.92, 12.93, 0.0022, 0.0018, 101, 8),
       soilType: "Franco arcilloso",
     },
     {
@@ -290,7 +306,7 @@ async function seedFarmData(orgId: string, ownerId: string) {
       farmId: ID.farmEsperanza,
       name: "Lote La Loma",
       code: "A-02",
-      boundary: polygonAround(-85.914, 12.932, 0.0018, 0.0022),
+      boundary: polygonAround(-85.914, 12.932, 0.0018, 0.0022, 102, 7),
       soilType: "Franco",
     },
     {
@@ -298,7 +314,7 @@ async function seedFarmData(orgId: string, ownerId: string) {
       farmId: ID.farmEsperanza,
       name: "Lote El Naranjal",
       code: "A-03",
-      boundary: polygonAround(-85.917, 12.926, 0.0016, 0.0014),
+      boundary: polygonAround(-85.917, 12.926, 0.0016, 0.0014, 103, 10),
       soilType: "Franco arenoso",
     },
     {
@@ -306,7 +322,7 @@ async function seedFarmData(orgId: string, ownerId: string) {
       farmId: ID.farmVista,
       name: "Lote El Llano",
       code: "B-01",
-      boundary: polygonAround(-86.05, 12.85, 0.003, 0.002),
+      boundary: polygonAround(-86.05, 12.85, 0.003, 0.002, 104, 6),
       soilType: "Aluvial",
     },
   ];
