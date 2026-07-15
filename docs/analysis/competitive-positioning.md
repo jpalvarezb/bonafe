@@ -4,7 +4,7 @@
 
 ## 1. The niche
 
-AgroPeq is a **Spanish-first whole-farm ERP for smallholder-to-mid-size (10–50 ha) Central American farms and cooperatives with day-labor/piecework crews and unreliable rural connectivity**. This is not an aspiration — it is encoded in the product: seed data models a Matagalpa (Nicaragua) coffee operation with lata harvest units, Broca/Roya pest tracking, $8–12/day jornaleros and NIO/USD dual currency; regional labor vocabulary (planilla, destajo, jornal, cortero) exists as TypeScript enums, not translated copy; pricing is three flat self-serve tiers (Semilla $100 / Cultivo $200 / Cosecha $350 per month) far below enterprise agri-ERP.
+AgroPeq is a **Spanish-first whole-farm ERP for smallholder-to-mid-size Central American farms and cooperatives with day-labor/piecework crews and unreliable rural connectivity**. The 10–50 ha profile is the *encoded demo customer*, not a product limit — nothing in the code caps farm size (plan tiers gate farm count and users, not hectares), but every seeded demo farm is under 50 ha, which is who the fixtures and marketing artifacts are aimed at. This is not an aspiration — it is encoded in the product: seed data models a Matagalpa (Nicaragua) coffee operation with lata harvest units, Broca/Roya pest tracking, $8–12/day jornaleros and NIO/USD dual currency; regional labor vocabulary (planilla, destajo, jornal, cortero) exists as TypeScript enums, not translated copy; pricing is three flat self-serve tiers (Semilla $100 / Cultivo $200 / Cosecha $350 per month) far below enterprise agri-ERP.
 
 The market research confirms this niche is **open**: Central America barely registers in every regional agtech census (Radar AgTech LAC 2026: Brazil 78% of 2,656 startups, no CA country in the top tier; Brixton 2023: AR+MX+CL+CO = 80% of LatAm agtech). The incumbent layer in-region is coffee-only institutional apps (ICAFE, ANACAFE, IHCAFE), exporter-scoped ERPs (Hispatec, COPERAWEB), and — for most farms — WhatsApp, Excel, and paper.
 
@@ -42,7 +42,7 @@ Other verified risks:
 - **Zero e2e/integration tests** — nothing exercises RLS boundaries, sync, or Stripe webhooks at runtime; sales/purchases/transfers have no tests at all. Material diligence risk.
 - **No notifications of any kind** (invite email is a `console.log` stub) and **no API/webhook surface** — no path to accountants, banks, or certification systems.
 - **Export lock-in**: no export of harvests, sales, payroll, or inventory. For a trust-sensitive SMB market, data-out is table stakes.
-- **Stripe USD-only vs cash/Tigo Money reality** — self-serve billing is a differentiator (most rivals hide pricing) *and* an adoption barrier in rural CA; FX is manual with no rate feed.
+- **Billing denomination/presentation gap** — Stripe accepts any credit card, so payment *acceptance* is not the issue; the gap is narrower: checkout is denominated USD-only (`stripe.ts`) despite the app modeling NIO/GTQ/HNL/CRC natively, and FX is manual entry with no rate feed. Self-serve transparent billing remains a differentiator (most rivals hide pricing); the residual adoption risk is customers without cards at all, worth hedging with manual invoicing.
 - **Offline covers only 5 of ~24 modules**, conflict resolution is discard-only.
 - **No agronomic intelligence** (no GDD, pest-trend, spray advisories) — fine, but don't market decision support.
 
