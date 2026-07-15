@@ -89,12 +89,13 @@ export default async function ProfitabilityReportPage({
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-[900px]">
-                <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr_0.8fr_1fr_1fr] gap-x-3 border-b px-4 py-2 text-xs font-medium text-muted-foreground">
+              <div className="min-w-[1000px]">
+                <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr_1fr_0.8fr_1fr_1fr] gap-x-3 border-b px-4 py-2 text-xs font-medium text-muted-foreground">
                   <span>{t("profitability.cycle")}</span>
                   <span>{t("profitability.income")}</span>
                   <span>{t("profitability.activityCost")}</span>
                   <span>{t("profitability.processingCost")}</span>
+                  <span>{t("profitability.pieceworkCost")}</span>
                   <span>{t("profitability.profit")}</span>
                   <span>{t("profitability.margin")}</span>
                   <span>{t("profitability.profitPerHa")}</span>
@@ -105,7 +106,7 @@ export default async function ProfitabilityReportPage({
                   return (
                     <div
                       key={row.cycleId}
-                      className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr_0.8fr_1fr_1fr] gap-x-3 border-b px-4 py-2 text-sm last:border-b-0"
+                      className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr_1fr_0.8fr_1fr_1fr] gap-x-3 border-b px-4 py-2 text-sm last:border-b-0"
                     >
                       <span className="truncate font-medium">
                         {row.cycleName}
@@ -113,6 +114,7 @@ export default async function ProfitabilityReportPage({
                       <span>{money(row.income)}</span>
                       <span>{money(row.activityCost)}</span>
                       <span>{money(row.processingCost)}</span>
+                      <span>{money(row.pieceworkCost)}</span>
                       <span
                         className={cn(
                           "font-medium",

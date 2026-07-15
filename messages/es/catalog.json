@@ -20,6 +20,7 @@
     "category": "Categoría",
     "unit": "Unidad",
     "activeIngredient": "Ingrediente activo",
+    "minStock": "Stock mínimo",
     "create": "Crear producto",
     "categories": {
       "fertilizer": "Fertilizante",

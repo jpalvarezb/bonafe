@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Notice } from "@/components/ui/notice";
 import { cn } from "@/lib/utils";
-import { enqueue, flushOutbox } from "@/lib/offline/outbox";
+import { enqueue, editOutboxEntry, flushOutbox } from "@/lib/offline/outbox";
 import { newId } from "@/lib/ids";
 
 type Option = { id: string; name: string };
@@ -19,11 +19,31 @@ type GeoLocation = { lat: number; lng: number };
 
 type LocationStatus = "idle" | "capturing" | "success" | "denied" | "unavailable";
 
+/** Mirrors monitoringCreatePayload (src/lib/offline/schemas.ts). */
+export type MonitoringPayload = {
+  id: string;
+  parcelId: string;
+  cropCycleId?: string;
+  date: string;
+  type: MonitoringType;
+  agentName: string;
+  severity: number;
+  incidencePct?: string;
+  notes?: string;
+  actionsTaken?: string;
+  location?: GeoLocation;
+};
+
 type Props = {
   readonly locale: string;
   readonly orgSlug: string;
   readonly parcels: Option[];
   readonly cycles: CycleOption[];
+  /** Edit-then-retry: prefills from a rejected outbox entry's payload. */
+  readonly initialPayload?: MonitoringPayload;
+  /** Same outbox row/id — editOutboxEntry never mints a new UUID. */
+  readonly editingOutboxId?: string;
+  readonly onCancelEdit?: () => void;
 };
 
 function today(): string {
@@ -58,24 +78,50 @@ function chipClass(selected: boolean, extra?: string) {
   );
 }
 
-export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
+export function MonitoringForm({
+  orgSlug,
+  parcels,
+  cycles,
+  initialPayload,
+  editingOutboxId,
+  onCancelEdit,
+}: Props) {
   const t = useTranslations("monitoring");
   const router = useRouter();
-  const [parcelId, setParcelId] = useState<string>(parcels[0]?.id ?? "");
-  const [cropCycleId, setCropCycleId] = useState<string>("");
-  const [date, setDate] = useState(today());
-  const [type, setType] = useState<MonitoringType>("pest");
-  const [agentName, setAgentName] = useState("");
-  const [severity, setSeverity] = useState("1");
-  const [incidencePct, setIncidencePct] = useState("");
-  const [notes, setNotes] = useState("");
-  const [actionsTaken, setActionsTaken] = useState("");
+  const isEditing = Boolean(editingOutboxId);
+  const [parcelId, setParcelId] = useState<string>(
+    initialPayload?.parcelId ?? parcels[0]?.id ?? "",
+  );
+  const [cropCycleId, setCropCycleId] = useState<string>(
+    initialPayload?.cropCycleId ?? "",
+  );
+  const [date, setDate] = useState(initialPayload?.date ?? today());
+  const [type, setType] = useState<MonitoringType>(
+    initialPayload?.type ?? "pest",
+  );
+  const [agentName, setAgentName] = useState(initialPayload?.agentName ?? "");
+  const [severity, setSeverity] = useState(
+    initialPayload ? String(initialPayload.severity) : "1",
+  );
+  const [incidencePct, setIncidencePct] = useState(
+    initialPayload?.incidencePct ?? "",
+  );
+  const [notes, setNotes] = useState(initialPayload?.notes ?? "");
+  const [actionsTaken, setActionsTaken] = useState(
+    initialPayload?.actionsTaken ?? "",
+  );
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState(false);
-  const [location, setLocation] = useState<GeoLocation | null>(null);
+  const [location, setLocation] = useState<GeoLocation | null>(
+    initialPayload?.location ?? null,
+  );
   const [accuracy, setAccuracy] = useState<number | null>(null);
+  // A prefilled location (edit mode) has no captured accuracy reading, so the
+  // "captured" chip (which requires accuracy) intentionally stays hidden —
+  // the coordinates are still carried in `location` and submitted as-is.
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const tOffline = useTranslations("offline");
+  const tCommon = useTranslations("common");
 
   const parcelCycles = cycles.filter(
     (c) => !parcelId || c.parcelId === parcelId,
@@ -125,8 +171,8 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
     setSubmitting(true);
     setSaveError(false);
     try {
-      const payload = {
-        id: newId(),
+      const payload: MonitoringPayload = {
+        id: initialPayload?.id ?? newId(),
         parcelId,
         cropCycleId: cropCycleId || undefined,
         date,
@@ -138,14 +184,22 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
         actionsTaken: actionsTaken || undefined,
         location: location ?? undefined,
       };
-      await enqueue(orgSlug, "monitoring.create", payload);
+      if (editingOutboxId) {
+        await editOutboxEntry(editingOutboxId, payload);
+      } else {
+        await enqueue(orgSlug, "monitoring.create", payload);
+      }
       if (navigator.onLine) {
         await flushOutbox(orgSlug).catch(() => null);
         router.refresh();
       }
       // Offline: skip refresh — navigation would fail without a network, and
       // the PendingEntries live query already shows the queued record.
-      resetForm();
+      if (editingOutboxId) {
+        onCancelEdit?.();
+      } else {
+        resetForm();
+      }
     } catch {
       // enqueue() zod-rejects invalid payloads before anything is stored.
       setSaveError(true);
@@ -157,7 +211,9 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
   return (
     <div className="flex flex-col gap-2 rounded-[3px] border border-border">
       <div className="border-b border-border px-[var(--density-cell-px)] py-[var(--density-cell-py)]">
-        <span className={MICRO_LABEL}>{t("new")}</span>
+        <span className={MICRO_LABEL}>
+          {isEditing ? tOffline("issues.edit") : t("new")}
+        </span>
       </div>
       <form
         onSubmit={handleSubmit}
@@ -390,13 +446,24 @@ export function MonitoringForm({ orgSlug, parcels, cycles }: Props) {
 
         {saveError && <Notice variant="error">{tOffline("saveError")}</Notice>}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="h-[var(--density-control-h)] w-full rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto sm:self-start"
-        >
-          {t("create")}
-        </button>
+        <div className="flex gap-2 sm:self-start">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="h-[var(--density-control-h)] flex-1 rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:flex-none"
+          >
+            {isEditing ? tOffline("issues.retry") : t("create")}
+          </button>
+          {isEditing && (
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className="h-[var(--density-control-h)] rounded-[3px] border border-border px-6 text-[length:var(--density-font-body)] font-medium text-foreground hover:bg-muted"
+            >
+              {tCommon("actions.cancel")}
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

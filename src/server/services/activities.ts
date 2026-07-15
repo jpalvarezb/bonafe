@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import Decimal from "decimal.js";
 import { withOrgRls, type Tx } from "@/lib/db/rls";
 import {
@@ -12,6 +12,7 @@ import {
   inventoryMovements,
   parcels,
   products,
+  workers,
 } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
@@ -21,6 +22,8 @@ import {
   type InputLine,
   type LaborLine,
 } from "@/lib/calc/costs";
+import { computeStock } from "@/lib/calc/inventory";
+import { defaultUnitCostByProduct } from "@/lib/calc/activity-costing";
 import { latestRateToBaseInTx } from "@/server/services/exchange-rates";
 import { ensureDefaultWarehouseInTx } from "@/server/services/inventory";
 
@@ -37,9 +40,62 @@ export type ActivityInput = {
   otherCost?: string;
   currencyCode?: string;
   createdOffline?: boolean;
-  inputs: Array<InputLine & { productId: string }>;
-  labor: Array<LaborLine & { workerName?: string | null }>;
+  /** unitCost is optional: an empty/absent value is derived from the org's
+   * default-warehouse WAC (see deriveDefaultUnitCostInTx) instead of
+   * requiring re-typed free text. */
+  inputs: Array<
+    Omit<InputLine, "unitCost"> & {
+      productId: string;
+      unitCost?: string | number | null;
+    }
+  >;
+  labor: Array<
+    LaborLine & { workerName?: string | null; workerId?: string | null }
+  >;
 };
+
+/**
+ * Weighted-average cost of a product in a single warehouse, derived from the
+ * same signed movement ledger getStockByProduct folds — queried inside the
+ * caller's own tx so it sees uncommitted movements from earlier in the same
+ * request. Reuses computeStock (src/lib/calc/inventory.ts) and the
+ * default-warehouse-row shape defaultUnitCostByProduct expects.
+ */
+async function deriveDefaultUnitCostInTx(
+  tx: Tx,
+  ctx: OrgContext,
+  warehouseId: string,
+  productId: string,
+): Promise<string | undefined> {
+  const movementRows = await tx
+    .select({
+      quantity: inventoryMovements.quantity,
+      unitCost: inventoryMovements.unitCost,
+    })
+    .from(inventoryMovements)
+    .where(
+      and(
+        eq(inventoryMovements.orgId, ctx.org.id),
+        eq(inventoryMovements.warehouseId, warehouseId),
+        eq(inventoryMovements.productId, productId),
+      ),
+    )
+    .orderBy(asc(inventoryMovements.date), asc(inventoryMovements.createdAt));
+  if (movementRows.length === 0) return undefined;
+
+  const stock = computeStock(movementRows);
+  return defaultUnitCostByProduct(
+    [
+      {
+        productId,
+        warehouseId,
+        isDefaultWarehouse: true,
+        avgUnitCost: stock.avgUnitCost,
+      },
+    ],
+    productId,
+  );
+}
 
 /**
  * Exported as an `...InTx` variant too: convertPlannedActivity (planning.ts)
@@ -123,8 +179,55 @@ export async function createActivityInTx(
     }
   }
 
+  // Real worker linkage: a labor line may point at a registered worker (in
+  // addition to / instead of a free-text workerName), same and(eq(id),
+  // eq(orgId)) tenancy guard as parcels/cycles/cost centers above.
+  const workerIds = [
+    ...new Set(
+      input.labor
+        .map((line) => line.workerId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (workerIds.length > 0) {
+    const ownedWorkers = await tx
+      .select({ id: workers.id })
+      .from(workers)
+      .where(and(inArray(workers.id, workerIds), eq(workers.orgId, ctx.org.id)));
+    if (ownedWorkers.length !== workerIds.length) {
+      throw new Error("worker not found");
+    }
+  }
+
+  // Only resolved when the activity actually consumes stock. Resolved before
+  // totals so an empty input-line unitCost can be derived from this
+  // warehouse's WAC before computeActivityTotals runs.
+  const warehouse =
+    input.inputs.length > 0
+      ? await ensureDefaultWarehouseInTx(tx, ctx)
+      : null;
+
+  const resolvedInputs: Array<InputLine & { productId: string }> = [];
+  for (const line of input.inputs) {
+    const hasUnitCost =
+      line.unitCost != null && String(line.unitCost).trim() !== "";
+    if (hasUnitCost) {
+      resolvedInputs.push({ ...line, unitCost: line.unitCost! });
+      continue;
+    }
+    const derived = warehouse
+      ? await deriveDefaultUnitCostInTx(tx, ctx, warehouse.id, line.productId)
+      : undefined;
+    if (derived == null) {
+      throw new Error(
+        "unit cost required: no stock history for product " + line.productId,
+      );
+    }
+    resolvedInputs.push({ ...line, unitCost: derived });
+  }
+
   const totals = computeActivityTotals({
-    inputs: input.inputs,
+    inputs: resolvedInputs,
     labor: input.labor,
     machineCost: input.machineCost,
     otherCost: input.otherCost,
@@ -140,12 +243,6 @@ export async function createActivityInTx(
   }
 
   const activityId = input.id ?? newId();
-
-  // Only resolved when the activity actually consumes stock.
-  const warehouse =
-    input.inputs.length > 0
-      ? await ensureDefaultWarehouseInTx(tx, ctx)
-      : null;
 
   const [created] = await tx
     .insert(activities)
@@ -182,11 +279,11 @@ export async function createActivityInTx(
         and(eq(activities.id, activityId), eq(activities.orgId, ctx.org.id)),
       );
     if (!existing) throw new Error("activity id conflict");
-    return existing;
+    return { activity: existing, created: false };
   }
 
-  if (input.inputs.length > 0) {
-    const inputRows = input.inputs.map((line, i) => ({
+  if (resolvedInputs.length > 0) {
+    const inputRows = resolvedInputs.map((line, i) => ({
       id: newId(),
       orgId: ctx.org.id,
       activityId,
@@ -228,6 +325,7 @@ export async function createActivityInTx(
         id: newId(),
         orgId: ctx.org.id,
         activityId,
+        workerId: line.workerId ?? null,
         workerName: line.workerName ?? null,
         workersCount: line.workersCount,
         hours: line.hours != null ? String(line.hours) : null,
@@ -238,7 +336,7 @@ export async function createActivityInTx(
     );
   }
 
-  return created;
+  return { activity: created, created: true };
 }
 
 export async function createActivity(ctx: OrgContext, input: ActivityInput) {

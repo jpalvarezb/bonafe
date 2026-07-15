@@ -8,6 +8,12 @@ import { orgSubscriptions } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
 import { audit } from "@/lib/audit";
+import { PLAN_DEFINITIONS } from "@/lib/plan-limits";
+import {
+  convertPlanPriceToLocal,
+  isLocalCheckoutCurrency,
+  isRateFresh,
+} from "@/lib/plan-pricing";
 import {
   getPlanPriceId,
   getStripeClient,
@@ -15,6 +21,8 @@ import {
   isStripeConfigured,
 } from "@/lib/stripe";
 import { ensureStripeCustomer } from "@/server/services/billing";
+import { listExchangeRates } from "@/server/services/exchange-rates";
+import { getOrCreateLocalPrice } from "@/server/services/stripe-prices";
 
 const scope = z.object({
   locale: z.string(),
@@ -52,20 +60,61 @@ export async function createCheckoutSessionAction(formData: FormData) {
   if (!isBillablePlanId(planId)) {
     throw new BillingActionError("invalidPlan");
   }
-  const priceId = getPlanPriceId(planId);
-  if (!priceId) {
+  const usdPriceId = getPlanPriceId(planId);
+  if (!usdPriceId) {
     throw new BillingActionError("priceNotConfigured");
   }
 
   const customerId = await ensureStripeCustomer(ctx);
   const stripe = getStripeClient();
 
+  // Local-currency checkout: orgs based in NIO/GTQ/HNL/CRC see the price
+  // denominated in their own currency, converted at the latest fresh USD
+  // exchange-rate row. Any failure here (no fresh rate, Stripe Price
+  // creation error) falls through to the existing USD price — USD remains
+  // both the default and the fallback, never a hard failure.
+  let checkoutPriceId = usdPriceId;
+  if (isLocalCheckoutCurrency(ctx.org.baseCurrencyCode)) {
+    try {
+      const rates = await listExchangeRates(ctx);
+      const latestUsdRate = rates.find((r) => r.currencyCode === "USD");
+      if (
+        latestUsdRate &&
+        isRateFresh(new Date(latestUsdRate.validDate), new Date())
+      ) {
+        const planDef = PLAN_DEFINITIONS.find((def) => def.id === planId);
+        if (planDef) {
+          const conversion = convertPlanPriceToLocal(
+            planDef.monthlyPriceUsd,
+            latestUsdRate.rateToBase,
+          );
+          const localPrice = await getOrCreateLocalPrice(
+            stripe,
+            planId,
+            ctx.org.baseCurrencyCode,
+            conversion.minorUnits,
+          );
+          if (localPrice) {
+            checkoutPriceId = localPrice.id;
+          }
+        }
+      }
+    } catch (error) {
+      // Local checkout is best-effort; USD stays the safe fallback.
+      console.warn("local-currency checkout price resolution failed", {
+        orgId: ctx.org.id,
+        planId,
+        error,
+      });
+    }
+  }
+
   const planPageUrl = `${process.env.NEXT_PUBLIC_APP_URL}/${locale}/o/${orgSlug}/settings/plan`;
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
+    line_items: [{ price: checkoutPriceId, quantity: 1 }],
     metadata: { orgId: ctx.org.id, planId },
     subscription_data: {
       metadata: { orgId: ctx.org.id, planId },

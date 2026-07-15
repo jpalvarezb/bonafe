@@ -1,7 +1,12 @@
 import { and, asc, between, desc, eq } from "drizzle-orm";
 import Decimal from "decimal.js";
 import { withOrgRls } from "@/lib/db/rls";
-import { pieceRates, pieceworkEntries, workers } from "@/lib/db/schema";
+import {
+  cropCycles,
+  pieceRates,
+  pieceworkEntries,
+  workers,
+} from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
 import { assertOrgFeature } from "@/lib/plan-limits";
@@ -14,11 +19,16 @@ export type PieceRateInput = {
 };
 
 export type PieceworkEntryInput = {
+  /** Client-generated UUIDv7 for offline idempotency; server fills if absent. */
+  id?: string;
   workerId: string;
   pieceRateId: string;
+  /** Optional crop-cycle attribution; feeds per-cycle profitability. */
+  cropCycleId?: string | null;
   date: string;
   quantity: string;
   notes?: string | null;
+  createdOffline?: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -122,7 +132,11 @@ export async function createPieceworkEntry(
     if (!worker) throw new Error("worker not found");
 
     const [rate] = await tx
-      .select({ id: pieceRates.id, rate: pieceRates.rate })
+      .select({
+        id: pieceRates.id,
+        rate: pieceRates.rate,
+        active: pieceRates.active,
+      })
       .from(pieceRates)
       .where(
         and(
@@ -132,25 +146,59 @@ export async function createPieceworkEntry(
       )
       .limit(1);
     if (!rate) throw new Error("piece rate not found");
+    if (!rate.active) throw new Error("piece rate is inactive");
+
+    if (input.cropCycleId) {
+      const [cycle] = await tx
+        .select({ id: cropCycles.id })
+        .from(cropCycles)
+        .where(
+          and(
+            eq(cropCycles.id, input.cropCycleId),
+            eq(cropCycles.orgId, ctx.org.id),
+          ),
+        )
+        .limit(1);
+      if (!cycle) throw new Error("crop cycle not found");
+    }
 
     const amount = new Decimal(input.quantity).mul(rate.rate).toFixed(4);
 
+    const entryId = input.id ?? newId();
     const [created] = await tx
       .insert(pieceworkEntries)
       .values({
-        id: newId(),
+        id: entryId,
         orgId: ctx.org.id,
         workerId: input.workerId,
         pieceRateId: input.pieceRateId,
+        cropCycleId: input.cropCycleId ?? null,
         date: input.date,
         quantity: input.quantity,
         rateSnapshot: rate.rate,
         amount,
         notes: input.notes ?? null,
         createdBy: ctx.user.id,
+        createdOffline: input.createdOffline ?? false,
       })
+      .onConflictDoNothing({ target: pieceworkEntries.id })
       .returning();
-    return created;
+
+    // Idempotent replay from the offline outbox: row already exists.
+    if (!created) {
+      const [existing] = await tx
+        .select()
+        .from(pieceworkEntries)
+        .where(
+          and(
+            eq(pieceworkEntries.id, entryId),
+            eq(pieceworkEntries.orgId, ctx.org.id),
+          ),
+        );
+      if (!existing) throw new Error("piecework entry id conflict");
+      return { entry: existing, created: false };
+    }
+    return { entry: created, created: true };
   });
 }
 
@@ -166,10 +214,12 @@ export async function listPieceworkEntries(
         workerName: workers.name,
         rateName: pieceRates.name,
         unit: pieceRates.unit,
+        cycleName: cropCycles.name,
       })
       .from(pieceworkEntries)
       .innerJoin(workers, eq(pieceworkEntries.workerId, workers.id))
       .innerJoin(pieceRates, eq(pieceworkEntries.pieceRateId, pieceRates.id))
+      .leftJoin(cropCycles, eq(pieceworkEntries.cropCycleId, cropCycles.id))
       .where(
         and(
           eq(pieceworkEntries.orgId, ctx.org.id),

@@ -1,0 +1,19 @@
+{
+  "invite": {
+    "subject": "Invitación a {orgName} en AgroPeq",
+    "bodyWithInviter": "{inviterName} te invitó a unirte a {orgName} en AgroPeq. Acepta la invitación en el siguiente enlace: {acceptUrl}",
+    "bodyGeneric": "Te invitaron a unirte a {orgName} en AgroPeq. Acepta la invitación en el siguiente enlace: {acceptUrl}",
+    "cta": "Aceptar invitación"
+  },
+  "digest": {
+    "subject": "Resumen diario de {orgName} — AgroPeq",
+    "subscriptionHeading": "Estado de tu suscripción",
+    "subscriptionPastDue": "Tu suscripción está atrasada en el pago. Actualiza tu método de pago para evitar interrupciones.",
+    "subscriptionCanceled": "Tu suscripción fue cancelada.",
+    "lowStockHeading": "Productos con stock bajo",
+    "lowStockLine": "{name}: quedan {quantity}, mínimo {minStock}",
+    "monitoringHeading": "Alertas de monitoreo de alta severidad (últimas 24 h)",
+    "monitoringLine": "{title} (severidad {severity})",
+    "footer": "Este es un resumen automático de AgroPeq."
+  }
+}

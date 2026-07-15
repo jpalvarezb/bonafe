@@ -9,12 +9,14 @@ import {
   listPieceRates,
   listPieceworkEntries,
 } from "@/server/services/piecework";
+import { listCycles } from "@/server/services/cycles";
 import {
   createPieceRateAction,
-  createPieceworkEntryAction,
   deletePieceworkEntryAction,
   setPieceRateActiveAction,
 } from "@/server/actions/piecework";
+import { PieceworkEntryForm } from "@/components/piecework/piecework-entry-form";
+import { PendingEntries } from "@/components/offline/pending-entries";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,18 +28,10 @@ import {
 } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status-chip";
 
-const selectClass =
-  "border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs";
-
 const isoDate = /^\d{4}-\d{2}-\d{2}$/;
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
-}
-
-function todayIso(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
 /** Default entries range: the current fortnight (1st–15th or 16th–end). */
@@ -84,10 +78,11 @@ export default async function PieceworkPage({
     to: sp.to && isoDate.test(sp.to) ? sp.to : fallback.to,
   };
 
-  const [rates, activeWorkers, entries] = await Promise.all([
+  const [rates, activeWorkers, entries, cycles] = await Promise.all([
     listPieceRates(ctx),
     listActiveWorkersForPiecework(ctx),
     listPieceworkEntries(ctx, range),
+    listCycles(ctx),
   ]);
   const activeRates = rates.filter((rate) => rate.active);
 
@@ -249,6 +244,8 @@ export default async function PieceworkPage({
         </CardContent>
       </Card>
 
+      <PendingEntries orgSlug={orgSlug} kind="piecework.create" />
+
       <Card>
         <CardHeader>
           <CardTitle>{t("entries.title")}</CardTitle>
@@ -285,6 +282,9 @@ export default async function PieceworkPage({
                       {t("entries.table.rate")}
                     </th>
                     <th className="px-4 py-2 font-medium">
+                      {t("entries.table.cycle")}
+                    </th>
+                    <th className="px-4 py-2 font-medium">
                       {t("entries.table.quantity")}
                     </th>
                     <th className="px-4 py-2 font-medium">
@@ -294,11 +294,14 @@ export default async function PieceworkPage({
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {entries.map(({ entry, workerName, rateName, unit }) => (
+                  {entries.map(({ entry, workerName, rateName, unit, cycleName }) => (
                     <tr key={entry.id}>
                       <td className="px-4 py-2">{entry.date}</td>
                       <td className="px-4 py-2">{workerName}</td>
                       <td className="px-4 py-2">{rateName}</td>
+                      <td className="px-4 py-2 text-muted-foreground">
+                        {cycleName ?? "—"}
+                      </td>
                       <td className="px-4 py-2">
                         {entry.quantity} {unit}
                       </td>
@@ -355,79 +358,21 @@ export default async function PieceworkPage({
                 {t("entries.form.needsSetup")}
               </p>
             ) : (
-              <form
-                action={createPieceworkEntryAction}
-                className="grid gap-4 border-t pt-4 sm:grid-cols-2"
-              >
-                <input type="hidden" name="locale" value={locale} />
-                <input type="hidden" name="orgSlug" value={orgSlug} />
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="workerId">{t("entries.form.worker")}</Label>
-                  <select
-                    id="workerId"
-                    name="workerId"
-                    required
-                    defaultValue=""
-                    className={selectClass}
-                  >
-                    <option value="" disabled>
-                      {t("entries.form.workerPlaceholder")}
-                    </option>
-                    {activeWorkers.map((worker) => (
-                      <option key={worker.id} value={worker.id}>
-                        {worker.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="pieceRateId">{t("entries.form.rate")}</Label>
-                  <select
-                    id="pieceRateId"
-                    name="pieceRateId"
-                    required
-                    defaultValue=""
-                    className={selectClass}
-                  >
-                    <option value="" disabled>
-                      {t("entries.form.ratePlaceholder")}
-                    </option>
-                    {activeRates.map((rate) => (
-                      <option key={rate.id} value={rate.id}>
-                        {rate.name} ({rate.unit})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="date">{t("entries.form.date")}</Label>
-                  <Input
-                    id="date"
-                    name="date"
-                    type="date"
-                    defaultValue={todayIso()}
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="quantity">{t("entries.form.quantity")}</Label>
-                  <Input
-                    id="quantity"
-                    name="quantity"
-                    type="number"
-                    min="0"
-                    step="any"
-                    required
-                  />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label htmlFor="notes">{t("entries.form.notes")}</Label>
-                  <Input id="notes" name="notes" maxLength={2000} />
-                </div>
-                <Button type="submit" className="self-end justify-self-start">
-                  {t("entries.form.create")}
-                </Button>
-              </form>
+              <div className="border-t pt-4">
+                <PieceworkEntryForm
+                  orgSlug={orgSlug}
+                  workers={activeWorkers}
+                  rates={activeRates.map((rate) => ({
+                    id: rate.id,
+                    name: rate.name,
+                    unit: rate.unit,
+                  }))}
+                  cycles={cycles.map(({ cycle }) => ({
+                    id: cycle.id,
+                    name: cycle.name,
+                  }))}
+                />
+              </div>
             ))}
         </CardContent>
       </Card>

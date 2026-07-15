@@ -8,5 +8,9 @@
   "existing": "Tasas registradas",
   "empty": "No hay tasas de cambio registradas.",
   "delete": "Eliminar",
-  "hint": "1 unidad de la moneda = X en la moneda base, a partir de la fecha indicada."
+  "hint": "1 unidad de la moneda = X en la moneda base, a partir de la fecha indicada.",
+  "source": "Origen",
+  "sourceFeed": "Feed automático (open.er-api.com)",
+  "sourceManual": "Ingreso manual",
+  "fetchedAt": "Obtenido"
 }

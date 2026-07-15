@@ -71,6 +71,14 @@ export const orgExchangeRates = pgTable(
     /** Multiply an amount in currency_code by this to get base currency. */
     rateToBase: numeric("rate_to_base", { precision: 18, scale: 8 }).notNull(),
     validDate: date("valid_date").notNull(),
+    // Nullable: rows written before this column existed have no source on
+    // record. 'manual' = org member entered it via settings/currencies;
+    // 'open-er-api' = the nightly fx:ingest cron (src/server/services/
+    // fx-ingest.ts). TS-level enum on a text column — widening needs no
+    // migration, mirrors climate_readings.source (src/lib/db/schema/climate.ts).
+    source: text("source", { enum: ["manual", "open-er-api"] }),
+    /** When the feed was fetched — null for manually-entered rows. */
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [
@@ -79,6 +87,10 @@ export const orgExchangeRates = pgTable(
     check(
       "org_exchange_rates_currency_code_check",
       sql`char_length(${t.currencyCode}) = 3`,
+    ),
+    check(
+      "org_exchange_rates_source_check",
+      sql`${t.source} IN ('manual', 'open-er-api')`,
     ),
     ...orgIsolationPolicy("org_exchange_rates"),
   ],

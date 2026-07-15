@@ -18,7 +18,10 @@
     "db:set-app-password": "tsx --env-file=.env src/scripts/set-app-password.ts",
     "db:verify-rls": "tsx --env-file=.env src/scripts/verify-rls.ts",
     "climate:ingest": "tsx --env-file=.env src/scripts/ingest-climate.ts",
-    "test": "vitest run"
+    "fx:ingest": "tsx --env-file=.env src/scripts/ingest-exchange-rates.ts",
+    "digest:send": "tsx --env-file=.env src/scripts/send-digest.ts",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@serwist/next": "^9.5.11",
@@ -34,6 +37,7 @@
     "next": "16.2.10",
     "next-intl": "^4.13.1",
     "next-themes": "^0.4.6",
+    "nodemailer": "^9.0.3",
     "papaparse": "^5.5.4",
     "pg": "^8.22.0",
     "radix-ui": "^1.6.1",
@@ -55,6 +59,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.1",
     "@types/papaparse": "^5.5.2",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

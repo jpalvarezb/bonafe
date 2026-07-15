@@ -32,10 +32,13 @@
     "income": "Ingresos por venta",
     "activityCost": "Costo de actividades",
     "processingCost": "Costo de beneficiado",
+    "pieceworkCost": "Destajo",
     "profit": "Utilidad",
     "margin": "Margen",
     "profitPerHa": "Utilidad/ha",
     "costPerUnit": "Costo por unidad",
-    "pieceworkFootnote": "El destajo ({amount}) no se atribuye a ciclos específicos porque los registros de destajo no guardan el ciclo de cultivo; se muestra aquí como un costo a nivel de la organización."
-  }
+    "pieceworkFootnote": "El destajo sin atribuir ({amount}) se muestra como costo a nivel de organización; las entradas registradas con ciclo ya están incluidas en la fila de su ciclo."
+  },
+  "processingRun": "Beneficiado (opcional)",
+  "noProcessingRun": "Sin beneficiado"
 }

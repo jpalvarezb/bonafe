@@ -14,14 +14,19 @@ const scope = z.object({ locale: z.string(), orgSlug: z.string() });
 const inputLineSchema = z.object({
   productId: z.string().uuid(),
   quantity: z.string().min(1),
-  unitCost: z.string().min(1),
+  // Empty/omitted: server derives it from the default warehouse's WAC
+  // (see createActivityInTx) instead of requiring re-typed free text.
+  unitCost: z.string().optional(),
 });
 
 const laborLineSchema = z.object({
+  workerId: z.string().uuid().optional(),
   workerName: z.string().optional(),
   workersCount: z.coerce.number().int().min(1),
   hours: z.string().optional(),
-  rateType: z.enum(["daily", "hourly"]),
+  /** Piecework units; only meaningful when rateType is "piecework". */
+  quantity: z.string().optional(),
+  rateType: z.enum(["daily", "hourly", "piecework"]),
   rate: z.string().min(1),
 });
 
@@ -58,10 +63,15 @@ export async function createActivityAction(formData: FormData) {
     description: payload.description ?? null,
     otherCost: payload.otherCost,
     currencyCode: payload.currencyCode,
-    inputs: payload.inputs,
+    inputs: payload.inputs.map((line) => ({
+      ...line,
+      unitCost: line.unitCost || undefined,
+    })),
     labor: payload.labor.map((line) => ({
       ...line,
+      workerId: line.workerId || undefined,
       hours: line.hours || null,
+      quantity: line.quantity || undefined,
     })),
   });
 

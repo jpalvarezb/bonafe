@@ -5,11 +5,17 @@ import { farms, invitation, member, orgSubscriptions } from "@/lib/db/schema";
 import { requireOrgContext } from "@/lib/tenancy";
 import { can } from "@/lib/authz";
 import { getOrgPlan, PLAN_DEFINITIONS, type OrgPlan } from "@/lib/plan-limits";
+import {
+  convertPlanPriceToLocal,
+  isLocalCheckoutCurrency,
+  isRateFresh,
+} from "@/lib/plan-pricing";
 import { isStripeConfigured } from "@/lib/stripe";
 import {
   createCheckoutSessionAction,
   createPortalSessionAction,
 } from "@/server/actions/billing";
+import { listExchangeRates } from "@/server/services/exchange-rates";
 import { Notice } from "@/components/ui/notice";
 import { StatusChip, type StatusFamily } from "@/components/ui/status-chip";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
@@ -64,6 +70,25 @@ export default async function PlanPage({
   const plan = await getOrgPlan(ctx.org.id);
   const stripeEnabled = isStripeConfigured();
   const canManageBilling = can(ctx.role, "settings", "manage");
+
+  // Local-currency checkout preview (src/lib/plan-pricing.ts): orgs based
+  // in NIO/GTQ/HNL/CRC see the tier price converted at the latest fresh
+  // USD exchange-rate row, same rate the checkout action itself will use.
+  // A stale/missing rate silently falls back to USD-only display, matching
+  // createCheckoutSessionAction's own USD fallback.
+  const showLocalPricing =
+    stripeEnabled && isLocalCheckoutCurrency(ctx.org.baseCurrencyCode);
+  let freshUsdRateToBase: string | null = null;
+  if (showLocalPricing) {
+    const rates = await listExchangeRates(ctx);
+    const latestUsdRate = rates.find((r) => r.currencyCode === "USD");
+    if (
+      latestUsdRate &&
+      isRateFresh(new Date(latestUsdRate.validDate), new Date())
+    ) {
+      freshUsdRateToBase = latestUsdRate.rateToBase;
+    }
+  }
 
   // member/invitation carry no RLS (see src/lib/db/schema/tenancy.ts); farms
   // and org_subscriptions do — all four run under one withOrgRls so the GUC
@@ -225,6 +250,17 @@ export default async function PlanPage({
                   <span className="ml-1 font-mono text-[10.5px] text-muted-foreground">
                     {t("perMonth")}
                   </span>
+                  {freshUsdRateToBase && (
+                    <div className="mt-0.5 font-mono text-[10.5px] text-muted-foreground">
+                      {tBilling("localPricing.note", {
+                        currency: ctx.org.baseCurrencyCode,
+                        amount: convertPlanPriceToLocal(
+                          def.monthlyPriceUsd,
+                          freshUsdRateToBase,
+                        ).localAmount,
+                      })}
+                    </div>
+                  )}
                 </div>
                 <ul className="flex flex-col gap-0.5 font-mono text-[10.5px] text-muted-foreground">
                   <li>

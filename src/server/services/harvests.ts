@@ -85,9 +85,9 @@ export async function createHarvest(ctx: OrgContext, input: HarvestCreateInput) 
         .from(harvests)
         .where(and(eq(harvests.id, harvestId), eq(harvests.orgId, ctx.org.id)));
       if (!existing) throw new Error("harvest id conflict");
-      return existing;
+      return { harvest: existing, created: false };
     }
-    return created;
+    return { harvest: created, created: true };
   });
 }
 

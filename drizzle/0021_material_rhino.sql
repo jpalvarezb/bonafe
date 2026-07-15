@@ -1,0 +1,1 @@
+ALTER TABLE "piecework_entries" ADD COLUMN "created_offline" boolean DEFAULT false NOT NULL;

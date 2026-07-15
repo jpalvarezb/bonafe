@@ -6,6 +6,9 @@
     "title": "Payment started",
     "description": "Your plan will update as soon as Stripe confirms the payment. This can take a few seconds."
   },
+  "localPricing": {
+    "note": "Billed in {currency} ≈ {amount}/mo"
+  },
   "errors": {
     "notConfigured": "Billing is not configured for this site yet.",
     "invalidPlan": "That plan isn't valid.",

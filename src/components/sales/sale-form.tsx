@@ -17,6 +17,8 @@ import { createSaleAction } from "@/server/actions/sales";
 
 type CycleOption = { id: string; name: string };
 
+type RunOption = { id: string; label: string; cropCycleId: string };
+
 type LineState = {
   key: number;
   description: string;
@@ -29,6 +31,7 @@ type Props = {
   readonly locale: string;
   readonly orgSlug: string;
   readonly cycles: CycleOption[];
+  readonly runs: RunOption[];
   readonly currencyCode: string;
   readonly currencies: string[];
 };
@@ -43,11 +46,13 @@ export function SaleForm({
   locale,
   orgSlug,
   cycles,
+  runs,
   currencyCode,
   currencies,
 }: Props) {
   const t = useTranslations("sales");
   const [cropCycleId, setCropCycleId] = useState("");
+  const [processingRunId, setProcessingRunId] = useState("");
   const [buyerName, setBuyerName] = useState("");
   const [date, setDate] = useState(today());
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -79,6 +84,7 @@ export function SaleForm({
 
   const payload = JSON.stringify({
     cropCycleId: cropCycleId || undefined,
+    processingRunId: processingRunId || undefined,
     date,
     buyerName,
     invoiceNumber: invoiceNumber || undefined,
@@ -131,12 +137,36 @@ export function SaleForm({
             id="cropCycleId"
             value={cropCycleId}
             onChange={(e) => setCropCycleId(e.target.value)}
+            disabled={processingRunId !== ""}
             className={selectClass}
           >
             <option value="">{t("noCycle")}</option>
             {cycles.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="processingRunId">{t("processingRun")}</Label>
+          <select
+            id="processingRunId"
+            value={processingRunId}
+            onChange={(e) => {
+              const runId = e.target.value;
+              setProcessingRunId(runId);
+              // The chain derives the cycle server-side; mirror it here so
+              // the form can't submit a contradictory manual tag.
+              const run = runs.find((r) => r.id === runId);
+              if (run) setCropCycleId(run.cropCycleId);
+            }}
+            className={selectClass}
+          >
+            <option value="">{t("noProcessingRun")}</option>
+            {runs.map((run) => (
+              <option key={run.id} value={run.id}>
+                {run.label}
               </option>
             ))}
           </select>

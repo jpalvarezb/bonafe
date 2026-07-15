@@ -21,19 +21,30 @@ export default async function SalesPage({
   }
 
   const t = await getTranslations("sales");
+  const tImporter = await getTranslations("importer");
   const format = await getFormatter();
   const rows = await listSales(ctx);
   const canCreate = can(ctx.role, "sale", "create");
+  const canExport = can(ctx.role, "report", "view");
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        {canCreate && (
-          <Button asChild>
-            <Link href={`/o/${orgSlug}/sales/new`}>{t("new")}</Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {canExport && (
+            <Button asChild variant="outline" size="sm">
+              <a href={`/api/export?type=sales&org=${orgSlug}&locale=${locale}`}>
+                {tImporter("exportCsv")}
+              </a>
+            </Button>
+          )}
+          {canCreate && (
+            <Button asChild>
+              <Link href={`/o/${orgSlug}/sales/new`}>{t("new")}</Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card>
