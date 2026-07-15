@@ -36,6 +36,8 @@
     "openMenu": "Open navigation menu",
     "closeMenu": "Close menu",
     "menuTitle": "Navigation",
+    "collapseSidebar": "Collapse menu",
+    "expandSidebar": "Expand menu",
     "sections": {
       "campo": "Field",
       "terreno": "Land",

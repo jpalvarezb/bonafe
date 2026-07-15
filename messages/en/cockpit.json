@@ -43,6 +43,8 @@
     "costHa": "Cost/ha",
     "margin": "Margin",
     "rainfall": "Cycle accumulated rainfall",
+    "farmRainfall": "Accumulated rainfall · active cycles",
+    "farmRainfallHint": "Since the start of the farm's oldest active cycle",
     "recentActivities": "Recent activities",
     "noActivities": "No recent activities",
     "moreCycles": "+{count} active cycles",
@@ -53,7 +55,19 @@
     "farmParcels": "Parcels",
     "farmArea": "Total area",
     "farmActiveCycles": "Active cycles",
-    "syncQueue": "Sync queue"
+    "syncQueue": "Sync queue",
+    "planning": {
+      "title": "Planning calendar",
+      "empty": "No upcoming planned activities",
+      "viewAll": "View planning"
+    },
+    "labor": {
+      "title": "Labor",
+      "empty": "No attendance this quincena",
+      "noRecord": "No record",
+      "stripLabel": "Marked days for {name}",
+      "viewAll": "View labor report"
+    }
   },
   "farmPicker": {
     "label": "Farm"

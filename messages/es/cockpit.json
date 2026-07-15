@@ -43,6 +43,8 @@
     "costHa": "Costo/ha",
     "margin": "Margen",
     "rainfall": "Lluvia acumulada del ciclo",
+    "farmRainfall": "Lluvia acumulada · ciclos activos",
+    "farmRainfallHint": "Desde el inicio del ciclo activo más antiguo de la finca",
     "recentActivities": "Actividades recientes",
     "noActivities": "Sin actividades recientes",
     "moreCycles": "+{count} ciclos activos",
@@ -53,7 +55,19 @@
     "farmParcels": "Parcelas",
     "farmArea": "Área total",
     "farmActiveCycles": "Ciclos activos",
-    "syncQueue": "Cola de sincronización"
+    "syncQueue": "Cola de sincronización",
+    "planning": {
+      "title": "Calendario de planificación",
+      "empty": "Sin actividades planificadas próximas",
+      "viewAll": "Ver planificación"
+    },
+    "labor": {
+      "title": "Mano de obra",
+      "empty": "Sin asistencia en la quincena",
+      "noRecord": "Sin registro",
+      "stripLabel": "Días marcados de {name}",
+      "viewAll": "Ver reporte de mano de obra"
+    }
   },
   "farmPicker": {
     "label": "Finca"
