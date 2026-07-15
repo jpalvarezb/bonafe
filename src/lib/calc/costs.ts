@@ -10,6 +10,8 @@ export type InputLine = {
 export type LaborLine = {
   workersCount: number;
   hours?: string | number | null;
+  /** Piecework units (e.g. bags picked); rate is the per-unit piece rate. */
+  quantity?: string | number | null;
   rateType: "daily" | "hourly" | "piecework";
   rate: string | number;
 };
@@ -22,15 +24,20 @@ export function inputLineTotal(line: InputLine): string {
 }
 
 /**
- * daily:  workers × rate (rate = per worker-day)
- * hourly: workers × hours × rate
- * piecework: handled fully in Phase 6; until then workers × rate
+ * daily:     workers × rate (rate = per worker-day)
+ * hourly:    workers × hours × rate
+ * piecework: quantity × rate — mirrors createPieceworkEntry's
+ *            quantity × rateSnapshot model (src/server/services/piecework.ts),
+ *            NOT workers × rate.
  */
 export function laborLineAmount(line: LaborLine): string {
   const workers = d(line.workersCount);
   const rate = d(line.rate);
   if (line.rateType === "hourly") {
     return workers.mul(d(line.hours)).mul(rate).toFixed(4);
+  }
+  if (line.rateType === "piecework") {
+    return d(line.quantity).mul(rate).toFixed(4);
   }
   return workers.mul(rate).toFixed(4);
 }

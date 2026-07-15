@@ -91,6 +91,8 @@ export async function upsertExchangeRate(
         currencyCode: input.currencyCode,
         rateToBase: input.rateToBase,
         validDate: input.validDate,
+        source: "manual",
+        fetchedAt: null,
       })
       .onConflictDoUpdate({
         target: [
@@ -100,6 +102,8 @@ export async function upsertExchangeRate(
         ],
         set: {
           rateToBase: input.rateToBase,
+          source: "manual",
+          fetchedAt: null,
         },
       })
       .returning(),

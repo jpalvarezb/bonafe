@@ -12,6 +12,10 @@ export type OutboxEntry = {
   status: "pending" | "syncing" | "done" | "rejected";
   attempts: number;
   lastError?: string;
+  /** Machine-readable reason for a 'rejected' entry (see classifyRejection in
+   * ./retry.ts), for localized display in the retry/review queue. Not
+   * indexed — no Dexie version bump needed for this field. */
+  reasonCode?: string;
 };
 
 export type RefCacheEntry = {

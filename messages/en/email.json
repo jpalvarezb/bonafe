@@ -1,0 +1,19 @@
+{
+  "invite": {
+    "subject": "Invitation to {orgName} on AgroPeq",
+    "bodyWithInviter": "{inviterName} invited you to join {orgName} on AgroPeq. Accept the invitation at the following link: {acceptUrl}",
+    "bodyGeneric": "You were invited to join {orgName} on AgroPeq. Accept the invitation at the following link: {acceptUrl}",
+    "cta": "Accept invitation"
+  },
+  "digest": {
+    "subject": "Daily summary for {orgName} — AgroPeq",
+    "subscriptionHeading": "Subscription status",
+    "subscriptionPastDue": "Your subscription payment is past due. Update your payment method to avoid interruptions.",
+    "subscriptionCanceled": "Your subscription has been canceled.",
+    "lowStockHeading": "Products with low stock",
+    "lowStockLine": "{name}: {quantity} left, minimum {minStock}",
+    "monitoringHeading": "High-severity monitoring alerts (last 24h)",
+    "monitoringLine": "{title} (severity {severity})",
+    "footer": "This is an automated AgroPeq summary."
+  }
+}

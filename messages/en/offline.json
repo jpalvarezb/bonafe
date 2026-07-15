@@ -8,13 +8,28 @@
     "title": "Sync issues",
     "empty": "No sync issues.",
     "discard": "Discard",
+    "discardConfirm": "Discard this record? It will not be synced.",
+    "rejectedBadge": "Rejected",
+    "retry": "Retry",
+    "edit": "Edit",
     "viewAll": "View all",
     "kinds": {
       "activity_create": "Activity",
       "monitoring_create": "Monitoring",
       "attendance_upsert": "Attendance",
       "harvest_create": "Harvest",
-      "workorder_complete": "Complete work order"
+      "workorder_complete": "Complete work order",
+      "piecework_create": "Piecework entry"
+    },
+    "reasons": {
+      "validation": "Some fields are invalid. Edit and try again.",
+      "not_found": "A related record (worker, rate, parcel, cycle…) was not found.",
+      "inactive": "A related record is inactive.",
+      "read_only": "Your organization's billing is past due — mutations are paused.",
+      "plan_limit": "This exceeds your plan's limit.",
+      "feature_not_in_plan": "This feature is not included in your plan.",
+      "forbidden": "You don't have permission for this action.",
+      "unknown": "Something went wrong. Try again."
     }
   },
   "pendingNote": "Saved on this device; will sync when back online.",

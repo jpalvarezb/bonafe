@@ -81,6 +81,19 @@ export default async function CurrenciesPage({
                   {t("rate")}: {rate.rateToBase} · {t("validFrom")}:{" "}
                   {rate.validDate}
                 </p>
+                <p className="tabular font-mono text-[10.5px] text-muted-foreground">
+                  {t("source")}:{" "}
+                  {rate.source === "open-er-api"
+                    ? t("sourceFeed")
+                    : t("sourceManual")}
+                  {rate.fetchedAt && (
+                    <>
+                      {" "}
+                      · {t("fetchedAt")}:{" "}
+                      {new Date(rate.fetchedAt).toLocaleString(locale)}
+                    </>
+                  )}
+                </p>
               </div>
               {canManage && (
                 <form action={deleteExchangeRateAction}>

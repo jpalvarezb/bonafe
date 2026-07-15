@@ -45,6 +45,7 @@ export default async function HarvestsPage({
   }
 
   const t = await getTranslations("harvests");
+  const tImporter = await getTranslations("importer");
   const sp = await searchParams;
 
   function unitLabel(unit: string): string {
@@ -75,6 +76,7 @@ export default async function HarvestsPage({
 
   const canCreate = can(ctx.role, "harvest", "create");
   const canDelete = can(ctx.role, "harvest", "delete");
+  const canExport = can(ctx.role, "report", "view");
 
   const totalsByUnit = new Map<string, Decimal>();
   for (const row of rows) {
@@ -91,7 +93,18 @@ export default async function HarvestsPage({
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        {canExport && (
+          <Button asChild variant="outline" size="sm">
+            <a
+              href={`/api/export?type=harvests&org=${orgSlug}&locale=${locale}`}
+            >
+              {tImporter("exportCsv")}
+            </a>
+          </Button>
+        )}
+      </div>
 
       <PendingEntries orgSlug={orgSlug} kind="harvest.create" />
 

@@ -141,9 +141,9 @@ export async function createMonitoringRecord(
           ),
         );
       if (!existing) throw new Error("monitoring record id conflict");
-      return existing;
+      return { record: existing, created: false };
     }
-    return created;
+    return { record: created, created: true };
   });
 }
 

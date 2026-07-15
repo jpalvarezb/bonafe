@@ -6,6 +6,9 @@
     "title": "Pago iniciado",
     "description": "Tu plan se actualizará en cuanto Stripe confirme el pago. Esto puede tardar unos segundos."
   },
+  "localPricing": {
+    "note": "Facturado en {currency} ≈ {amount}/mes"
+  },
   "errors": {
     "notConfigured": "La facturación todavía no está configurada para este sitio.",
     "invalidPlan": "Ese plan no es válido.",

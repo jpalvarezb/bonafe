@@ -1,9 +1,10 @@
-import { and, eq, inArray, sql, sum } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql, sum } from "drizzle-orm";
 import { withOrgRls } from "@/lib/db/rls";
 import { activities, cropCycles, pieceworkEntries, processingRuns, sales } from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import {
   computeCycleProfitability,
+  groupPieceworkByCycle,
   type CycleProfitability,
 } from "@/lib/calc/profitability";
 
@@ -25,11 +26,10 @@ const activityCostInBase = sql`(${activities.totalCost} * ${activities.exchangeR
 
 /**
  * Per-cycle profitability for the org's crop cycles (or a single cycle when
- * `cycleId` is given). Piecework is intentionally excluded from per-cycle
- * rows — piecework_entries has no crop_cycle_id column, so attributing it to
- * a cycle would require guessing via the worker/harvest link, which is out
- * of scope for Phase 6. Callers should render `orgPieceworkCost` (see
- * `orgUnattributedPieceworkCost` below) as a separate, clearly-labeled line.
+ * `cycleId` is given). Piecework entries that carry a crop_cycle_id are
+ * included in their cycle's row; entries without one cannot be attributed and
+ * are surfaced via `orgUnattributedPieceworkCost` below as a separate,
+ * clearly-labeled line.
  */
 export async function cycleProfitabilityReport(
   ctx: OrgContext,
@@ -100,6 +100,28 @@ export async function cycleProfitabilityReport(
         ),
       )
       .groupBy(processingRuns.cropCycleId);
+    // piecework_entries.amount is captured directly in the org base currency
+    // (no fx column on that table), so it is summed as-is.
+    const pieceworkRows = await tx
+      .select({
+        cropCycleId: pieceworkEntries.cropCycleId,
+        amount: sum(pieceworkEntries.amount),
+      })
+      .from(pieceworkEntries)
+      .where(
+        and(
+          eq(pieceworkEntries.orgId, ctx.org.id),
+          inArray(pieceworkEntries.cropCycleId, cycleIds),
+        ),
+      )
+      .groupBy(pieceworkEntries.cropCycleId);
+
+    const pieceworkByCycle = groupPieceworkByCycle(
+      pieceworkRows.map((r) => ({
+        cropCycleId: r.cropCycleId,
+        amount: r.amount ?? "0",
+      })),
+    ).byCycle;
 
     const salesByCycle = new Map(
       salesRows.map((r) => [r.cropCycleId, r.income ?? "0"]),
@@ -131,7 +153,7 @@ export async function cycleProfitabilityReport(
         salesIncome: [income],
         activityCosts: [activityCost],
         processingCosts: [processing.cost],
-        pieceworkCosts: [],
+        pieceworkCosts: [pieceworkByCycle.get(cycle.id) ?? "0"],
         areaHa: cycle.areaHa,
         outputQuantity: processing.outputQuantity,
       });
@@ -149,9 +171,9 @@ export async function cycleProfitabilityReport(
 }
 
 /**
- * Org-wide piecework spend, shown as a separate footnote line on the
- * profitability report since it cannot be attributed to a crop cycle
- * (piecework_entries has no crop_cycle_id — see module doc above).
+ * Piecework spend with no crop_cycle_id, shown as a separate footnote line
+ * on the profitability report; attributed entries are already inside their
+ * cycle's row (see `cycleProfitabilityReport` above).
  */
 export async function orgUnattributedPieceworkCost(
   ctx: OrgContext,
@@ -160,7 +182,12 @@ export async function orgUnattributedPieceworkCost(
     tx
       .select({ total: sum(pieceworkEntries.amount) })
       .from(pieceworkEntries)
-      .where(eq(pieceworkEntries.orgId, ctx.org.id)),
+      .where(
+        and(
+          eq(pieceworkEntries.orgId, ctx.org.id),
+          isNull(pieceworkEntries.cropCycleId),
+        ),
+      ),
   );
   return row?.total ?? "0";
 }

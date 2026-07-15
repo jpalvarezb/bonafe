@@ -8,13 +8,28 @@
     "title": "Problemas de sincronización",
     "empty": "No hay problemas de sincronización.",
     "discard": "Descartar",
+    "discardConfirm": "¿Descartar este registro? No se sincronizará.",
+    "rejectedBadge": "Rechazado",
+    "retry": "Reintentar",
+    "edit": "Editar",
     "viewAll": "Ver todo",
     "kinds": {
       "activity_create": "Actividad",
       "monitoring_create": "Monitoreo",
       "attendance_upsert": "Asistencia",
       "harvest_create": "Cosecha",
-      "workorder_complete": "Completar orden de trabajo"
+      "workorder_complete": "Completar orden de trabajo",
+      "piecework_create": "Registro de destajo"
+    },
+    "reasons": {
+      "validation": "Algunos campos no son válidos. Edita e inténtalo de nuevo.",
+      "not_found": "No se encontró un registro relacionado (trabajador, tarifa, parcela, ciclo…).",
+      "inactive": "Un registro relacionado está inactivo.",
+      "read_only": "La facturación de tu organización está vencida — las modificaciones están pausadas.",
+      "plan_limit": "Esto excede el límite de tu plan.",
+      "feature_not_in_plan": "Esta función no está incluida en tu plan.",
+      "forbidden": "No tienes permiso para esta acción.",
+      "unknown": "Algo salió mal. Inténtalo de nuevo."
     }
   },
   "pendingNote": "Se guardó en este dispositivo y se sincronizará al recuperar conexión.",

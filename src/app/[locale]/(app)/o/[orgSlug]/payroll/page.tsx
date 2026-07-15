@@ -10,6 +10,7 @@ import { can } from "@/lib/authz";
 import { getOrgPlan, hasFeature } from "@/lib/plan-limits";
 import { listPayrollPeriods } from "@/server/services/payroll";
 import { createPayrollPeriodAction } from "@/server/actions/payroll";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusChip } from "@/components/ui/status-chip";
@@ -35,10 +36,12 @@ export default async function PayrollPeriodsPage({
   }
 
   const t = await getTranslations("payroll");
+  const tImporter = await getTranslations("importer");
   const format = await getFormatter();
 
   const periods = await listPayrollPeriods(ctx);
   const canManage = can(ctx.role, "payroll", "manage");
+  const canExport = can(ctx.role, "report", "view");
 
   const money = (value: string, currencyCode: string) =>
     format.number(Number(value), {
@@ -48,7 +51,16 @@ export default async function PayrollPeriodsPage({
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        {canExport && (
+          <Button asChild variant="outline" size="sm">
+            <a href={`/api/export?type=payroll&org=${orgSlug}&locale=${locale}`}>
+              {tImporter("exportCsv")}
+            </a>
+          </Button>
+        )}
+      </div>
 
       {periods.length === 0 ? (
         <p className="text-[length:var(--density-font-body)] text-muted-foreground">

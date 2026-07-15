@@ -21,6 +21,7 @@ const lineSchema = z.object({
 
 const saleSchema = z.object({
   cropCycleId: z.string().uuid().optional(),
+  processingRunId: z.string().uuid().optional(),
   date: z.string().min(10),
   buyerName: z.string().min(1),
   invoiceNumber: z.string().optional(),
@@ -42,6 +43,7 @@ export async function createSaleAction(formData: FormData) {
 
   const created = await createSale(ctx, {
     cropCycleId: payload.cropCycleId || null,
+    processingRunId: payload.processingRunId || null,
     date: payload.date,
     buyerName: payload.buyerName,
     invoiceNumber: payload.invoiceNumber || null,

@@ -307,7 +307,7 @@ export async function convertPlannedActivity(ctx: OrgContext, id: string) {
     // idempotent by id (ON CONFLICT DO NOTHING + replay fetch), so if the
     // status update below fails and the user retries, the same activity row
     // is returned instead of a duplicate being created.
-    const created = await createActivityInTx(tx, ctx, {
+    const { activity } = await createActivityInTx(tx, ctx, {
       id: plan.id,
       activityTypeId: plan.activityTypeId,
       parcelId: plan.parcelId,
@@ -320,7 +320,7 @@ export async function convertPlannedActivity(ctx: OrgContext, id: string) {
     });
     const [updated] = await tx
       .update(plannedActivities)
-      .set({ status: "converted", convertedActivityId: created.id })
+      .set({ status: "converted", convertedActivityId: activity.id })
       .where(
         and(
           eq(plannedActivities.id, id),
@@ -329,6 +329,6 @@ export async function convertPlannedActivity(ctx: OrgContext, id: string) {
       )
       .returning();
 
-    return { plan: updated, activity: created };
+    return { plan: updated, activity };
   });
 }

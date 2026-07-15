@@ -11,6 +11,7 @@ import {
 } from "@/server/services/inventory";
 import { listProducts } from "@/server/services/catalog";
 import { AdjustmentForm } from "@/components/inventory/adjustment-form";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status-chip";
 
@@ -27,11 +28,13 @@ export default async function InventoryPage({
   }
 
   const t = await getTranslations("inventory");
+  const tImporter = await getTranslations("importer");
   const format = await getFormatter();
   // recordAdjustmentAction -> recordAdjustment requires inventory:manage
   // (src/server/services/inventory.ts); mirrors the warehouses page idiom
   // of hiding the create form for roles that can't submit it.
   const canManage = can(ctx.role, "inventory", "manage");
+  const canExport = can(ctx.role, "report", "view");
 
   // Guarantee at least one warehouse exists so the adjustment form has an option.
   await ensureDefaultWarehouse(ctx);
@@ -56,7 +59,18 @@ export default async function InventoryPage({
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        {canExport && (
+          <Button asChild variant="outline" size="sm">
+            <a
+              href={`/api/export?type=inventory&org=${orgSlug}&locale=${locale}`}
+            >
+              {tImporter("exportCsv")}
+            </a>
+          </Button>
+        )}
+      </div>
 
       <Card>
         <CardContent>

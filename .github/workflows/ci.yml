@@ -79,3 +79,50 @@ jobs:
       - run: echo "DATABASE_URL=$DATABASE_URL" > .env
       - run: pnpm db:migrate
       - run: pnpm db:verify-rls
+
+  integration:
+    name: Integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4 # matches docker-compose.yml + README
+        env:
+          POSTGRES_USER: agropeq
+          POSTGRES_PASSWORD: agropeq
+          POSTGRES_DB: agropeq
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U agropeq"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://agropeq:agropeq@localhost:5432/agropeq
+      APP_DATABASE_URL: postgres://agropeq_app:agropeq_app_ci@localhost:5432/agropeq
+      APP_DB_PASSWORD: agropeq_app_ci
+      STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # db:set-app-password runs via `tsx --env-file=.env`; Node errors if
+      # .env is missing, so write one with the owner connection string and
+      # the app-role password (same trick the DB + RLS job uses for .env).
+      - run: |
+          echo "DATABASE_URL=$DATABASE_URL" > .env
+          echo "APP_DB_PASSWORD=$APP_DB_PASSWORD" >> .env
+      # Roles are cluster-wide, not per-database, so agropeq_app must exist
+      # before db:set-app-password can ALTER it. Applying the migrations
+      # once against the base db (via drizzle-kit directly, NOT the
+      # `pnpm db:migrate` script) creates the role via idempotent
+      # drizzle/0017_app-role.sql; global-setup.ts below applies the same
+      # idempotent migrations again against the isolated `_test` database,
+      # so there's no separate/manual `pnpm db:migrate` step for CI to run.
+      - run: pnpm exec drizzle-kit migrate
+      # Sets the agropeq_app role's cluster-wide password — required before
+      # APP_DATABASE_URL auth (and test:integration) will work.
+      - run: pnpm db:set-app-password
+      # No manual _test-db setup beyond the role/password above:
+      # tests/integration/support/global-setup.ts creates and migrates its
+      # own isolated `_test` database.
+      - run: pnpm test:integration

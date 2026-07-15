@@ -6,6 +6,7 @@ import {
   attendanceUpsertPayload,
   harvestCreatePayload,
   monitoringCreatePayload,
+  pieceworkEntryCreatePayload,
   syncRequestSchema,
   workOrderCompletePayload,
   type SyncItemResult,
@@ -14,8 +15,10 @@ import { createActivity } from "@/server/services/activities";
 import { createMonitoringRecord } from "@/server/services/monitoring";
 import { upsertAttendance } from "@/server/services/attendance";
 import { createHarvest } from "@/server/services/harvests";
+import { createPieceworkEntry } from "@/server/services/piecework";
 import { completeWorkOrder } from "@/server/services/work-orders";
 import { audit } from "@/lib/audit";
+import { classifyRejection } from "@/lib/offline/retry";
 
 /**
  * Offline outbox ingest. Items are applied in order; each is idempotent by
@@ -79,7 +82,7 @@ export async function POST(request: Request) {
     try {
       if (item.kind === "activity.create") {
         const payload = activityCreatePayload.parse(item.payload);
-        await createActivity(ctx, {
+        const { created } = await createActivity(ctx, {
           id: payload.id,
           parcelId: payload.parcelId ?? null,
           cropCycleId: payload.cropCycleId ?? null,
@@ -90,17 +93,28 @@ export async function POST(request: Request) {
           otherCost: payload.otherCost,
           currencyCode: payload.currencyCode,
           createdOffline: true,
-          inputs: payload.inputs,
+          inputs: payload.inputs.map((line) => ({
+            ...line,
+            unitCost: line.unitCost || undefined,
+          })),
           labor: payload.labor.map((line) => ({
             ...line,
+            workerId: line.workerId || undefined,
             hours: line.hours || null,
+            quantity: line.quantity || undefined,
           })),
         });
-        // Replays return the existing row (ON CONFLICT DO NOTHING) — from the
-        // client's perspective applied and duplicate resolve identically.
-        results.push({ outboxId: item.outboxId, status: "applied" });
+        // Replays return the existing row (ON CONFLICT DO NOTHING): report
+        // 'duplicate' so the client can tell a first apply from a no-op replay.
+        results.push({
+          outboxId: item.outboxId,
+          status: created ? "applied" : "duplicate",
+        });
       } else if (item.kind === "attendance.upsert") {
         const payload = attendanceUpsertPayload.parse(item.payload);
+        // upsertAttendance is onConflictDoUpdate (last-write-wins): every
+        // replay genuinely re-applies the write, so there is no first-vs-
+        // replay distinction to report — always 'applied'.
         await upsertAttendance(ctx, {
           id: payload.id,
           workerId: payload.workerId,
@@ -114,7 +128,7 @@ export async function POST(request: Request) {
         results.push({ outboxId: item.outboxId, status: "applied" });
       } else if (item.kind === "harvest.create") {
         const payload = harvestCreatePayload.parse(item.payload);
-        await createHarvest(ctx, {
+        const { created } = await createHarvest(ctx, {
           id: payload.id,
           parcelId: payload.parcelId,
           cropCycleId: payload.cropCycleId ?? null,
@@ -126,7 +140,26 @@ export async function POST(request: Request) {
           notes: payload.notes ?? null,
           createdOffline: true,
         });
-        results.push({ outboxId: item.outboxId, status: "applied" });
+        results.push({
+          outboxId: item.outboxId,
+          status: created ? "applied" : "duplicate",
+        });
+      } else if (item.kind === "piecework.create") {
+        const payload = pieceworkEntryCreatePayload.parse(item.payload);
+        const { created } = await createPieceworkEntry(ctx, {
+          id: payload.id,
+          workerId: payload.workerId,
+          pieceRateId: payload.pieceRateId,
+          cropCycleId: payload.cropCycleId ?? null,
+          date: payload.date,
+          quantity: payload.quantity,
+          notes: payload.notes ?? null,
+          createdOffline: true,
+        });
+        results.push({
+          outboxId: item.outboxId,
+          status: created ? "applied" : "duplicate",
+        });
       } else if (item.kind === "workorder.complete") {
         const payload = workOrderCompletePayload.parse(item.payload);
         const { workOrder, transitioned } = await completeWorkOrder(ctx, {
@@ -142,10 +175,15 @@ export async function POST(request: Request) {
             meta: { code: workOrder.code, to: "done" },
           });
         }
-        results.push({ outboxId: item.outboxId, status: "applied" });
-      } else {
+        // "done" is terminal, so a replayed completion is an idempotent
+        // no-op — report it as 'duplicate' rather than 'applied'.
+        results.push({
+          outboxId: item.outboxId,
+          status: transitioned ? "applied" : "duplicate",
+        });
+      } else if (item.kind === "monitoring.create") {
         const payload = monitoringCreatePayload.parse(item.payload);
-        await createMonitoringRecord(ctx, {
+        const { created } = await createMonitoringRecord(ctx, {
           id: payload.id,
           parcelId: payload.parcelId,
           cropCycleId: payload.cropCycleId ?? null,
@@ -158,13 +196,28 @@ export async function POST(request: Request) {
           actionsTaken: payload.actionsTaken ?? null,
           location: payload.location ?? null,
         });
-        results.push({ outboxId: item.outboxId, status: "applied" });
+        results.push({
+          outboxId: item.outboxId,
+          status: created ? "applied" : "duplicate",
+        });
+      } else {
+        // Defensive: syncRequestSchema already restricts item.kind to a known
+        // OUTBOX_KINDS key, so this is unreachable with a well-formed request.
+        // Kept explicit (rather than falling through to monitoringCreatePayload)
+        // so an unrecognized kind never gets silently misparsed as monitoring.
+        results.push({
+          outboxId: item.outboxId,
+          status: "rejected",
+          error: `unrecognized kind: ${item.kind}`,
+          reasonCode: "validation",
+        });
       }
     } catch (error) {
       results.push({
         outboxId: item.outboxId,
         status: "rejected",
         error: error instanceof Error ? error.message : "unknown error",
+        reasonCode: classifyRejection(error),
       });
     }
   }

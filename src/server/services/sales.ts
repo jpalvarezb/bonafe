@@ -1,12 +1,19 @@
 import { and, asc, count, desc, eq } from "drizzle-orm";
 import Decimal from "decimal.js";
 import { withOrgRls } from "@/lib/db/rls";
-import { cropCycles, saleLines, sales } from "@/lib/db/schema";
+import {
+  cropCycles,
+  harvestLots,
+  processingRuns,
+  saleLines,
+  sales,
+} from "@/lib/db/schema";
 import type { OrgContext } from "@/lib/tenancy";
 import { assertCan } from "@/lib/authz";
 import { assertOrgFeature } from "@/lib/plan-limits";
 import { newId } from "@/lib/ids";
 import { inputLineTotal } from "@/lib/calc/costs";
+import { resolveSaleCycle } from "@/lib/calc/profitability";
 import { latestRateToBaseInTx } from "@/server/services/exchange-rates";
 
 export type SaleLineInput = {
@@ -18,6 +25,8 @@ export type SaleLineInput = {
 
 export type SaleInput = {
   cropCycleId?: string | null;
+  /** When set, the crop cycle is derived through the run → lot chain. */
+  processingRunId?: string | null;
   date: string;
   buyerName: string;
   invoiceNumber?: string | null;
@@ -49,6 +58,39 @@ export async function createSale(ctx: OrgContext, input: SaleInput) {
       if (!cycle) throw new Error("crop cycle not found");
     }
 
+    // Derive the cycle through the processing-run → harvest-lot chain when a
+    // run is linked; a manual tag that contradicts the chain is rejected
+    // rather than silently overwritten.
+    let processingRun = null;
+    if (input.processingRunId) {
+      const [run] = await tx
+        .select({
+          cropCycleId: processingRuns.cropCycleId,
+          lotCycleId: harvestLots.cropCycleId,
+        })
+        .from(processingRuns)
+        .leftJoin(harvestLots, eq(processingRuns.harvestLotId, harvestLots.id))
+        .where(
+          and(
+            eq(processingRuns.id, input.processingRunId),
+            eq(processingRuns.orgId, ctx.org.id),
+          ),
+        )
+        .limit(1);
+      if (!run) throw new Error("processing run not found");
+      processingRun = {
+        cropCycleId: run.cropCycleId,
+        harvestLot: run.lotCycleId ? { cropCycleId: run.lotCycleId } : null,
+      };
+    }
+    const resolvedCycle = resolveSaleCycle({
+      manualCropCycleId: input.cropCycleId ?? null,
+      processingRun,
+    });
+    if (resolvedCycle.mismatch) {
+      throw new Error("crop cycle does not match the processing run's cycle");
+    }
+
     const currencyCode = input.currencyCode ?? ctx.org.baseCurrencyCode;
     const exchangeRate =
       currencyCode === ctx.org.baseCurrencyCode
@@ -76,7 +118,8 @@ export async function createSale(ctx: OrgContext, input: SaleInput) {
       .values({
         id: saleId,
         orgId: ctx.org.id,
-        cropCycleId: input.cropCycleId ?? null,
+        cropCycleId: resolvedCycle.cropCycleId,
+        processingRunId: input.processingRunId ?? null,
         date: input.date,
         buyerName: input.buyerName,
         invoiceNumber: input.invoiceNumber ?? null,

@@ -10,7 +10,7 @@ import { Notice } from "@/components/ui/notice";
 import { Metric } from "@/components/ui/metric";
 import { cn } from "@/lib/utils";
 import { computeActivityTotals } from "@/lib/calc/costs";
-import { enqueue, flushOutbox, outboxCounts } from "@/lib/offline/outbox";
+import { enqueue, editOutboxEntry, flushOutbox, outboxCounts } from "@/lib/offline/outbox";
 import { useOnlineStatus } from "@/components/offline/sync-status-badge";
 import { newId } from "@/lib/ids";
 
@@ -26,11 +26,36 @@ type InputLineState = {
 
 type LaborLineState = {
   key: number;
+  workerId: string;
   workerName: string;
   workersCount: string;
   hours: string;
-  rateType: "daily" | "hourly";
+  quantity: string;
+  rateType: "daily" | "hourly" | "piecework";
   rate: string;
+};
+
+/** Mirrors activityCreatePayload (src/lib/offline/schemas.ts). */
+export type ActivityPayload = {
+  id: string;
+  parcelId?: string;
+  cropCycleId?: string;
+  costCenterId?: string;
+  activityTypeId: string;
+  date: string;
+  description?: string;
+  otherCost?: string;
+  currencyCode?: string;
+  inputs: { productId: string; quantity: string; unitCost?: string }[];
+  labor: {
+    workerId?: string;
+    workerName?: string;
+    workersCount: number;
+    hours?: string;
+    quantity?: string;
+    rateType: "daily" | "hourly" | "piecework";
+    rate: string;
+  }[];
 };
 
 type Props = {
@@ -41,8 +66,17 @@ type Props = {
   readonly activityTypes: Option[];
   readonly products: Option[];
   readonly costCenters: Option[];
+  readonly workers: Option[];
+  /** productId -> default-warehouse WAC (src/lib/calc/activity-costing.ts),
+   * used to prefill (still editable) each input line's unit cost. */
+  readonly unitCostByProduct: Record<string, string>;
   readonly currencyCode: string;
   readonly currencies: string[];
+  /** Edit-then-retry: prefills from a rejected outbox entry's payload. */
+  readonly initialPayload?: ActivityPayload;
+  /** Same outbox row/id — editOutboxEntry never mints a new UUID. */
+  readonly editingOutboxId?: string;
+  readonly onCancelEdit?: () => void;
 };
 
 let keyCounter = 1;
@@ -81,26 +115,65 @@ export function ActivityForm({
   activityTypes,
   products,
   costCenters,
+  workers,
+  unitCostByProduct,
   currencyCode,
   currencies,
+  initialPayload,
+  editingOutboxId,
+  onCancelEdit,
 }: Props) {
   const t = useTranslations("activities");
   const router = useRouter();
-  const [parcelId, setParcelId] = useState<string>("");
-  const [cropCycleId, setCropCycleId] = useState<string>("");
-  const [activityTypeId, setActivityTypeId] = useState<string>(
-    activityTypes[0]?.id ?? "",
+  const isEditing = Boolean(editingOutboxId);
+  const [parcelId, setParcelId] = useState<string>(
+    initialPayload?.parcelId ?? "",
   );
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [description, setDescription] = useState("");
-  const [otherCost, setOtherCost] = useState("");
-  const [costCenterId, setCostCenterId] = useState<string>("");
-  const [selectedCurrency, setSelectedCurrency] = useState(currencyCode);
-  const [inputs, setInputs] = useState<InputLineState[]>([]);
-  const [labor, setLabor] = useState<LaborLineState[]>([]);
+  const [cropCycleId, setCropCycleId] = useState<string>(
+    initialPayload?.cropCycleId ?? "",
+  );
+  const [activityTypeId, setActivityTypeId] = useState<string>(
+    initialPayload?.activityTypeId ?? activityTypes[0]?.id ?? "",
+  );
+  const [date, setDate] = useState(
+    initialPayload?.date ?? new Date().toISOString().slice(0, 10),
+  );
+  const [description, setDescription] = useState(
+    initialPayload?.description ?? "",
+  );
+  const [otherCost, setOtherCost] = useState(initialPayload?.otherCost ?? "");
+  const [costCenterId, setCostCenterId] = useState<string>(
+    initialPayload?.costCenterId ?? "",
+  );
+  const [selectedCurrency, setSelectedCurrency] = useState(
+    initialPayload?.currencyCode ?? currencyCode,
+  );
+  const [inputs, setInputs] = useState<InputLineState[]>(
+    () =>
+      initialPayload?.inputs.map((line) => ({
+        key: keyCounter++,
+        productId: line.productId,
+        quantity: line.quantity,
+        unitCost: line.unitCost ?? "",
+      })) ?? [],
+  );
+  const [labor, setLabor] = useState<LaborLineState[]>(
+    () =>
+      initialPayload?.labor.map((line) => ({
+        key: keyCounter++,
+        workerId: line.workerId ?? "",
+        workerName: line.workerName ?? "",
+        workersCount: String(line.workersCount),
+        hours: line.hours ?? "",
+        quantity: line.quantity ?? "",
+        rateType: line.rateType,
+        rate: line.rate,
+      })) ?? [],
+  );
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const tOffline = useTranslations("offline");
+  const tCommon = useTranslations("common");
   const online = useOnlineStatus();
   const counts = useLiveQuery(
     () => outboxCounts(orgSlug),
@@ -122,6 +195,7 @@ export function ActivityForm({
         labor: labor.map((line) => ({
           workersCount: Number(line.workersCount) || 0,
           hours: line.hours || 0,
+          quantity: line.quantity || 0,
           rateType: line.rateType,
           rate: line.rate || 0,
         })),
@@ -137,8 +211,8 @@ export function ActivityForm({
     event.preventDefault();
     setSubmitting(true);
     setSaveError(false);
-    const payload = {
-      id: newId(),
+    const payload: ActivityPayload = {
+      id: initialPayload?.id ?? newId(),
       parcelId: parcelId || undefined,
       cropCycleId: cropCycleId || undefined,
       costCenterId: costCenterId || undefined,
@@ -155,15 +229,30 @@ export function ActivityForm({
           unitCost: line.unitCost || "0",
         })),
       labor: labor.map((line) => ({
+        workerId: line.workerId || undefined,
         workerName: line.workerName || undefined,
         workersCount: Number(line.workersCount) || 1,
         hours: line.hours || undefined,
+        quantity:
+          line.rateType === "piecework" ? line.quantity || "0" : undefined,
         rateType: line.rateType,
         rate: line.rate || "0",
       })),
     };
     try {
-      await enqueue(orgSlug, "activity.create", payload);
+      if (editingOutboxId) {
+        await editOutboxEntry(editingOutboxId, payload);
+      } else {
+        await enqueue(orgSlug, "activity.create", payload);
+      }
+      if (editingOutboxId) {
+        if (navigator.onLine) {
+          await flushOutbox(orgSlug).catch(() => null);
+          router.refresh();
+        }
+        onCancelEdit?.();
+        return;
+      }
       if (navigator.onLine) {
         flushOutbox(orgSlug).catch(() => null);
         router.push(`/o/${orgSlug}/activities`);
@@ -355,13 +444,21 @@ export function ActivityForm({
                 <select
                   aria-label={t("inputs.product")}
                   value={line.productId}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    const productId = e.target.value;
                     setInputs((lines) =>
                       lines.map((l, i) =>
-                        i === index ? { ...l, productId: e.target.value } : l,
+                        i === index
+                          ? {
+                              ...l,
+                              productId,
+                              // Prefill from WAC; user can still edit it.
+                              unitCost: unitCostByProduct[productId] ?? l.unitCost,
+                            }
+                          : l,
                       ),
-                    )
-                  }
+                    );
+                  }}
                   className={cn(
                     ROW_FIELD,
                     "w-full border-r border-border pr-2",
@@ -393,6 +490,11 @@ export function ActivityForm({
                 />
                 <input
                   aria-label={t("inputs.unitCost")}
+                  title={
+                    unitCostByProduct[line.productId]
+                      ? t("inputs.unitCostHint")
+                      : undefined
+                  }
                   type="number"
                   step="0.0001"
                   min="0"
@@ -425,15 +527,18 @@ export function ActivityForm({
         <button
           type="button"
           onClick={() =>
-            setInputs((lines) => [
-              ...lines,
-              {
-                key: keyCounter++,
-                productId: products[0]?.id ?? "",
-                quantity: "",
-                unitCost: "",
-              },
-            ])
+            setInputs((lines) => {
+              const productId = products[0]?.id ?? "";
+              return [
+                ...lines,
+                {
+                  key: keyCounter++,
+                  productId,
+                  quantity: "",
+                  unitCost: unitCostByProduct[productId] ?? "",
+                },
+              ];
+            })
           }
           className="flex h-[var(--density-control-h)] items-center justify-center rounded-[3px] border border-dashed border-border text-[length:var(--density-font-body)] text-muted-foreground hover:bg-muted"
         >
@@ -454,6 +559,25 @@ export function ActivityForm({
                   CELL,
                 )}
               >
+                <select
+                  aria-label={t("labor.worker")}
+                  value={line.workerId}
+                  onChange={(e) =>
+                    setLabor((lines) =>
+                      lines.map((l, i) =>
+                        i === index ? { ...l, workerId: e.target.value } : l,
+                      ),
+                    )
+                  }
+                  className={cn(CONTROL, "w-40")}
+                >
+                  <option value="">{t("labor.workerNone")}</option>
+                  {workers.map((worker) => (
+                    <option key={worker.id} value={worker.id}>
+                      {worker.name}
+                    </option>
+                  ))}
+                </select>
                 <input
                   aria-label={t("labor.workerName")}
                   value={line.workerName}
@@ -494,7 +618,10 @@ export function ActivityForm({
                         i === index
                           ? {
                               ...l,
-                              rateType: e.target.value as "daily" | "hourly",
+                              rateType: e.target.value as
+                                | "daily"
+                                | "hourly"
+                                | "piecework",
                             }
                           : l,
                       ),
@@ -504,6 +631,7 @@ export function ActivityForm({
                 >
                   <option value="daily">{t("labor.daily")}</option>
                   <option value="hourly">{t("labor.hourly")}</option>
+                  <option value="piecework">{t("labor.piecework")}</option>
                 </select>
                 {line.rateType === "hourly" && (
                   <input
@@ -516,6 +644,28 @@ export function ActivityForm({
                       setLabor((lines) =>
                         lines.map((l, i) =>
                           i === index ? { ...l, hours: e.target.value } : l,
+                        ),
+                      )
+                    }
+                    className={cn(
+                      CONTROL,
+                      "w-20 text-right font-mono tabular",
+                    )}
+                  />
+                )}
+                {line.rateType === "piecework" && (
+                  <input
+                    aria-label={t("labor.quantity")}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={line.quantity}
+                    onChange={(e) =>
+                      setLabor((lines) =>
+                        lines.map((l, i) =>
+                          i === index
+                            ? { ...l, quantity: e.target.value }
+                            : l,
                         ),
                       )
                     }
@@ -563,9 +713,11 @@ export function ActivityForm({
               ...lines,
               {
                 key: keyCounter++,
+                workerId: "",
                 workerName: "",
                 workersCount: "1",
                 hours: "",
+                quantity: "",
                 rateType: "daily",
                 rate: "",
               },
@@ -628,13 +780,24 @@ export function ActivityForm({
 
       {saveError && <Notice variant="error">{tOffline("saveError")}</Notice>}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="h-[var(--density-control-h)] w-full rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:w-auto"
-      >
-        {t("save")}
-      </button>
+      <div className="flex gap-2 sm:self-start">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="h-[var(--density-control-h)] flex-1 rounded-[3px] bg-foreground px-6 text-[length:var(--density-font-body)] font-semibold text-background transition-opacity hover:opacity-90 disabled:opacity-50 sm:flex-none"
+        >
+          {isEditing ? tOffline("issues.retry") : t("save")}
+        </button>
+        {isEditing && (
+          <button
+            type="button"
+            onClick={onCancelEdit}
+            className="h-[var(--density-control-h)] rounded-[3px] border border-border px-6 text-[length:var(--density-font-body)] font-medium text-foreground hover:bg-muted"
+          >
+            {tCommon("actions.cancel")}
+          </button>
+        )}
+      </div>
     </form>
   );
 }
