@@ -31,6 +31,11 @@ const LAYER_KEYS: readonly LayerKey[] = ["costHa", "margin", "crop", "stage"];
 
 const NEUTRAL_FILL = "rgba(160, 160, 160, 0.35)";
 const NEUTRAL_LINE = "rgba(210, 210, 210, 0.9)";
+// Theme-independent casing color: near-black ~60% opacity, rendered under the
+// status-colored stroke so parcel outlines stay legible over vegetation in
+// both light and dark themes. Must NOT go through color-utils.ts
+// readColorToken/tokens.* (that pipeline is theme-reactive by design).
+const CASING_LINE = "rgba(0, 0, 0, 0.6)";
 
 type Props = {
   readonly data: CockpitData;
@@ -201,6 +206,17 @@ export function MapCockpit({ data, orgSlug, currencyCode, farms }: Props) {
     return idMatchExpr(pairs, 1.5);
   }, [withBoundary, selectedParcelId]);
 
+  // Mirrors lineWidthExpr but offset +2 so the casing peeks ~1px per side
+  // beyond the colored stroke in both unselected (3.5 under 1.5) and
+  // selected (5.5 under 3.5) states.
+  const casingWidthExpr = useMemo(() => {
+    const pairs = withBoundary.map((p): [string, number] => [
+      p.id,
+      p.id === selectedParcelId ? 5.5 : 3.5,
+    ]);
+    return idMatchExpr(pairs, 3.5);
+  }, [withBoundary, selectedParcelId]);
+
   const monitoringCollection = useMemo(
     () => ({
       type: "FeatureCollection" as const,
@@ -353,6 +369,16 @@ export function MapCockpit({ data, orgSlug, currencyCode, farms }: Props) {
               {
                 "fill-color": fillColorExpr,
                 "fill-opacity": fillOpacityExpr,
+              } as never
+            }
+          />
+          <Layer
+            id="cockpit-parcels-casing"
+            type="line"
+            paint={
+              {
+                "line-color": CASING_LINE,
+                "line-width": casingWidthExpr,
               } as never
             }
           />
