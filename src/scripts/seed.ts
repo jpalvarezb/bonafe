@@ -292,14 +292,14 @@ async function seedFarmData(orgId: string, ownerId: string) {
     ])
     .onConflictDoNothing({ target: farms.id });
 
-  // Matagalpa coffee country (~ -85.92, 12.93)
+  // Matagalpa coffee country — forested hills east of town (~ -85.86, 12.948)
   const parcelRows = [
     {
       id: ID.parcelA,
       farmId: ID.farmEsperanza,
       name: "Lote El Cedro",
       code: "A-01",
-      boundary: polygonAround(-85.92, 12.93, 0.0022, 0.0018, 101, 8),
+      boundary: polygonAround(-85.86, 12.948, 0.0022, 0.0018, 101, 8),
       soilType: "Franco arcilloso",
     },
     {
@@ -307,7 +307,7 @@ async function seedFarmData(orgId: string, ownerId: string) {
       farmId: ID.farmEsperanza,
       name: "Lote La Loma",
       code: "A-02",
-      boundary: polygonAround(-85.914, 12.932, 0.0018, 0.0022, 102, 7),
+      boundary: polygonAround(-85.854, 12.95, 0.0018, 0.0022, 102, 7),
       soilType: "Franco",
     },
     {
@@ -315,7 +315,7 @@ async function seedFarmData(orgId: string, ownerId: string) {
       farmId: ID.farmEsperanza,
       name: "Lote El Naranjal",
       code: "A-03",
-      boundary: polygonAround(-85.917, 12.926, 0.0016, 0.0014, 103, 10),
+      boundary: polygonAround(-85.857, 12.944, 0.0016, 0.0014, 103, 10),
       soilType: "Franco arenoso",
     },
     {
@@ -715,7 +715,7 @@ async function seedMonitoring(orgId: string, createdBy: string) {
       incidencePct: "12.50",
       notes: "Focos en el sector norte",
       actionsTaken: "Trampas con alcohol instaladas",
-      location: { type: "Point" as const, coordinates: [-85.9205, 12.9305] },
+      location: { type: "Point" as const, coordinates: [-85.8605, 12.9485] },
     },
     {
       id: "01900000-0000-7000-8000-00000000ee02",
@@ -728,7 +728,7 @@ async function seedMonitoring(orgId: string, createdBy: string) {
       incidencePct: "22.00",
       notes: "Avance rápido tras lluvias",
       actionsTaken: "Aplicación de cyproconazol programada",
-      location: { type: "Point" as const, coordinates: [-85.9192, 12.9295] },
+      location: { type: "Point" as const, coordinates: [-85.8592, 12.9475] },
     },
     {
       id: "01900000-0000-7000-8000-00000000ee03",
