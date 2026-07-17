@@ -700,6 +700,12 @@ async function seedNeighborOrg() {
   console.log("exchange rates ensured (vecino-sa: USD/EUR, 3 dates each)");
 }
 
+function daysAgo(days: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
 async function seedMonitoring(orgId: string, createdBy: string) {
   // Interior points of each parcel's polygonAround(...) boundary above (well
   // within the half-extents), so the map cockpit has real pins to render.
@@ -708,7 +714,7 @@ async function seedMonitoring(orgId: string, createdBy: string) {
       id: "01900000-0000-7000-8000-00000000ee01",
       parcelId: ID.parcelA,
       cropCycleId: ID.cycleCafeA,
-      date: "2026-05-12",
+      date: daysAgo(10),
       type: "pest" as const,
       agentName: "Broca del café",
       severity: 3,
@@ -721,7 +727,7 @@ async function seedMonitoring(orgId: string, createdBy: string) {
       id: "01900000-0000-7000-8000-00000000ee02",
       parcelId: ID.parcelA,
       cropCycleId: ID.cycleCafeA,
-      date: "2026-06-02",
+      date: daysAgo(45),
       type: "disease" as const,
       agentName: "Roya (Hemileia vastatrix)",
       severity: 4,
@@ -734,7 +740,7 @@ async function seedMonitoring(orgId: string, createdBy: string) {
       id: "01900000-0000-7000-8000-00000000ee03",
       parcelId: ID.parcelD,
       cropCycleId: ID.cycleMaizB,
-      date: "2026-06-10",
+      date: daysAgo(20),
       type: "weed" as const,
       agentName: "Coyolillo",
       severity: 2,
